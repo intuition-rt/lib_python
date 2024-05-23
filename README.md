@@ -12,6 +12,16 @@
 - Gérer l’accès aux capteurs I2C de la carte accessoire
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
 
+## Version 19:
+
+Date de publication:
+Objectif : 26/04/2024
+
+Ajout par rapport à la version précédente:
+```
+• Mise à jour des trames de retour
+```
+
 ## Version 18:
 
 Date de publication:

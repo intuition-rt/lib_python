@@ -1,8 +1,8 @@
 # This python scrip is the libery for python
 # SIMON LE BERRE
-# 21/08/2023
+# 26/04/2024
 # pip install ilo
-version = "0.18"
+version = "0.19"
 #-----------------------------------------------------------------------------
 
 print("ilo robot library version ", version)
@@ -386,116 +386,104 @@ def game():
 
 #-----------------------------------------------------------------------------
 
-clear_left = 0
-clear_middle =0
-clear_right = 0
-
-def get_color_clear():
-    """
-    Return lightness under the robot with list form as [light_left, light_middle, light_right]
-    :return:
-    """
-    try:
-        socket_send("i0o")
+def classification(trame):
+    try: 
+        print('trame envoyée: ', trame)
+    
         global s
-        data = str(s.recv(1024))[2:-1]
-
-        clear_left   = int(data[data.find('l')+1 : data.find('m')])
-        clear_middle = int(data[data.find('m')+1 : data.find('r')])
-        clear_right  = int(data[data.find('r')+1 : data.find('o')])
-
-        if (clear_left > 100):
-            clear_left = 100
-
-        if (clear_middle > 100):
-            clear_middle = 100
-
-        if (clear_right > 100):
-            clear_right = 100
-
-        if (clear_left < 0):
-            clear_left = 0
-
-        if (clear_middle < 0):
-            clear_middle = 0
-
-        if (clear_right < 0):
-            clear_right = 0
-
-        return clear_left, clear_middle, clear_right
-        #make a test of type of clear value return
-
+        socket_send(trame)
+        
+        data = str(s.recv(1024))[1:]
+        print ('data reçu:   ', data)
+        print ('data indice: ', data[2])
+        
+        if int(data[2]) == 0:
+            clear_left   = int(data[data.find('l')+1 : data.find('m')])
+            clear_middle = int(data[data.find('m')+1 : data.find('r')])
+            clear_right  = int(data[data.find('r')+1 : data.find('o')])
+            return clear_left, clear_middle, clear_right
+        
+        if int(data[2]) == 1:
+            red_color   = data[data.find('r')+1 : data.find('g')]
+            green_color = data[data.find('g')+1 : data.find('b')]
+            blue_color  = data[data.find('b')+1 : data.find('o')]
+            return red_color, green_color, blue_color
+        
+        if int(data[2]) == 2:
+            front = data[data.find('f')+1 : data.find('r')]
+            right = data[data.find('r')+1 : data.find('b')]
+            back  = data[data.find('b')+1 : data.find('l')]
+            left  = data[data.find('l')+1 : data.find('o')]
+            return front, right, back, left
+            
+        if int(data[2]) == 3:
+            roll  = int(data[data.find('r')+1 : data.find('p')])
+            pitch = int(data[data.find('p')+1 : data.find('y')])
+            yaw   = int(data[data.find('y')+1 : data.find('o')])
+            return roll, pitch, yaw
+            
+        if int(data[2]) == 4:
+            status_battery      = int(data[data.find('s')+1 : data.find('p')])
+            pourcentage_battery = int(data[data.find('p')+1 : data.find('o')]) 
+            return status_battery, pourcentage_battery
+        
+        if int(data[2]) == 5:
+            red_led   = int(data[data.find('r')+1 : data.find('g')])
+            green_led = int(data[data.find('g')+1 : data.find('b')])
+            blue_led  = int(data[data.find('b')+1 : data.find('o')])
+            return red_led, green_led, blue_led
+        
+        if int(data[2]) == 6:
+            acc_motor  = int(data[data.find('a')+1 : data.find('o')])
+            return acc_motor
+        
+        
+    
     except:
-        return -1, -1, -1
+        print('Communication Err: classification')
+        return -1
+    
+        
+def get_color_clear():
+    return classification("i0o")
+
+def get_color_clear_left():
+    return get_color_clear()[0]
+
+def get_color_clear_middle():
+    return get_color_clear()[1]
+
+def get_color_clear_right():
+    return get_color_clear()[2]
 
 def get_color_rgb():
-    """
-    Return RGB color under the robot with list form as [color_left, color_middle, color_right]
-    :return:
-    """
-    try:
-        socket_send("i1o")
-        global s
-        data = str(s.recv(1024))[1:]
-
-        red_color   = data[data.find('r')+1 : data.find('g')]
-        green_color = data[data.find('g')+1 : data.find('b')]
-        blue_color  = data[data.find('b')+1 : data.find('o')]
-        return red_color, green_color, blue_color
-
-    except:
-            return -1, -1, -1
+    return classification("i1o")
 
 def get_distance():
-    """
-    Return distance around the robot with list from as [front, right, back, left]
-    :return:
-    """
-    try:
-        socket_send("i2o")
-        global s
-        data = str(s.recv(1024))[1:]
+    return classification("i2o")
 
-        front = data[data.find('f')+1 : data.find('r')]
-        right = data[data.find('r')+1 : data.find('b')]
-        back  = data[data.find('b')+1 : data.find('l')]
-        left  = data[data.find('l')+1 : data.find('o')]
-        return front, right, back, left
+def get_angle():
+    return classification("i30o")
 
-    except:
-         return -1, -1, -1, -1
-
-'''def get_angle():
-    socket_send("i3o")
-    global s
-    data = str(s.recv(1024))[1:]
-    roll  = 10
-    pitch = 50
-    yaw   = 30
-    return roll, pitch, yaw
-    
 def reset_angle():
-    # could be angle per angle, with angle parameter ("roll", "pitch", "yaw")
-    socket_send("i4o")
+    socket_send("i31o")
 
 def get_battery_info():
-    socket_send("i5o")
-    global s
-    data = str(s.recv(1024))[1:]
-    status = False #change
-    pourcentage = 96 #change
-    return status, pourcentage
-    
-def get_led_color():
-    socket_send("i6o")
-    global s
-    data = str(s.recv(1024))[1:]
-    red_led   = 123
-    green_led = 50
-    blue_led  = 10
-    return red_led, green_led, blue_led
-'''
+    return classification("i4o")
 
+def get_led_color():
+    return classification("i5o")
+
+def set_led_color(r, g, b):
+    # make integer test and test min and max value
+    msg = "i51r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
+    socket_send(msg)
+    
+def set_led_shape(val):
+    # 52 static lancer une animation ou flèche .. 
+    # 53 animation
+    pass
+'''
 def set_led_color_rgb(red,green,blue):
 
     if isinstance(red, int) == False:
@@ -520,14 +508,13 @@ def set_led_color_rgb(red,green,blue):
     msg = "i7r"+str(red)+"g"+str(green)+"b"+str(blue)+"o"
     socket_send(msg)
 
-#other method are no yet implemented on the robot
 '''
 def get_acceleration():
-    pass
+    return classification("i6o")
 
 def set_acceleration(acc):
     # make integer test and test min and max value
-    msg = "i8"+str(acc)+"o"
+    msg = "i61a"+str(acc)+"o"
     socket_send(msg)
 
 def get_vmax():
@@ -566,4 +553,3 @@ def free_motor():
 def set_mode_motor():
     #between positio or wheel mode
     pass
-'''
