@@ -16,10 +16,12 @@ from ilo import get_color_rgb
 from ilo import get_distance
 from ilo import get_angle
 from ilo import reset_angle
+from ilo import get_imu
 from ilo import get_battery_info
 from ilo import get_led_color
 from ilo import set_led_color
 from ilo import set_led_shape
 from ilo import set_led_anim
+from ilo import set_led_captor
 from ilo import get_acceleration
 from ilo import set_acceleration

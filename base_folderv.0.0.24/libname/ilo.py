@@ -2,7 +2,7 @@
 # SIMON LE BERRE
 # 26/04/2024
 # pip install ilo
-version = "0.21"
+version = "0.24"
 #-----------------------------------------------------------------------------
 
 print("ilo robot library version ", version)
@@ -74,6 +74,8 @@ def list_function():
     print("                                                 4 = left arrow  5 = stop      6 = right arrow     7 = rot_trigo arrow")
     print("")
     print("set_led_anim(value, repetition)               -> set ilorobot leds animations")
+    print("")
+    print("set_led_captor(bool)                          -> turns on/off the lights under the robot")
     print("")
     print("get_distance                                  -> return distance around the robot with list from as [front, right, back, left]")
     print("")
@@ -383,8 +385,9 @@ def game():
                 rotation_value = rotation_value - 5
                 if rotation_value < 1:
                     rotation_value = 0
-            elif keyboard.is_pressed("space"):
-                stop
+            elif keyboard.is_pressed("5"):
+                new_keyboard_instruction = True
+                time.sleep(0.05)
                 axial_value = 128
                 radial_value = 128
                 rotation_value = 128
@@ -430,12 +433,21 @@ def classification(trame):
             left  = data[data.find('l')+1 : data.find('o')]
             return front, right, back, left
             
-        if int(data[2]) == 3:
+        if int(data[2]) == 3 and int(data[3]) == 0:
             roll  = int(data[data.find('r')+1 : data.find('p')])
             pitch = int(data[data.find('p')+1 : data.find('y')])
             yaw   = int(data[data.find('y')+1 : data.find('o')])
             return roll, pitch, yaw
             
+        if int(data[2]) == 3 and int(data[3]) == 2:
+            gyroX  = int(data[data.find('x')+1 : data.find('y')])
+            gyroY  = int(data[data.find('y')+1 : data.find('z')])
+            gyroZ  = int(data[data.find('z')+1 : data.find('r')])
+            accelX = int(data[data.find('r')+1 : data.find('p')])
+            accelY = int(data[data.find('p')+1 : data.find('y')])
+            accelZ = int(data[data.find('y')+1 : data.find('o')])
+            return gyroX, gyroY, gyroZ, accelX, accelY, accelZ
+
         if int(data[2]) == 4:
             status_battery      = int(data[data.find('s')+1 : data.find('p')])
             pourcentage_battery = int(data[data.find('p')+1 : data.find('o')]) 
@@ -482,6 +494,9 @@ def get_angle():
 def reset_angle():
     socket_send("i31o")
 
+def get_imu():
+    return classification("i32o")
+
 def get_battery_info():
     return classification("i4o")
 
@@ -499,6 +514,13 @@ def set_led_shape(val):
     
 def set_led_anim(val, rep):
     msg = "i53v"+str(val)+"r"+str(rep)+"o"
+    socket_send(msg)
+
+def set_led_captor(bool):
+    if (bool == True):
+        msg = "i54l1o"
+    elif (bool == False) :
+        msg = "i54l0o"
     socket_send(msg)
     
 '''

@@ -12,9 +12,39 @@
 - Gérer l’accès aux capteurs I2C de la carte accessoire
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
 
-## Version 21:
+## Version 24:
 
-version actuelle
+Date de publication:
+Objectif : 10/05/2024
+
+Ajout par rapport à la version précédente:
+```
+• Correction trame
+```
+
+## Version 23:
+
+Date de publication:
+Objectif : 10/05/2024
+
+Ajout par rapport à la version précédente:
+```
+• Ajout de la trame get_imu
+• Mise à jour de sa trame de retour
+```
+
+## Version 22:
+
+Date de publication:
+Objectif : 03/05/2024
+
+Ajout par rapport à la version précédente:
+```
+• Ajout de la trame set_led_captor
+• Modification game mode : 5 => space
+```
+
+## Version 21:
 
 Date de publication:
 Objectif : 02/05/2024
@@ -25,8 +55,6 @@ Ajout par rapport à la version précédente:
 ```
 
 ## Version 20:
-
-version actuelle
 
 Date de publication:
 Objectif : 02/05/2024
