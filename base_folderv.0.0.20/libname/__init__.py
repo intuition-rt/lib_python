@@ -20,5 +20,6 @@ from ilo import get_battery_info
 from ilo import get_led_color
 from ilo import set_led_color
 from ilo import set_led_shape
+from ilo import set_led_anim
 from ilo import get_acceleration
 from ilo import set_acceleration

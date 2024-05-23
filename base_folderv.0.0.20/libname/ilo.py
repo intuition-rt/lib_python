@@ -2,7 +2,7 @@
 # SIMON LE BERRE
 # 26/04/2024
 # pip install ilo
-version = "0.19"
+version = "0.20"
 #-----------------------------------------------------------------------------
 
 print("ilo robot library version ", version)
@@ -64,10 +64,24 @@ def list_function():
     print("")
     print("get_color_rgb                                 -> return RGB color under the robot with list form as [color_left, color_middle, color_right]")
     print("")
-    print("set_led_color_rgb(red,green,blue)             -> set ilorobot leds colors")
+    print("set_led_color(red,green,blue)                 -> set ilorobot leds colors")
     print("                                                 red, green and blue are integers and must be between 0 and 255")
     print("")
+    print("set_led_shape(value)                          -> set ilorobot leds shape")
+    print("                                                 value is an integer and must be between 0 and 19")
+    print("                                                 0 = smiley      1 = play      2 = back arrow      3 = pause")
+    print("                                                 4 = left arrow  5 = stop      6 = right arrow     7 = rot_trigo arrow")
+    print("                                                 4 = left arrow  5 = stop      6 = right arrow     7 = rot_trigo arrow")
+    print("")
+    print("set_led_anim(value, repetition)               -> set ilorobot leds animations")
+    print("")
     print("get_distance                                  -> return distance around the robot with list from as [front, right, back, left]")
+    print("")
+    print("get_angle                                     -> return angle of the robot with list from as [roll, pitch, yaw]")
+    print("")
+    print("reset_angle                                   -> reset the angle of the robot")
+    print("")
+    print("get_battery_info                              -> return info about the battery of the robot with list from as [battery status, battery pourcentage]")
     print("")
     print("test_connection()                             -> stop the robot if it is properly connected")
 
@@ -480,9 +494,13 @@ def set_led_color(r, g, b):
     socket_send(msg)
     
 def set_led_shape(val):
-    # 52 static lancer une animation ou flèche .. 
-    # 53 animation
-    pass
+    msg = "i52"+str(val)+"o"
+    socket_send(msg)
+    
+def set_led_anim(val, rep):
+    msg = "i53v"+str(val)+"r"+str(rep)+"o"
+    socket_send(msg)
+    
 '''
 def set_led_color_rgb(red,green,blue):
 
