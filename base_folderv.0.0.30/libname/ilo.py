@@ -2,7 +2,7 @@
 # SIMON LE BERRE
 # 15/05/2024
 # pip install ilo
-version = "0.29"
+version = "0.30"
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
 
@@ -22,9 +22,9 @@ else:
 '''
 
 global IP,Port,s,preview_stop,connect
-IP = '192.168.4.1'
+IP = '192.168.1.239'
 preview_stop = True
-connect = False
+connect = FalseS
 
 #-------------------------------------------------------------------------
 def info():
@@ -620,19 +620,21 @@ def led_bottom_ON():
 def led_bottom_OFF():
     pass
 
-def control_single_motor_front_left(pourcentage):  # de -100 à 100
-    if isinstance(pourcentage, int) == False:
-        print ('value should be an integer between -100 to 100')
-    pass
+def control_single_motor_front_left(value: int):  # de -100 à 100
+    drive_single_motor(1,value)
+    
+    # if isinstance(pourcentage, int) == False:
+    #     print ('value should be an integer between -100 to 100')
+    # pass
 
-def control_single_motor_front_right(pourcentage):
-    pass
+def control_single_motor_front_right(value: int):
+    drive_single_motor(2,value)
 
-def control_single_motor_back_left(pourcentage):
-    pass
+def control_single_motor_back_left(value: int):
+    drive_single_motor(4, value)
 
-def control_single_motor_back_right(pourcentage):
-    pass
+def control_single_motor_back_right(value: int):
+    drive_single_motor(3, value)
 
 def free_motor():
     #to disconnected power on engine
