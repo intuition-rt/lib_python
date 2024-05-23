@@ -1,8 +1,8 @@
-# This python scrip is the libery for python
+# This python scrip is the library for python
 # SIMON LE BERRE
 # 15/05/2024
 # pip install ilo
-version = "0.25"
+version = "0.28"
 #-----------------------------------------------------------------------------
 
 print("ilo robot library version ", version)
@@ -60,9 +60,25 @@ def list_function():
     print("game()                                        -> control ilo using arrow or numb pad of your keyboard")
     print("                                                 available keyboard touch: 8,2,4,6,1,3   space = stop    esc = quit")
     print("")
-    print("get_color_clear                               -> return lightness under the robot with list form as [light_left, light_middle, light_right]")
-    print("")
     print("get_color_rgb                                 -> return RGB color under the robot with list form as [color_left, color_middle, color_right]")
+    print("")
+    print("get_color_clear                               -> return lightness under the robot with list from as [light_left, light_middle, light_right]")
+    print("")
+    print("get_line                                      -> detects whether the robot is on a line or not and return a list from as [line_left, line_center, line_right]")
+    print("")
+    print("set_line_threshold_value                      -> set the threshold value for the line detector")
+    print("")
+    print("get_distance                                  -> return distance around the robot with list from as [front, right, back, left]")
+    print("")
+    print("get_angle                                     -> return angle of the robot with list from as [roll, pitch, yaw]")
+    print("")
+    print("reset_angle                                   -> reset the angle of the robot")
+    print("")
+    print("get_imu                                       -> return from as ")
+    print("")
+    print("get_battery                                   -> return info about the battery of the robot with list from as [battery status, battery pourcentage]")
+    print("")
+    print("get_led_color                                 -> ")
     print("")
     print("set_led_color(red,green,blue)                 -> set ilorobot leds colors")
     print("                                                 red, green and blue are integers and must be between 0 and 255")
@@ -81,16 +97,6 @@ def list_function():
     # print("                                                 8 =      9 =     ")
     print("")
     print("set_led_captor(bool)                          -> turns on/off the lights under the robot")
-    print("")
-    print("get_distance                                  -> return distance around the robot with list from as [front, right, back, left]")
-    print("")
-    print("get_angle                                     -> return angle of the robot with list from as [roll, pitch, yaw]")
-    print("")
-    print("reset_angle                                   -> reset the angle of the robot")
-    print("")
-    print("get_imu                                       -> return distance around the robot with list from as [front, right, back, left]")
-    print("")
-    print("get_battery_info                              -> return info about the battery of the robot with list from as [battery status, battery pourcentage]")
     print("")
     print("get_acc_motor()                               -> return info about the acceleration of the robot")
     print("")
@@ -420,90 +426,99 @@ def game():
 #-----------------------------------------------------------------------------
 
 def classification(trame):
+    global s
+
     try: 
-        print('trame envoyée: ', trame)
-    
-        global s
         socket_send(trame)
+        #print('trame envoyée: ', trame)
         
         data = str(s.recv(1024))[1:]
-        print ('data reçu:   ', data)
-        print ('data indice: ', data[2])
-        
-        if int(data[2]) == 0:
-            clear_left   = int(data[data.find('l')+1 : data.find('m')])
-            clear_middle = int(data[data.find('m')+1 : data.find('r')])
-            clear_right  = int(data[data.find('r')+1 : data.find('o')])
-            return clear_left, clear_middle, clear_right
-        
-        if int(data[2]) == 1:
+        #print ('data reçu:   ', data)
+        #print ('data indice: ', data[2])
+        #print (str(data[2:4]))
+        if data[2:4] == "10":
             red_color   = data[data.find('r')+1 : data.find('g')]
             green_color = data[data.find('g')+1 : data.find('b')]
             blue_color  = data[data.find('b')+1 : data.find('o')]
             return red_color, green_color, blue_color
+
+        if data[2:4] == "11":
+            clear_left   = int(data[data.find('l')+1 : data.find('m')])
+            clear_center = int(data[data.find('m')+1 : data.find('r')])
+            clear_right  = int(data[data.find('r')+1 : data.find('o')])
+            return clear_left, clear_center, clear_right
         
-        if int(data[2]) == 2:
+        if data[2:4] == "12":
+            line_left   = int(data[data.find('l')+1 : data.find('m')])
+            line_center = int(data[data.find('m')+1 : data.find('r')])
+            line_right  = int(data[data.find('r')+1 : data.find('o')])
+            return line_left, line_center, line_right            
+
+        if data[2:4] == "20":
             front = data[data.find('f')+1 : data.find('r')]
             right = data[data.find('r')+1 : data.find('b')]
             back  = data[data.find('b')+1 : data.find('l')]
             left  = data[data.find('l')+1 : data.find('o')]
             return front, right, back, left
             
-        if int(data[2]) == 3 and int(data[3]) == 0:
+        if data[2:4] == "30":
             roll  = int(data[data.find('r')+1 : data.find('p')])
             pitch = int(data[data.find('p')+1 : data.find('y')])
             yaw   = int(data[data.find('y')+1 : data.find('o')])
             return roll, pitch, yaw
             
-        if int(data[2]) == 3 and int(data[3]) == 2:
-            gyroX  = int(data[data.find('x')+1 : data.find('y')])
-            gyroY  = int(data[data.find('y')+1 : data.find('z')])
-            gyroZ  = int(data[data.find('z')+1 : data.find('t')])
-            accelX = int(data[data.find('t')+1 : data.find('r')])
-            accelY = int(data[data.find('r')+1 : data.find('l')])
-            accelZ = int(data[data.find('l')+1 : data.find('o')])
-            return gyroX, gyroY, gyroZ, accelX, accelY, accelZ
+        if data[2:4] == "32":
+            accelX  = int(data[data.find('x')+1 : data.find('y')])
+            accelY  = int(data[data.find('y')+1 : data.find('z')])
+            accelZ  = int(data[data.find('z')+1 : data.find('t')])
+            gyroX   = int(data[data.find('t')+1 : data.find('r')])
+            gyroY   = int(data[data.find('r')+1 : data.find('l')])
+            gyroZ   = int(data[data.find('l')+1 : data.find('o')])
+            return accelX, accelY, accelZ, gyroX, gyroY, gyroZ
 
-        if int(data[2]) == 4:
+        if data[2:4] == "40":
             status_battery      = int(data[data.find('s')+1 : data.find('p')])
             pourcentage_battery = int(data[data.find('p')+1 : data.find('o')]) 
             return status_battery, pourcentage_battery
         
-        if int(data[2]) == 5:
+        if data[2:4] == "50":
             red_led   = int(data[data.find('r')+1 : data.find('g')])
             green_led = int(data[data.find('g')+1 : data.find('b')])
             blue_led  = int(data[data.find('b')+1 : data.find('o')])
             return red_led, green_led, blue_led
         
-        if int(data[2]) == 6:
+        if data[2:4] == "60":
             acc_motor  = int(data[data.find('a')+1 : data.find('o')])
             return acc_motor
-        
-        
         
     
     except:
         print('Communication Err: classification')
         return -1
     
-        
+def get_color_rgb():
+    return classification("i10o")
+
 def get_color_clear():
-    return classification("i0o")
+    return classification("i11o")
 
 def get_color_clear_left():
     return get_color_clear()[0]
 
-def get_color_clear_middle():
+def get_color_clear_center():
     return get_color_clear()[1]
 
 def get_color_clear_right():
     return get_color_clear()[2]
 
-def get_color_rgb():
-    return classification("i1o")
+def get_line():
+    return classification("i12o")
+
+def set_line_threshold_value():
+    socket_send("i13o")
 
 def get_distance():
-    return classification("i2o")
+    return classification("i20o")
 
 def get_angle():
     return classification("i30o")
@@ -514,11 +529,11 @@ def reset_angle():
 def get_imu():
     return classification("i32o")
 
-def get_battery_info():
-    return classification("i4o")
+def get_battery():
+    return classification("i40o")
 
 def get_led_color():
-    return classification("i5o")
+    return classification("i50o")
 
 def set_led_color(r, g, b):
     # make integer test and test min and max value
@@ -567,19 +582,21 @@ def set_led_color_rgb(red,green,blue):
 
 '''
 def get_acc_motor():
-    return classification("i6o")
+    return classification("i60o")
 
 def set_acc_motor(val: int):
     # make integer test and test min and max value
+    if val < 10 : val = 10
+    elif val > 100 : val = 100
     msg = "i61a"+str(val)+"o"
     socket_send(msg)
 
-def drive_single_motor(id: int, value: int):
+def drive_single_motor(id: int, value: int):        # à mettre en pourcentage
     if id < 0 : id = 0
     elif id > 255 : id = 255
     if value < -7000 : value = -7000
     elif value > 7000 : value = 7000
-    msg = "i7d"+str(id)+"v"+str(value)+"o"
+    msg = "i70d"+str(id)+"v"+str(value)+"o"
     socket_send(msg)
 
 def get_vmax():
@@ -618,3 +635,4 @@ def free_motor():
 def set_mode_motor():
     #between positio or wheel mode
     pass
+
