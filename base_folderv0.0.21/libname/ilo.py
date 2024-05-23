@@ -2,7 +2,7 @@
 # SIMON LE BERRE
 # 26/04/2024
 # pip install ilo
-version = "0.20"
+version = "0.21"
 #-----------------------------------------------------------------------------
 
 print("ilo robot library version ", version)
@@ -494,7 +494,7 @@ def set_led_color(r, g, b):
     socket_send(msg)
     
 def set_led_shape(val):
-    msg = "i52"+str(val)+"o"
+    msg = "i52v"+str(val)+"o"
     socket_send(msg)
     
 def set_led_anim(val, rep):
@@ -541,7 +541,7 @@ def get_vmax():
 def set_vmax(vmax):
     pass
 
-def set_autonous_mode():
+def set_autonomous_mode():
     pass
         
 def led_bottom_ON():
