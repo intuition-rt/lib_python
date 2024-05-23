@@ -12,6 +12,17 @@
 - Gérer l’accès aux capteurs I2C de la carte accessoire
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
 
+## Version 29:
+
+Date de publication:
+Objectif : 17/05/2024
+
+Ajout par rapport à la version précédente:
+```
+• Mise à jour de list_function
+• Ajout set_autonomous_mode
+```
+
 ## Version 28:
 
 Date de publication:

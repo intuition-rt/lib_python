@@ -28,3 +28,4 @@ from ilo import set_led_captor
 from ilo import get_acc_motor
 from ilo import set_acc_motor
 from ilo import drive_single_motor
+from ilo import set_autonomous_mode

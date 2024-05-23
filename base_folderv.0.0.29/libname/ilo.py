@@ -2,7 +2,7 @@
 # SIMON LE BERRE
 # 15/05/2024
 # pip install ilo
-version = "0.28"
+version = "0.29"
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
 
@@ -108,6 +108,10 @@ def list_function():
     print("                                                 id is a integer and must be between 0 and 255")
     print("                                                 value is a integer and must be between -7000 and 7000")
     print("")
+    print("set_autonomous_mode(number)                   -> launches the robot in autonomous mode")
+    print("                                                 number is an integer and must be between 0 and 5")
+    print("                                                 1 = labyrinth          2 = color with displacement      3 = line tracking")
+    print("                                                 4 = IMU water mode     5 = distance sensor led")
     print("test_connection()                             -> stop the robot if it is properly connected")
 
 #-----------------------------------------------------------------------------
@@ -600,13 +604,14 @@ def drive_single_motor(id: int, value: int):        # à mettre en pourcentage
     msg = "i70d"+str(id)+"v"+str(value)+"o"
     socket_send(msg)
 
+def set_autonomous_mode(number: int):
+    msg = "i80n"+str(number)+"o"
+    socket_send(msg)
+
 def get_vmax():
     pass
 
 def set_vmax(vmax):
-    pass
-
-def set_autonomous_mode():
     pass
         
 def led_bottom_ON():
