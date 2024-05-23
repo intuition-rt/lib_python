@@ -13,11 +13,13 @@ from ilo import get_color_clear_left
 from ilo import get_color_clear_middle
 from ilo import get_color_clear_right
 from ilo import get_color_rgb
+from ilo import get_line
+from ilo import set_line_threshold_value
 from ilo import get_distance
 from ilo import get_angle
 from ilo import reset_angle
 from ilo import get_imu
-from ilo import get_battery_info
+from ilo import get_battery
 from ilo import get_led_color
 from ilo import set_led_color
 from ilo import set_led_shape

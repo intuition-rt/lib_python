@@ -3,6 +3,7 @@
 # 15/05/2024
 # pip install ilo
 version = "0.28"
+# code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
 
 print("ilo robot library version ", version)
