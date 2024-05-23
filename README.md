@@ -12,6 +12,19 @@
 - Gérer l’accès aux capteurs I2C de la carte accessoire
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
 
+## Version 25:
+
+Date de publication:
+Objectif : 10/05/2024
+
+Ajout par rapport à la version précédente:
+```
+• Mise à jour de list_function
+• Correction trame imu
+• Correction nom méthode get_acc_motor / set_acc_motor
+• Ajout drive_single_motor
+```
+
 ## Version 24:
 
 Date de publication:

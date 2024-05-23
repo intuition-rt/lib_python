@@ -1,8 +1,8 @@
 # This python scrip is the libery for python
 # SIMON LE BERRE
-# 26/04/2024
+# 15/05/2024
 # pip install ilo
-version = "0.24"
+version = "0.25"
 #-----------------------------------------------------------------------------
 
 print("ilo robot library version ", version)
@@ -69,11 +69,16 @@ def list_function():
     print("")
     print("set_led_shape(value)                          -> set ilorobot leds shape")
     print("                                                 value is an integer and must be between 0 and 19")
-    print("                                                 0 = smiley      1 = play      2 = back arrow      3 = pause")
-    print("                                                 4 = left arrow  5 = stop      6 = right arrow     7 = rot_trigo arrow")
-    print("                                                 4 = left arrow  5 = stop      6 = right arrow     7 = rot_trigo arrow")
+    print("                                                 0 = smiley          1 = play      2 = back arrow      3 = pause")
+    print("                                                 4 = left arrow      5 = stop      6 = right arrow     7 = rot_trigo arrow")
+    print("                                                 8 = front arrow     9 = rot_clock arrow        10 to 19 = number 0 to 9")
     print("")
     print("set_led_anim(value, repetition)               -> set ilorobot leds animations")
+    print("                                                 value is an integer and must be between 0 and 9")
+    print("                                                 repetition is an integer and represents the number of times the animation will loop")
+    print("                                                 0 = waving          1 = cercle rotation      2 =      3 = cercle stars")
+    # print("                                                 4 =       5 =                  6 =      7 = ")
+    # print("                                                 8 =      9 =     ")
     print("")
     print("set_led_captor(bool)                          -> turns on/off the lights under the robot")
     print("")
@@ -83,7 +88,18 @@ def list_function():
     print("")
     print("reset_angle                                   -> reset the angle of the robot")
     print("")
+    print("get_imu                                       -> return distance around the robot with list from as [front, right, back, left]")
+    print("")
     print("get_battery_info                              -> return info about the battery of the robot with list from as [battery status, battery pourcentage]")
+    print("")
+    print("get_acc_motor()                               -> return info about the acceleration of the robot")
+    print("")
+    print("set_acc_motor(val)                            -> set the acceleration of ilo")
+    print("                                                 val is an integer")
+    print("")
+    print("drive_single_motor(id, value)                 -> control only one motor at a time")
+    print("                                                 id is a integer and must be between 0 and 255")
+    print("                                                 value is a integer and must be between -7000 and 7000")
     print("")
     print("test_connection()                             -> stop the robot if it is properly connected")
 
@@ -442,10 +458,10 @@ def classification(trame):
         if int(data[2]) == 3 and int(data[3]) == 2:
             gyroX  = int(data[data.find('x')+1 : data.find('y')])
             gyroY  = int(data[data.find('y')+1 : data.find('z')])
-            gyroZ  = int(data[data.find('z')+1 : data.find('r')])
-            accelX = int(data[data.find('r')+1 : data.find('p')])
-            accelY = int(data[data.find('p')+1 : data.find('y')])
-            accelZ = int(data[data.find('y')+1 : data.find('o')])
+            gyroZ  = int(data[data.find('z')+1 : data.find('t')])
+            accelX = int(data[data.find('t')+1 : data.find('r')])
+            accelY = int(data[data.find('r')+1 : data.find('l')])
+            accelZ = int(data[data.find('l')+1 : data.find('o')])
             return gyroX, gyroY, gyroZ, accelX, accelY, accelZ
 
         if int(data[2]) == 4:
@@ -462,6 +478,7 @@ def classification(trame):
         if int(data[2]) == 6:
             acc_motor  = int(data[data.find('a')+1 : data.find('o')])
             return acc_motor
+        
         
         
     
@@ -549,12 +566,20 @@ def set_led_color_rgb(red,green,blue):
     socket_send(msg)
 
 '''
-def get_acceleration():
+def get_acc_motor():
     return classification("i6o")
 
-def set_acceleration(acc):
+def set_acc_motor(val: int):
     # make integer test and test min and max value
-    msg = "i61a"+str(acc)+"o"
+    msg = "i61a"+str(val)+"o"
+    socket_send(msg)
+
+def drive_single_motor(id: int, value: int):
+    if id < 0 : id = 0
+    elif id > 255 : id = 255
+    if value < -7000 : value = -7000
+    elif value > 7000 : value = 7000
+    msg = "i7d"+str(id)+"v"+str(value)+"o"
     socket_send(msg)
 
 def get_vmax():

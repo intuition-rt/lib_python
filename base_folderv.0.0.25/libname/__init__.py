@@ -23,5 +23,6 @@ from ilo import set_led_color
 from ilo import set_led_shape
 from ilo import set_led_anim
 from ilo import set_led_captor
-from ilo import get_acceleration
-from ilo import set_acceleration
+from ilo import get_acc_motor
+from ilo import set_acc_motor
+from ilo import drive_single_motor
