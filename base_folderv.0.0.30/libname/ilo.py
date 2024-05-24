@@ -24,7 +24,7 @@ else:
 global IP,Port,s,preview_stop,connect
 IP = '192.168.1.239'
 preview_stop = True
-connect = FalseS
+connect = False
 
 #-------------------------------------------------------------------------
 def info():
@@ -161,7 +161,7 @@ def connection():
     else:
         print('Connecting...')
         try:
-            Port = 80
+            Port = 81
             ping = socket.socket()
             ping.connect((IP, Port))
             deviceIP = ping.getsockname()[0]     # IP of the machine
@@ -179,7 +179,7 @@ def connection():
             msg="io"
             s.connect((IP, Port))
             s.send(msg.encode())
-            print('Connected to ilo')
+            print('Connected as "name" ssid')
 
             time.sleep(1)
         except:
@@ -501,8 +501,16 @@ def classification(trame):
         print('Communication Err: classification')
         return -1
     
-def get_color_rgb():
-    return classification("i10o")
+class robot(object):
+    
+    def __init__(self):
+        print("Object created")
+        #self._color_rgb = classification("i10o")
+    
+    def get_color_rgb(self):
+        return self._color_rgb
+
+    #color_rgb=property(_get_color_rgb)
 
 def get_color_clear():
     return classification("i11o")
@@ -538,13 +546,13 @@ def get_battery():
     return classification("i40o")
 
 def get_led_color():
-    return classification("i50o")
-
+    return classification("150o")
+        
 def set_led_color(r, g, b):
     # make integer test and test min and max value
     msg = "i51r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
-    socket_send(msg)
-    
+    socket_send(msg)    
+
 def set_led_shape(val):
     msg = "i52v"+str(val)+"o"
     socket_send(msg)
