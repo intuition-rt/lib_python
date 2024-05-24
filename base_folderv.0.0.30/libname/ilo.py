@@ -150,6 +150,8 @@ def connection():
     Connection your machine to ilorobot
     :return:
     """
+    #modif ip variable
+    
     # idea of improvement, be able to connect to witch ilo you want function of is name, or color
     global IP,Port,connect, preview_stop,deviceIP
     preview_stop = True
