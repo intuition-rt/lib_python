@@ -2,7 +2,7 @@
 # SIMON LE BERRE
 # 15/05/2024
 # pip install ilo
-version = "0.30"
+version = "0.31"
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
 
@@ -144,50 +144,6 @@ def socket_read():
         time.sleep(3)
         connect = False
         return False
-#-----------------------------------------------------------------------------
-def connection():
-    """
-    Connection your machine to ilorobot
-    :return:
-    """
-    #modif ip variable
-    
-    # idea of improvement, be able to connect to witch ilo you want function of is name, or color
-    global IP,Port,connect, preview_stop,deviceIP
-    preview_stop = True
-
-    if connect == True:
-        print('ilo already connected')
-        return None
-
-    else:
-        print('Connecting...')
-        try:
-            Port = 81
-            ping = socket.socket()
-            ping.connect((IP, Port))
-            deviceIP = ping.getsockname()[0]     # IP of the machine
-            #print('deviceIP', deviceIP)
-            msg="ilo"
-            ping.send(msg.encode())
-            ping.close()
-
-            inform = socket.socket()
-            inform.bind((deviceIP, Port))
-
-            time.sleep(1)
-
-            s = socket.socket()
-            msg="io"
-            s.connect((IP, Port))
-            s.send(msg.encode())
-            print('Connected as "name" ssid')
-
-            time.sleep(1)
-        except:
-            print("Error connection: you have to be connect to the ilo wifi network")
-            print(" --> If the disfonction continu, switch off and switch on ilo")
-
 #-----------------------------------------------------------------------------
 def stop():
     """
@@ -498,21 +454,155 @@ def classification(trame):
             acc_motor  = int(data[data.find('a')+1 : data.find('o')])
             return acc_motor
         
-    
     except:
         print('Communication Err: classification')
         return -1
+
+#-----------------------------------------------------------------------------
+
+#exemple of creation of obejct robot
+#my_ilo = ilo.robot(ID, "my_ilo")
+
+import subprocess, platform
+from prettytable import PrettyTable
+
+IP = '192.168.1.1'
+Port = 81
+tab_IP = []
+
+def ping_ip(ip, count=2, timeout=3):
     
+    """
+    Ping une adresse IP pour vérifier si elle est active.
+    
+    Paramètres:
+    ip (str): L'adresse IP à pinger.
+    count (int): Nombre de tentatives de ping (par défaut 1).
+    timeout (int): Délai d'attente pour chaque ping en secondes (par défaut 1).
+    
+    Retourne:
+    bool: True si l'adresse IP est joignable, False sinon.
+    """
+    # Détermine la commande en fonction du système d'exploitation
+    param_count = '-n' if platform.system().lower() == 'windows' else '-c'
+    param_timeout = '-w' if platform.system().lower() == 'windows' else '-W'
+    
+    command = ['ping', param_count, str(count), param_timeout, str(timeout), ip]
+    
+    try:
+        # Exécute la commande ping et capture la sortie
+        output = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        # Vérifie la sortie en fonction du système d'exploitation
+        if platform.system().lower() == 'windows':
+            return 'TTL=' in output.stdout
+        else:
+            return '1 packets received' in output.stdout or '1 received' in output.stdout
+    except Exception as e:
+        print(f"Erreur lors de l'exécution de la commande ping: {e}")
+        return False
+
+def check_ilo_on_network():
+    print("Looking for ilo on your network ...")
+    global IP, Port, tab_IP
+
+    base_ip     = "192.168.1."
+    ilo_ID = 1
+    tab_IP = []
+    c = 5
+    for i in range(100, 110):         #between 192.168.1.100 and 192.168.1.200
+        ip_check = f"{base_ip}{i}"
+        if ping_ip(ip_check) == True:
+            IP = ip_check
+            if (socket_send("ilo")):
+                tab_IP.append([IP, ilo_ID])
+                ilo_ID +=1 
+            else:
+                c -=1
+                if c==0:
+                    break
+        else:
+            c -=1
+            if c==0:
+                break
+
+    #display the IP and ID
+    print(tab_IP)
+    table = PrettyTable()
+    table.field_names = ["IP Address", "ID of ilo"]
+    for row in tab_IP:
+        table.add_row(row)
+    
+    if len(tab_IP) != 0:
+        print(table)
+        print("")
+        print("Use for exemple: my_first_ilo.robot(ID) to created object my_first_ilo")
+    else:
+        print("Unfornutaly no one ilo is present on your current network, check you connection.")
+   
+def get_IP_from_ID(ID):
+    for item in tab_IP:
+        if item[1] == ID:
+            return item[0]
+    return None
+
 class robot(object):
     
-    def __init__(self):
-        print("Object created")
-        #self._color_rgb = classification("i10o")
-    
-    def get_color_rgb(self):
-        return self._color_rgb
+    def __init__(self, ID):
+        self.ID = ID
+        self.Port = 81
+        self.connect = False
+        if get_IP_from_ID(self.ID):
+            self.IP = get_IP_from_ID(self.ID)
+            self.connection()
+        else:
+            print("run check_ilo_on_network")
 
-    #color_rgb=property(_get_color_rgb)
+    def connection(self):
+    
+        """
+        Connection of your machine to robot object 
+        
+        """
+        
+        if self.connect == True:
+            print('Your robot is already connected')
+            return None
+
+        else:
+            print('Connecting...')
+            try:
+                ping = socket.socket()
+                ping.connect((self.IP, self.Port))
+                deviceIP = ping.getsockname()[0]     # IP of the machine
+                #print('deviceIP', deviceIP)
+                msg = "ilo"
+                ping.send(msg.encode())
+                ping.close()
+
+                inform = socket.socket()
+                inform.bind((deviceIP, Port))
+
+                time.sleep(1)
+
+                s = socket.socket()
+                msg = "io"
+                s.connect((self.IP, self.Port))
+                s.send(msg.encode())
+
+                time.sleep(1)
+
+            except:
+                print("Error connection: you have to be connect to the ilo wifi network")
+                print(" --> If the disfonction continu, switch off and switch on ilo")
+
+#-----------------------------------------------------------------------------------
+
+def get_IP_from_ID(ID):
+    for item in tab_IP:
+        if item[1] == ID:
+            return item[0]
+    return None
 
 def get_color_clear():
     return classification("i11o")
