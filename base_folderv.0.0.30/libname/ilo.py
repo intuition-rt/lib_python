@@ -12,10 +12,7 @@ print("For any help or support contact us on our website, ilorobot.com")
 import socket, time, keyboard, subprocess, platform
 from prettytable import PrettyTable
 
-IP = '192.168.1.1'
-Port = 81
 tab_IP = []
-
 
 #-------------------------------------------------------------------------
 def info():
@@ -112,6 +109,8 @@ def socket_send(msg, IP, Port):
         s = socket.socket()
         s.connect((IP, Port))
         s.send(msg.encode())
+        #deviceIP = s.getsockname()[0]     # IP of the machine
+        #print('device_control_IP', deviceIP)
         time.sleep(0.1)           #  10Hz
         return True
     except:
@@ -138,10 +137,12 @@ def socket_read(IP, Port):
 #-------------------------------------------------------------------------
 def classification(trame, IP, Port):
     try: 
+        global s
         socket_send(trame, IP, Port)
         #print('trame envoyée: ', trame)
+        data = str(s.recv(1024))[1:]
 
-        data = socket_read(IP, Port)
+        #data = socket_read(IP, Port)
         print ('data reçu:   ', data)
         #print ('data indice: ', data[2])
         #print (str(data[2:4]))
@@ -238,27 +239,33 @@ def ping_ip(ip, count=2, timeout=5):
 #-------------------------------------------------------------------------
 def check_ilo_on_network():
     print("Looking for ilo on your network ...")
-    global IP, Port, tab_IP
+    global tab_IP
 
-    base_ip     = "192.168.1."
-    ilo_ID = 1
-    tab_IP = []
-    c = 5
-    for i in range(100, 110):         #between 192.168.1.100 and 192.168.1.200
-        ip_check = f"{base_ip}{i}"
-        if ping_ip(ip_check) == True:
-            IP = ip_check
-            if (socket_send("ilo", IP, Port)):
-                tab_IP.append([IP, ilo_ID])
-                ilo_ID +=1 
+    Port = 81
+    # Check if we are using ilo on AP
+    if ping_ip("192.168.4.1") == True:
+        tab_IP.append(["192.168.4.1", 1])
+    else:
+        base_ip = "170.20.1."
+        ilo_ID  = 1
+        tab_IP  = []
+        c = 5                             # checking 5 more IP address after
+
+        for i in range(100, 200):         # between 192.168.1.100 and 192.168.1.200
+            ip_check = f"{base_ip}{i}"
+            if ping_ip(ip_check) == True:
+                IP = ip_check
+                if (socket_send("ilo", IP, Port)):
+                    tab_IP.append([IP, ilo_ID])
+                    ilo_ID +=1 
+                else:
+                    c -=1
+                    if c==0:
+                        break
             else:
                 c -=1
                 if c==0:
                     break
-        else:
-            c -=1
-            if c==0:
-                break
 
     #display the IP and ID
     #print(tab_IP)
@@ -291,9 +298,10 @@ class robot(object):
         self.connect = False
         if get_IP_from_ID(self.ID):
             self.IP = get_IP_from_ID(self.ID)
+            print(self.IP)
             self.connection()
         else:
-            print("You have to run before the command line: ilo.check_ilo_on_network()")
+            print("You have to run before the command line to know the robot present our your network: ilo.check_ilo_on_network()")
 
     #-----------------------------------------------------------------------------
     def connection(self):
@@ -310,16 +318,21 @@ class robot(object):
         else:
             print('Connecting...')
             try:
+                socket_send("ilo", self.IP, self.Port)
+                time.sleep(1)
+                socket_send("io", self.IP, self.Port)
+                print('Connected')
+                self.connect == True
+                '''
                 ping = socket.socket()
                 ping.connect((self.IP, self.Port))
-                deviceIP = ping.getsockname()[0]     # IP of the machine
-                print('device_control_IP', deviceIP)
+                
                 msg = "ilo"
                 ping.send(msg.encode())
                 ping.close()
 
                 inform = socket.socket()
-                inform.bind((deviceIP, Port))
+                inform.bind((deviceIP, self.Port))
 
                 time.sleep(1)
 
@@ -327,9 +340,8 @@ class robot(object):
                 msg = "io"
                 s.connect((self.IP, self.Port))
                 s.send(msg.encode())
+                '''
 
-                time.sleep(1)
-                print('Done')
             except:
                 print("Error connection: you have to be connect to the ilo wifi network")
                 print(" --> If the disfonction continu, switch off and switch on ilo")
@@ -360,27 +372,29 @@ class robot(object):
         :return: Is a string and should be (front, back, left, right, rot_trigo or rot_clock)
         """
         #ilo.step('front')
+        if self.connect:
+            if isinstance(direction, str) == False:
+                print ('direction should be an string as front, back, left, rot_trigo, rot_clock','stop')
+                return None
 
-        if isinstance(direction, str) == False:
-            print ('direction should be an string as front, back, left, rot_trigo, rot_clock','stop')
-            return None
-
-        if direction == 'front':
-            socket_send("iavpx110yro", self.IP, self.Port)
-        elif direction == 'back':
-            socket_send("iavpx010yro", self.IP, self.Port)
-        elif direction == 'left':
-            socket_send("iavpxy010ro", self.IP, self.Port)
-        elif direction == 'right':
-            socket_send("iavpxy110ro", self.IP, self.Port)
-        elif direction == 'rot_trigo':
-            socket_send("iavpxyr090o", self.IP, self.Port)
-        elif direction == 'rot_clock':
-            socket_send("iavpxyr190o", self.IP, self.Port)
-        elif direction == 'stop':
-            self.stop()
+            if direction == 'front':
+                socket_send("iavpx110yro", self.IP, self.Port)
+            elif direction == 'back':
+                socket_send("iavpx010yro", self.IP, self.Port)
+            elif direction == 'left':
+                socket_send("iavpxy010ro", self.IP, self.Port)
+            elif direction == 'right':
+                socket_send("iavpxy110ro", self.IP, self.Port)
+            elif direction == 'rot_trigo':
+                socket_send("iavpxyr090o", self.IP, self.Port)
+            elif direction == 'rot_clock':
+                socket_send("iavpxyr190o", self.IP, self.Port)
+            elif direction == 'stop':
+                self.stop()
+            else:
+                print('direction name is not correct')
         else:
-            print('direction name is not correct')
+            print("You are not connected !")
     #-----------------------------------------------------------------------------
     def list_order(self, ilo_list):
         """
@@ -596,7 +610,7 @@ class robot(object):
         socket_send("i13o", self.IP, self.Port)
 
     def get_distance(self):
-        return classification("i20o")
+        return classification("i20o", self.IP, self.Port)
 
     def get_angle():
         return classification("i30o")
@@ -716,8 +730,6 @@ class robot(object):
     def set_mode_motor():
         #between positio or wheel mode
         pass
-
-
 #---------------------------------------------------------------------------------
 
 
