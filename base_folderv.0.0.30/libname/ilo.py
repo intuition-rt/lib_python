@@ -7,7 +7,6 @@ version = "0.31"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
-
 #-----------------------------------------------------------------------------
 import socket, time, keyboard, subprocess, platform
 from prettytable import PrettyTable
@@ -243,10 +242,15 @@ def check_ilo_on_network():
 
     Port = 81
     # Check if we are using ilo on AP
+    ilo_AP = False
+    
     if ping_ip("192.168.4.1") == True:
-        tab_IP.append(["192.168.4.1", 1])
-    else:
-        base_ip = "170.20.1."
+        if socket_send("io", "192.168.4.1", 81):
+            tab_IP.append(["192.168.4.1", 1])
+            ilo_AP = True
+    
+    if ilo_AP == False:
+        base_ip = "192.168.1."
         ilo_ID  = 1
         tab_IP  = []
         c = 5                             # checking 5 more IP address after
@@ -255,7 +259,7 @@ def check_ilo_on_network():
             ip_check = f"{base_ip}{i}"
             if ping_ip(ip_check) == True:
                 IP = ip_check
-                if (socket_send("ilo", IP, Port)):
+                if (socket_send("io", IP, Port)):
                     tab_IP.append([IP, ilo_ID])
                     ilo_ID +=1 
                 else:
@@ -322,7 +326,7 @@ class robot(object):
                 time.sleep(1)
                 socket_send("io", self.IP, self.Port)
                 print('Connected')
-                self.connect == True
+                self.connect = True
                 '''
                 ping = socket.socket()
                 ping.connect((self.IP, self.Port))
@@ -365,6 +369,9 @@ class robot(object):
         """
         socket_send("io", self.IP, self.Port)
     #-----------------------------------------------------------------------------
+    def pause(self):
+        self.direct_control(128,128,128)
+    #-----------------------------------------------------------------------------
     def step(self, direction):
         """
         Move by step ilorobot with selected direction during 2 seconds
@@ -372,7 +379,7 @@ class robot(object):
         :return: Is a string and should be (front, back, left, right, rot_trigo or rot_clock)
         """
         #ilo.step('front')
-        if self.connect:
+        if self.connect == True:
             if isinstance(direction, str) == False:
                 print ('direction should be an string as front, back, left, rot_trigo, rot_clock','stop')
                 return None
@@ -591,6 +598,9 @@ class robot(object):
         else:
             print("You have to be connected to ILO before play with it, use ilo.connection()")
     #-----------------------------------------------------------------------------
+    def get_color_rgb(self):
+        return classification("i10o", self.IP, self.Port)
+    #-----------------------------------------------------------------------------
     def get_color_clear(self):
         return classification("i11o", self.IP, self.Port)
     
@@ -606,84 +616,68 @@ class robot(object):
     def get_line(self):
         return classification("i12o", self.IP, self.Port)
 
+    def get_line_left(self):
+        return self.get_line()[0]
+    
+    def get_line_center(self):
+        return self.get_line()[1]
+
+    def get_line_right(self):
+        return self.get_line()[2]
+
     def set_line_threshold_value(self):
         socket_send("i13o", self.IP, self.Port)
-
+    #-----------------------------------------------------------------------------
     def get_distance(self):
         return classification("i20o", self.IP, self.Port)
+    
+    #improvement (add get_distance_front(self)) etc
+    #-----------------------------------------------------------------------------
+    def get_angle(self):
+        return classification("i30o",self.IP, self.Port)
 
-    def get_angle():
-        return classification("i30o")
+    def reset_angle(self):
+        socket_send("i31o",self.IP, self.Port)
 
-    def reset_angle():
-        socket_send("i31o")
+    def get_imu(self):
+        return classification("i32o",self.IP, self.Port)
 
-    def get_imu():
-        return classification("i32o")
+    def get_battery(self):
+        return classification("i40o",self.IP, self.Port)
 
-    def get_battery():
-        return classification("i40o")
-
-    def get_led_color():
-        return classification("150o")
+    def get_led_color(self):
+        return classification("150o",self.IP, self.Port)
             
-    def set_led_color(r, g, b):
+    def set_led_color(self,r, g, b):
         # make integer test and test min and max value
         msg = "i51r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
         socket_send(msg, self.IP, self.Port)    
 
-    def set_led_shape(val):
+    def set_led_shape(self, val):
         msg = "i52v"+str(val)+"o"
         socket_send(msg, self.IP, self.Port) 
         
-    def set_led_anim(val, rep):
+    def set_led_anim(self,val, rep):
         msg = "i53v"+str(val)+"r"+str(rep)+"o"
         socket_send(msg, self.IP, self.Port) 
 
-    def set_led_captor(bool):
+    def set_led_captor(self,bool):
         if (bool == True):
             msg = "i54l1o"
         elif (bool == False) :
             msg = "i54l0o"
         socket_send(msg, self.IP, self.Port) 
         
-    '''
-    def set_led_color_rgb(red,green,blue):
-
-        if isinstance(red, int) == False:
-            print ('red should be an integer')
-            return None
-        if red> 255 or red<0:
-            print('red should be include between 0 and 255')
-            return None
-        if isinstance(green, int) == False:
-            print('green should be an integer')
-            return None
-        if green> 255 or green<0:
-            print('green should be include between 0 and 255')
-            return None
-        if isinstance(blue, int) == False:
-            print('blue should be an integer')
-            return None
-        if blue> 255 or blue<0:
-            print('blue should be include between 0 and 255')
-            return None
-        
-        msg = "i7r"+str(red)+"g"+str(green)+"b"+str(blue)+"o"
-        socket_send(msg)
-
-    '''
-    def get_acc_motor():
-        return classification("i60o")
-
-    def set_acc_motor(val: int):
+    def get_acc_motor(self):
+        return classification("i60o",self.IP, self.Port)
+    def set_acc_motor(self, val: int):
         # make integer test and test min and max value
         if val < 10 : val = 10
         elif val > 100 : val = 100
         msg = "i61a"+str(val)+"o"
         socket_send(msg, self.IP, self.Port) 
 
-    def drive_single_motor(id: int, value: int):        # à mettre en pourcentage
+    def drive_single_motor(self, id: int, value: int):        # à mettre en pourcentage
         if id < 0 : id = 0
         elif id > 255 : id = 255
         if value < -7000 : value = -7000
@@ -691,46 +685,36 @@ class robot(object):
         msg = "i70d"+str(id)+"v"+str(value)+"o"
         socket_send(msg, self.IP, self.Port) 
 
-    def set_autonomous_mode(number: int):
+    def set_autonomous_mode(self, number: int):
         msg = "i80n"+str(number)+"o"
         socket_send(msg, self.IP, self.Port) 
 
-    def get_vmax():
-        pass
-
-    def set_vmax(vmax):
-        pass
-            
-    def led_bottom_ON():
-        pass
-
-    def led_bottom_OFF():
-        pass
-
-    def control_single_motor_front_left(value: int):  # de -100 à 100
-        drive_single_motor(1,value)
+    def control_single_motor_front_left(self, value: int):  # de -100 à 100
+        self.drive_single_motor(1,value)
         
         # if isinstance(pourcentage, int) == False:
         #     print ('value should be an integer between -100 to 100')
         # pass
 
-    def control_single_motor_front_right(value: int):
-        drive_single_motor(2,value)
+    def control_single_motor_front_right(self, value: int):
+        self.drive_single_motor(2,value)
 
-    def control_single_motor_back_left(value: int):
-        drive_single_motor(4, value)
+    def control_single_motor_back_left(self, value: int):
+        self.drive_single_motor(4, value)
 
-    def control_single_motor_back_right(value: int):
-        drive_single_motor(3, value)
+    def control_single_motor_back_right(self, value: int):
+        self.drive_single_motor(3, value)
 
-    def free_motor():
-        #to disconnected power on engine
+    def get_vmax():
         pass
-        
+
+    def set_vmax(vmax):
+        pass 
+    
     def set_mode_motor():
-        #between positio or wheel mode
+        #between position or wheel mode
         pass
 #---------------------------------------------------------------------------------
-
+check_ilo_on_network()
 
 
