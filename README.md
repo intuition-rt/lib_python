@@ -11,6 +11,7 @@
   - ‘im(ID)to’ exemple pour retour d’info de température
 - Gérer l’accès aux capteurs I2C de la carte accessoire
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
+-
 
 ## Version 31:
 
