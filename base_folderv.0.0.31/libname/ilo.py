@@ -542,6 +542,24 @@ def get_led_color():
 
 def set_led_color(r: int, g: int, b: int):
     # make integer test and test min and max value
+    if isinstance(r, int) == False:
+        print ('red should be an integer')
+        return None
+    if r > 255 or r < 0:
+        print('red should be include between 0 and 255')
+        return None
+    if isinstance(g, int) == False:
+        print('green should be an integer')
+        return None
+    if g > 255 or g < 0:
+        print('green should be include between 0 and 255')
+        return None
+    if isinstance(b, int) == False:
+        print('blue should be an integer')
+        return None
+    if b > 255 or b < 0:
+        print('blue should be include between 0 and 255')
+        return None
     msg = "i51r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
     socket_send(msg)
     
@@ -559,33 +577,11 @@ def set_led_captor(bool):
     elif (bool == False) :
         msg = "i54l0o"
     socket_send(msg)
-    
-'''
-def set_led_color_rgb(red,green,blue):
 
-    if isinstance(red, int) == False:
-        print ('red should be an integer')
-        return None
-    if red> 255 or red<0:
-        print('red should be include between 0 and 255')
-        return None
-    if isinstance(green, int) == False:
-        print('green should be an integer')
-        return None
-    if green> 255 or green<0:
-        print('green should be include between 0 and 255')
-        return None
-    if isinstance(blue, int) == False:
-        print('blue should be an integer')
-        return None
-    if blue> 255 or blue<0:
-        print('blue should be include between 0 and 255')
-        return None
-    
-    msg = "i7r"+str(red)+"g"+str(green)+"b"+str(blue)+"o"
+def set_led_single(bool, id: int, r: int, g: int, b: int):
+    msg = "i55t"+str(bool)+"d"+str(id)+"r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
     socket_send(msg)
-
-'''
+    
 def get_acc_motor():
     return classification("i60o")
 
@@ -599,7 +595,7 @@ def set_acc_motor(val: int):
 def drive_single_motor(id: int, value: int):        # à mettre en pourcentage
     if id < 0 : id = 0
     elif id > 255 : id = 255
-    if value < -100 : value = 100
+    if value < -100 : value = -100
     elif value > 100 : value = 100
     value = value * 70
     msg = "i70d"+str(id)+"v"+str(value)+"o"
