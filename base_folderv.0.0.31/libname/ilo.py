@@ -2,7 +2,7 @@
 # SIMON LE BERRE
 # 15/05/2024
 # pip install ilo
-version = "0.30"
+version = "0.31"
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
 
@@ -22,9 +22,9 @@ else:
 '''
 
 global IP,Port,s,preview_stop,connect
-IP = '192.168.1.239'
+IP = '192.168.4.1'
 preview_stop = True
-connect = FalseS
+connect = False
 
 #-------------------------------------------------------------------------
 def info():
@@ -161,7 +161,7 @@ def connection():
     else:
         print('Connecting...')
         try:
-            Port = 80
+            Port = 81
             ping = socket.socket()
             ping.connect((IP, Port))
             deviceIP = ping.getsockname()[0]     # IP of the machine
@@ -599,8 +599,9 @@ def set_acc_motor(val: int):
 def drive_single_motor(id: int, value: int):        # à mettre en pourcentage
     if id < 0 : id = 0
     elif id > 255 : id = 255
-    if value < -7000 : value = -7000
-    elif value > 7000 : value = 7000
+    if value < -100 : value = 100
+    elif value > 100 : value = 100
+    value = value * 70
     msg = "i70d"+str(id)+"v"+str(value)+"o"
     socket_send(msg)
 
