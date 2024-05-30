@@ -61,25 +61,25 @@ def list_function():
     print("game()                                        -> control ilo using arrow or numb pad of your keyboard")
     print("                                                 available keyboard touch: 8,2,4,6,1,3   space = stop    esc = quit")
     print("")
-    print("get_color_rgb                                 -> return RGB color under the robot with list form as [color_left, color_middle, color_right]")
+    print("get_color_rgb()                               -> return RGB color under the robot with list form as [color_left, color_middle, color_right]")
     print("")
-    print("get_color_clear                               -> return lightness under the robot with list from as [light_left, light_middle, light_right]")
+    print("get_color_clear()                             -> return lightness under the robot with list from as [light_left, light_middle, light_right]")
     print("")
-    print("get_line                                      -> detects whether the robot is on a line or not and return a list from as [line_left, line_center, line_right]")
+    print("get_line()                                    -> detects whether the robot is on a line or not and return a list from as [line_left, line_center, line_right]")
     print("")
-    print("set_line_threshold_value                      -> set the threshold value for the line detector")
+    print("set_line_threshold_value()                    -> set the threshold value for the line detector")
     print("")
-    print("get_distance                                  -> return distance around the robot with list from as [front, right, back, left]")
+    print("get_distance()                                -> return distance around the robot with list from as [front, right, back, left]")
     print("")
-    print("get_angle                                     -> return angle of the robot with list from as [roll, pitch, yaw]")
+    print("get_angle()                                   -> return angle of the robot with list from as [roll, pitch, yaw]")
     print("")
-    print("reset_angle                                   -> reset the angle of the robot")
+    print("reset_angle()                                 -> reset the angle of the robot")
     print("")
-    print("get_imu                                       -> return from as ")
+    print("get_imu()                                     -> return info about the imu with list from as [gyroX, gyroY, gyroZ, accelX, accelY, accelZ] ")
     print("")
-    print("get_battery                                   -> return info about the battery of the robot with list from as [battery status, battery pourcentage]")
+    print("get_battery()                                 -> return info about the battery of the robot with list from as [battery status, battery pourcentage]")
     print("")
-    print("get_led_color                                 -> ")
+    print("get_led_color()                               -> return info about ilo leds colors")
     print("")
     print("set_led_color(red,green,blue)                 -> set ilorobot leds colors")
     print("                                                 red, green and blue are integers and must be between 0 and 255")
@@ -106,7 +106,7 @@ def list_function():
     print("")
     print("drive_single_motor(id, value)                 -> control only one motor at a time")
     print("                                                 id is a integer and must be between 0 and 255")
-    print("                                                 value is a integer and must be between -7000 and 7000")
+    print("                                                 value is a integer and must be between -100 and 100")
     print("")
     print("set_autonomous_mode(number)                   -> launches the robot in autonomous mode")
     print("                                                 number is an integer and must be between 0 and 5")
@@ -202,7 +202,7 @@ def test_connection():
         return False
 
 #------------------------------------------- ---------------------------------
-def step(direction):
+def step(direction: str):
     """
     Move by step ilorobot with selected direction during 2 seconds
     :param direction:
@@ -540,16 +540,16 @@ def get_battery():
 def get_led_color():
     return classification("i50o")
 
-def set_led_color(r, g, b):
+def set_led_color(r: int, g: int, b: int):
     # make integer test and test min and max value
     msg = "i51r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
     socket_send(msg)
     
-def set_led_shape(val):
+def set_led_shape(val: int):
     msg = "i52v"+str(val)+"o"
     socket_send(msg)
     
-def set_led_anim(val, rep):
+def set_led_anim(val: int, rep: int):
     msg = "i53v"+str(val)+"r"+str(rep)+"o"
     socket_send(msg)
 
@@ -612,13 +612,7 @@ def set_autonomous_mode(number: int):
 def get_vmax():
     pass
 
-def set_vmax(vmax):
-    pass
-        
-def led_bottom_ON():
-    pass
-
-def led_bottom_OFF():
+def set_vmax(vmax: int):
     pass
 
 def control_single_motor_front_left(value: int):  # de -100 à 100
