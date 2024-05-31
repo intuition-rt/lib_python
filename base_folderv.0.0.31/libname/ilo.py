@@ -583,8 +583,12 @@ def set_led_captor(bool):
         msg = "i54l0o"
     socket_send(msg)
 
-def set_led_single(bool, id: int, r: int, g: int, b: int):
-    msg = "i55t"+str(bool)+"d"+str(id)+"r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
+def set_led_single(type: str, id: int, r: int, g: int, b: int):
+    if type == "center":
+        type = True
+    if type == "cercle":
+        type = False
+    msg = "i55t"+str(type)+"d"+str(id)+"r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
     socket_send(msg)
     
 def get_acc_motor():
