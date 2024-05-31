@@ -117,6 +117,12 @@ def list_function():
     print("                                                 number is an integer and must be between 0 and 5")
     print("                                                 1 = labyrinth          2 = color with displacement      3 = line tracking")
     print("                                                 4 = IMU water mode     5 = distance sensor led")
+    print("")
+    print("set_wifi_credentials(ssid, password)          -> save your wifi credentials")
+    print("                                                 ssid and password must be strings")
+    print("")
+    print("get_wifi_credentials()                        -> obtain the wifi credentials registered on the robot")
+    print("")
     print("test_connection()                             -> stop the robot if it is properly connected")
 
 #-----------------------------------------------------------------------------
@@ -501,6 +507,11 @@ def classification(trame):
             acc_motor  = int(data[data.find('a')+1 : data.find('o')])
             return acc_motor
         
+        if data[2:4] == "91":
+            ssid     = str(data[data.find('s')+1 : data.find('p')])
+            password = str(data[data.find('p')+1 : data.find('o')])
+            return ssid, password
+        
     
     except:
         print('Communication Err: classification')
@@ -613,6 +624,13 @@ def drive_single_motor(id: int, value: int):        # à mettre en pourcentage
 def set_autonomous_mode(number: int):
     msg = "i80n"+str(number)+"o"
     socket_send(msg)
+
+def set_wifi_credentials(ssid: str, password: str):
+    msg = "i90s"+str(ssid)+"p"+str(password)+"o"
+    socket_send(msg)
+
+def get_wifi_credentials():
+    return classification("i91o")
 
 def get_vmax():
     pass
