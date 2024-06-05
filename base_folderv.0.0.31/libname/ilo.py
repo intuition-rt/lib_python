@@ -516,6 +516,10 @@ def classification(trame):
     except:
         print('Communication Err: classification')
         return -1
+
+def set_ilo_name(name: str):
+    msg = "i0n"+str(name)+"o"
+    socket_send(msg)
     
 def get_color_rgb():
     return classification("i10o")
