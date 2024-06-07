@@ -11,16 +11,28 @@
   - ‘im(ID)to’ exemple pour retour d’info de température
 - Gérer l’accès aux capteurs I2C de la carte accessoire
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
+-
 
-## Version 30:
+## Version 31:
 
 Date de publication:
 Objectif : xx/05/2024
 
 Ajout par rapport à la version précédente:
 ```
+• passage du param de drive_single_motor en pourcentage
+```
+
+## Version 30:
+
+Date de publication:
+Objectif : 29/05/2024
+
+Ajout par rapport à la version précédente:
+```
 • Mise à jour de l'IP
 • Ajout controle_single_motor
+• Adaptation du code pour que plusieurs robots puissent être utilisés en même temps
 ```
 
 ## Version 29:
