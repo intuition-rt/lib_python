@@ -13,7 +13,7 @@ from prettytable import PrettyTable
 
 tab_IP = []
 
-#-------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 def info():
     """
     Print info about ilorobot
@@ -22,7 +22,7 @@ def info():
     print("ilo robot is an education robot controlable by direct python command")
     print("To know every fonction available with ilo,  use ilo.list_function() command line")
     print("You are using the version ", version)
-#-------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 def list_function():
     print("info()                                        -> print info about ilorobot")
     print(" ")
@@ -48,25 +48,25 @@ def list_function():
     print("game()                                        -> control ilo using arrow or numb pad of your keyboard")
     print("                                                 available keyboard touch: 8,2,4,6,1,3   space = stop    esc = quit")
     print("")
-    print("get_color_rgb                                 -> return RGB color under the robot with list form as [color_left, color_middle, color_right]")
+    print("get_color_rgb()                               -> return RGB color under the robot with list form as [color_left, color_middle, color_right]")
     print("")
-    print("get_color_clear                               -> return lightness under the robot with list from as [light_left, light_middle, light_right]")
+    print("get_color_clear()                             -> return lightness under the robot with list from as [light_left, light_middle, light_right]")
     print("")
-    print("get_line                                      -> detects whether the robot is on a line or not and return a list from as [line_left, line_center, line_right]")
+    print("get_line()                                    -> detects whether the robot is on a line or not and return a list from as [line_left, line_center, line_right]")
     print("")
-    print("set_line_threshold_value                      -> set the threshold value for the line detector")
+    print("set_line_threshold_value()                    -> set the threshold value for the line detector")
     print("")
-    print("get_distance                                  -> return distance around the robot with list from as [front, right, back, left]")
+    print("get_distance()                                -> return distance around the robot with list from as [front, right, back, left]")
     print("")
-    print("get_angle                                     -> return angle of the robot with list from as [roll, pitch, yaw]")
+    print("get_angle()                                   -> return angle of the robot with list from as [roll, pitch, yaw]")
     print("")
-    print("reset_angle                                   -> reset the angle of the robot")
+    print("reset_angle()                                 -> reset the angle of the robot")
     print("")
-    print("get_imu                                       -> return from as ")
+    print("get_imu()                                     -> return info about the imu with list from as [gyroX, gyroY, gyroZ, accelX, accelY, accelZ] ")
     print("")
-    print("get_battery                                   -> return info about the battery of the robot with list from as [battery status, battery pourcentage]")
+    print("get_battery()                                 -> return info about the battery of the robot with list from as [battery status, battery pourcentage]")
     print("")
-    print("get_led_color                                 -> ")
+    print("get_led_color()                               -> return info about ilo leds colors")
     print("")
     print("set_led_color(red,green,blue)                 -> set ilorobot leds colors")
     print("                                                 red, green and blue are integers and must be between 0 and 255")
@@ -86,6 +86,11 @@ def list_function():
     print("")
     print("set_led_captor(bool)                          -> turns on/off the lights under the robot")
     print("")
+    print("set_led_single(bool, id, r, g, b)             -> set one ilorobot leds colors")
+    print("                                                 bool must be True or False")
+    print("                                                 id must be a integer")
+    print("                                                 red, green and blue are integers and must be between 0 and 255")
+    print("")
     print("get_acc_motor()                               -> return info about the acceleration of the robot")
     print("")
     print("set_acc_motor(val)                            -> set the acceleration of ilo")
@@ -93,14 +98,20 @@ def list_function():
     print("")
     print("drive_single_motor(id, value)                 -> control only one motor at a time")
     print("                                                 id is a integer and must be between 0 and 255")
-    print("                                                 value is a integer and must be between -7000 and 7000")
+    print("                                                 value is a integer and must be between -100 and 100")
     print("")
     print("set_autonomous_mode(number)                   -> launches the robot in autonomous mode")
     print("                                                 number is an integer and must be between 0 and 5")
     print("                                                 1 = labyrinth          2 = color with displacement      3 = line tracking")
     print("                                                 4 = IMU water mode     5 = distance sensor led")
+    print("")
+    print("set_wifi_credentials(ssid, password)          -> save your wifi credentials")
+    print("                                                 ssid and password must be strings")
+    print("")
+    print("get_wifi_credentials()                        -> obtain the wifi credentials registered on the robot")
+    print("")
     print("test_connection()                             -> stop the robot if it is properly connected")
-#-------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 def socket_send(msg, IP, Port):
     #print(msg)
     global s
@@ -115,7 +126,7 @@ def socket_send(msg, IP, Port):
     except:
         print('Error of connection with ilo to send message')
         return False
-#-------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 def socket_read(IP, Port):
     #print(msg)
     global s
@@ -133,7 +144,7 @@ def socket_read(IP, Port):
     except:
         print('Error of connection with ilo to receive message')
         return False
-#-------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 def classification(trame, IP, Port):
     try: 
         global s
@@ -200,10 +211,15 @@ def classification(trame, IP, Port):
             acc_motor  = int(data[data.find('a')+1 : data.find('o')])
             return acc_motor
         
+        if data[2:4] == "91":
+            ssid     = str(data[data.find('s')+1 : data.find('p')])
+            password = str(data[data.find('p')+1 : data.find('o')])
+            return ssid, password
+        
     except:
         print('Communication Err: classification')
         return -1
-#-------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 def ping_ip(ip, count=2, timeout=5):
     
     """
@@ -235,7 +251,7 @@ def ping_ip(ip, count=2, timeout=5):
     except Exception as e:
         print(f"Erreur lors de l'exécution de la commande ping: {e}")
         return False
-#-------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 def check_ilo_on_network():
     print("Looking for ilo on your network ...")
     global tab_IP
@@ -284,13 +300,13 @@ def check_ilo_on_network():
         print("Use for exemple: my_ilo = ilo.robot(1) to created object my_ilo with the ID = 1")
     else:
         print("Unfornutaly no one ilo is present on your current network, check you connection.")
-#-------------------------------------------------------------------------   
+#-----------------------------------------------------------------------------   
 def get_IP_from_ID(ID):
     for item in tab_IP:
         if item[1] == ID:
             return item[0]
     return None
-#-------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 #exemple of creation of object robot
 #my_ilo = ilo.robot(1)
 
@@ -361,14 +377,14 @@ class robot(object):
         except:
             print("Error connection to the robot")
             return False
-    #-----------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------    
     def stop(self):
         """
         Stop the robot
         :return:
         """
         socket_send("io", self.IP, self.Port)
-    #-----------------------------------------------------------------------------
+    #------------------------------------------- ---------------------------------
     def pause(self):
         self.direct_control(128,128,128)
     #-----------------------------------------------------------------------------
@@ -451,7 +467,6 @@ class robot(object):
         str_command = str(list_course[0] + list_course[1] + list_course[2])
         new_command = "iav" + str_command +"pxyro"
         return new_command
-        #-----------------------------------------------------------------------------
     #-----------------------------------------------------------------------------
     def move(self, direction, speed):
         """
@@ -598,6 +613,10 @@ class robot(object):
         else:
             print("You have to be connected to ILO before play with it, use ilo.connection()")
     #-----------------------------------------------------------------------------
+    def set_ilo_name(self, name: str):
+        msg = "i0n"+str(name)+"o"
+        socket_send(msg, self.IP, self.Port)
+    #-----------------------------------------------------------------------------
     def get_color_rgb(self):
         return classification("i10o", self.IP, self.Port)
     #-----------------------------------------------------------------------------
@@ -641,10 +660,10 @@ class robot(object):
 
     def get_imu(self):
         return classification("i32o",self.IP, self.Port)
-
+    #-----------------------------------------------------------------------------
     def get_battery(self):
         return classification("i40o",self.IP, self.Port)
-
+    #-----------------------------------------------------------------------------
     def get_led_color(self):
         return classification("150o",self.IP, self.Port)
             
@@ -661,15 +680,24 @@ class robot(object):
         msg = "i53v"+str(val)+"r"+str(rep)+"o"
         socket_send(msg, self.IP, self.Port) 
 
+    def set_led_single(type: str, id: int, r: int, g: int, b: int):
+        if type == "center":
+            type = True
+        if type == "cercle":
+            type = False
+        msg = "i55t"+str(type)+"d"+str(id)+"r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
+        socket_send(msg)
+
     def set_led_captor(self,bool):
         if (bool == True):
             msg = "i54l1o"
         elif (bool == False) :
             msg = "i54l0o"
         socket_send(msg, self.IP, self.Port) 
-        
+    #-----------------------------------------------------------------------------
     def get_acc_motor(self):
         return classification("i60o",self.IP, self.Port)
+    
     def set_acc_motor(self, val: int):
         # make integer test and test min and max value
         if val < 10 : val = 10
@@ -680,8 +708,9 @@ class robot(object):
     def drive_single_motor(self, id: int, value: int):        # à mettre en pourcentage
         if id < 0 : id = 0
         elif id > 255 : id = 255
-        if value < -7000 : value = -7000
-        elif value > 7000 : value = 7000
+        if value < -100 : value = -100
+        elif value > 100 : value = 100
+        value = value * 70
         msg = "i70d"+str(id)+"v"+str(value)+"o"
         socket_send(msg, self.IP, self.Port) 
 
@@ -714,7 +743,17 @@ class robot(object):
     def set_mode_motor():
         #between position or wheel mode
         pass
+
+    def free_motor():
+        #to disconnected power on engine
+        pass
+    #-----------------------------------------------------------------------------
+    def set_wifi_credentials(self, ssid: str, password: str):
+        msg = "i90s"+str(ssid)+"p"+str(password)+"o"
+        socket_send(msg, self.IP, self.Port)
+
+    def get_wifi_credentials():
+        return classification("i91o")
 #---------------------------------------------------------------------------------
 check_ilo_on_network()
-
-
+    
