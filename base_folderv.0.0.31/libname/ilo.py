@@ -216,6 +216,10 @@ def classification(trame, IP, Port):
             password = str(data[data.find('p')+1 : data.find('o')])
             return ssid, password
         
+        if data[2:4] == "92":
+            hostname = str(data[data.find('n')+1 : data.find('o')])
+            return hostname
+        
     except:
         print('Communication Err: classification')
         return -1
@@ -616,6 +620,9 @@ class robot(object):
     def set_name(self, name: str):
         msg = "i0n"+str(name)+"o"
         socket_send(msg, self.IP, self.Port)
+        
+    def get_name(self):
+        return classification("i92o", self.IP, self.Port)
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
         return classification("i10o", self.IP, self.Port)
@@ -752,8 +759,8 @@ class robot(object):
         msg = "i90s"+str(ssid)+"p"+str(password)+"o"
         socket_send(msg, self.IP, self.Port)
 
-    def get_wifi_credentials():
-        return classification("i91o")
+    def get_wifi_credentials(self):
+        return classification("i91o", self.IP, self.Port)
 #---------------------------------------------------------------------------------
 check_ilo_on_network()
     
