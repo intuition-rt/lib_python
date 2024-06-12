@@ -24,6 +24,8 @@ pip install ilo
 
 - [Keyboard - Take full control of your keyboard with this small Python library. Hook global events, register hotkeys, simulate key presses and much more.](https://pypi.org/project/keyboard/)
 
+- [PrettyTable - A simple Python library for easily displaying tabular data in a visually appealing ASCII table format.](https://pypi.org/project/prettytable/)
+
 Don't worry, this dependency is automatically installed with the ilo library.
 
 ## Example

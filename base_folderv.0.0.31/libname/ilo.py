@@ -613,7 +613,7 @@ class robot(object):
         else:
             print("You have to be connected to ILO before play with it, use ilo.connection()")
     #-----------------------------------------------------------------------------
-    def set_ilo_name(self, name: str):
+    def set_name(self, name: str):
         msg = "i0n"+str(name)+"o"
         socket_send(msg, self.IP, self.Port)
     #-----------------------------------------------------------------------------

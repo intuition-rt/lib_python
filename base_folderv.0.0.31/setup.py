@@ -19,6 +19,7 @@ setup(
     package_dir={'':'libname'},
     install_requires=[
         "keyboard",
+        "prettytable",
     ],
     keywords=['python'],
     classifiers=[
