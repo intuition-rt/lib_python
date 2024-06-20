@@ -3,7 +3,7 @@
 # 27/05/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.31"
+version = "0.32"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
@@ -172,7 +172,11 @@ def classification(trame, IP, Port):
             line_left   = int(data[data.find('l')+1 : data.find('m')])
             line_center = int(data[data.find('m')+1 : data.find('r')])
             line_right  = int(data[data.find('r')+1 : data.find('o')])
-            return line_left, line_center, line_right            
+            return line_left, line_center, line_right
+
+        if data[2:4] == "14" :
+            line_threshold_value = int(data[data.find('t')+1 : data.find('o')])
+            return line_threshold_value
 
         if data[2:4] == "20":
             front = data[data.find('f')+1 : data.find('r')]
@@ -651,8 +655,12 @@ class robot(object):
     def get_line_right(self):
         return self.get_line()[2]
 
-    def set_line_threshold_value(self):
-        socket_send("i13o", self.IP, self.Port)
+    def set_line_threshold_value(self, val: int):
+        msg = "i13t"+str(val)+"o"
+        socket_send(msg, self.IP, self.Port)
+        
+    def get_line_threshold_value(self):
+        return classification("i14o", self.IP, self.Port)
     #-----------------------------------------------------------------------------
     def get_distance(self):
         return classification("i20o", self.IP, self.Port)
