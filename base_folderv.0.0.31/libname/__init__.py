@@ -12,6 +12,7 @@ from ilo import move
 from ilo import direct_control
 from ilo import game
 from ilo import set_name
+from ilo import get_name
 from ilo import get_color_rgb
 from ilo import get_color_clear
 from ilo import get_color_clear_left
@@ -22,6 +23,7 @@ from ilo import get_line_left
 from ilo import get_line_center
 from ilo import get_line_right
 from ilo import set_line_threshold_value
+from ilo import get_line_threshold_value
 from ilo import get_distance
 from ilo import get_angle
 from ilo import reset_angle
