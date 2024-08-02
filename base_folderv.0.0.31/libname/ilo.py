@@ -260,7 +260,7 @@ def ping_ip(ip, count=2, timeout=5):
         print(f"Erreur lors de l'exécution de la commande ping: {e}")
         return False
 #-----------------------------------------------------------------------------
-def check_ilo_on_network():
+def check_robot_on_network():
     print("Looking for ilo on your network ...")
     global tab_IP
 
@@ -770,5 +770,5 @@ class robot(object):
     def get_wifi_credentials(self):
         return classification("<<91>>", self.IP, self.Port)
 #---------------------------------------------------------------------------------
-check_ilo_on_network()
+check_robot_on_network()
     
