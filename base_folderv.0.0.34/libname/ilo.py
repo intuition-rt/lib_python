@@ -3,7 +3,7 @@
 # 06/08/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.33"
+version = "0.34"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
@@ -269,7 +269,7 @@ def check_robot_on_network():
     ilo_AP = False
     
     if ping_ip("192.168.4.1") == True:
-        if socket_send("io", "192.168.4.1", 81):
+        if socket_send("ilo", "192.168.4.1", 81):
             tab_IP.append(["192.168.4.1", 1])
             ilo_AP = True
     
@@ -348,7 +348,7 @@ class robot(object):
             try:
                 socket_send("ilo", self.IP, self.Port)
                 time.sleep(1)
-                socket_send("<<>>", self.IP, self.Port)
+                socket_send("ilo", self.IP, self.Port)
                 print('Connected')
                 self.connect = True
                 '''
