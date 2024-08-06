@@ -695,13 +695,13 @@ class robot(object):
         msg = "<<53v"+str(val)+"r"+str(rep)+">>"
         socket_send(msg, self.IP, self.Port) 
 
-    def set_led_single(type: str, id: int, r: int, g: int, b: int):
+    def set_led_single(self, type: str, id: int, r: int, g: int, b: int):
         if type == "center":
             type = True
         if type == "cercle":
             type = False
         msg = "<<55t"+str(type)+"d"+str(id)+"r"+str(r)+"g"+str(g)+"b"+str(b)+">>"
-        socket_send(msg)
+        socket_send(msg, self.IP, self.Port)
 
     def set_led_captor(self,bool):
         if (bool == True):
@@ -732,6 +732,10 @@ class robot(object):
     def set_autonomous_mode(self, number: int):
         msg = "<<80n"+str(number)+">>"
         socket_send(msg, self.IP, self.Port) 
+        
+    def set_autonomous_led(self, number: int):
+        msg = "<<81n"+str(number)+">>"
+        socket_send(msg,self.IP, self.Port)
 
     def control_single_motor_front_left(self, value: int):  # de -100 à 100
         self.drive_single_motor(1,value)
