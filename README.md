@@ -13,10 +13,30 @@
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
 -
 
+## Version 33:
+
+Date de publication:
+Objectif : 06/08/2024
+
+Ajout par rapport à la version précédente:
+```
+• passage des trames de 'io' à '<<>>'
+```
+
+## Version 32:
+
+Date de publication:
+Objectif : 19/06/2024
+
+Ajout par rapport à la version précédente:
+```
+• fix
+```
+
 ## Version 31:
 
 Date de publication:
-Objectif : xx/05/2024
+Objectif : 07/06/2024
 
 Ajout par rapport à la version précédente:
 ```
