@@ -185,20 +185,20 @@ def classification(trame, IP, Port):
             left  = data[data.find('l')+1 : data.find('>')]
             return front, right, back, left
             
-        if data[2:4] == "30":
+        if data[2:4] == "32":
             roll  = int(data[data.find('r')+1 : data.find('p')])
             pitch = int(data[data.find('p')+1 : data.find('y')])
             yaw   = int(data[data.find('y')+1 : data.find('>')])
             return roll, pitch, yaw
             
-        if data[2:4] == "32":
+        '''if data[2:4] == "32":
             accelX  = int(data[data.find('x')+1 : data.find('y')])
             accelY  = int(data[data.find('y')+1 : data.find('z')])
             accelZ  = int(data[data.find('z')+1 : data.find('t')])
             gyroX   = int(data[data.find('t')+1 : data.find('r')])
             gyroY   = int(data[data.find('r')+1 : data.find('l')])
             gyroZ   = int(data[data.find('l')+1 : data.find('>')])
-            return accelX, accelY, accelZ, gyroX, gyroY, gyroZ
+            return accelX, accelY, accelZ, gyroX, gyroY, gyroZ'''
 
         if data[2:4] == "40":
             status_battery      = int(data[data.find('s')+1 : data.find('p')])
@@ -269,7 +269,7 @@ def check_robot_on_network():
     ilo_AP = False
     
     if ping_ip("192.168.4.1") == True:
-        if socket_send("ilo", "192.168.4.1", 81):
+        if socket_send("io", "192.168.4.1", 81):
             tab_IP.append(["192.168.4.1", 1])
             ilo_AP = True
     
@@ -348,7 +348,7 @@ class robot(object):
             try:
                 socket_send("ilo", self.IP, self.Port)
                 time.sleep(1)
-                socket_send("ilo", self.IP, self.Port)
+                socket_send("<<>>", self.IP, self.Port)
                 print('Connected')
                 self.connect = True
                 '''
@@ -691,8 +691,8 @@ class robot(object):
         msg = "<<52v"+str(val)+">>"
         socket_send(msg, self.IP, self.Port) 
         
-    def set_led_anim(self,val, rep):
-        msg = "<<53v"+str(val)+"r"+str(rep)+">>"
+    def set_led_anim(self,val):
+        msg = "<<53v"+str(val)+">>"
         socket_send(msg, self.IP, self.Port) 
 
     def set_led_single(self, type: str, id: int, r: int, g: int, b: int):
@@ -773,6 +773,11 @@ class robot(object):
 
     def get_wifi_credentials(self):
         return classification("<<91>>", self.IP, self.Port)
+    #---------------------------------------------------------------------------------   
+    def set_debug_state(self, state: bool):
+        msg = "<<94"+str(state)+">>"
+        socket_send(msg, self.IP, self.Port)
+    
 #---------------------------------------------------------------------------------
 check_robot_on_network()
     

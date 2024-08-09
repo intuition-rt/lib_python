@@ -23,12 +23,16 @@ setup(
     ],
     keywords=['python'],
     classifiers=[
-        "Development Status :: 1 - Planning",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
+        "Intended Audience :: Education",
+        "Natural Language :: English"
         "Programming Language :: Python :: 3",
-        "Operating System :: Unix",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Topic :: Education",
     ]
 )
 
