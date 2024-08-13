@@ -72,17 +72,14 @@ def list_function():
     print("                                                 red, green and blue are integers and must be between 0 and 255")
     print("")
     print("set_led_shape(value)                          -> set ilorobot leds shape")
-    print("                                                 value is an integer and must be between 0 and 19")
-    print("                                                 0 = smiley          1 = play      2 = back arrow      3 = pause")
-    print("                                                 4 = left arrow      5 = stop      6 = right arrow     7 = rot_trigo arrow")
-    print("                                                 8 = front arrow     9 = rot_clock arrow        10 to 19 = number 0 to 9")
+    print("                                                 value is a string and must be selected from this list: [front, back, right, left, rot_clock, rot_trigo, ")
+    print("                                                 stop, play, pause, smiely, 10(number 0), 11 (number 1), up to number 9, ring_1, ring_2, ring_3, ring_4, ")
+    print("                                                 ring_5]")
+    print("                                                 8 = ")
     print("")
-    print("set_led_anim(value, repetition)               -> set ilorobot leds animations")
-    print("                                                 value is an integer and must be between 0 and 9")
-    print("                                                 repetition is an integer and represents the number of times the animation will loop")
-    print("                                                 0 = waving          1 = cercle rotation      2 =      3 = cercle stars")
-    # print("                                                 4 =       5 =                  6 =      7 = ")
-    # print("                                                 8 =      9 =     ")
+    print("set_led_anim(value)                           -> set ilorobot leds animations")
+    print("                                                 value is a string and must be selected from this list: [labyrinth, color_displacement, line_tracking, imu_water, ")
+    print("                                                 distance_displacement]")
     print("")
     print("set_led_captor(bool)                          -> turns on/off the lights under the robot")
     print("")
@@ -153,7 +150,7 @@ def classification(trame, IP, Port):
         data = str(s.recv(1024))[2:]
 
         #data = socket_read(IP, Port)
-        print ('data reçu:   ', data)
+        #print ('data reçu:   ', data)
         #print ('data indice: ', data[2])
         #print (str(data[2:4]))
         if data[2:4] == "10":
@@ -179,11 +176,11 @@ def classification(trame, IP, Port):
             return line_threshold_value
 
         if data[2:4] == "20":
-            front = data[data.find('f')+1 : data.find('r')]
-            right = data[data.find('r')+1 : data.find('b')]
-            back  = data[data.find('b')+1 : data.find('l')]
-            left  = data[data.find('l')+1 : data.find('>')]
-            return front, right, back, left
+            distance_front = data[data.find('f')+1 : data.find('r')]
+            distance_right = data[data.find('r')+1 : data.find('b')]
+            distance_back  = data[data.find('b')+1 : data.find('l')]
+            distance_left  = data[data.find('l')+1 : data.find('>')]
+            return distance_front, distance_right, distance_back, distance_left
             
         if data[2:4] == "32":
             roll  = int(data[data.find('r')+1 : data.find('p')])
@@ -392,7 +389,7 @@ class robot(object):
         :return:
         """
         socket_send("<<>>", self.IP, self.Port)
-    #------------------------------------------- ---------------------------------
+    #-----------------------------------------------------------------------------
     def pause(self):
         self.direct_control(128,128,128)
     #-----------------------------------------------------------------------------
@@ -405,7 +402,7 @@ class robot(object):
         #ilo.step('front')
         if self.connect == True:
             if isinstance(direction, str) == False:
-                print ('direction should be an string as front, back, left, rot_trigo, rot_clock','stop')
+                print ('direction should be an string as front, back, left, rot_trigo, rot_clock, stop')
                 return None
 
             if direction == 'front':
@@ -665,7 +662,55 @@ class robot(object):
     def get_distance(self):
         return classification("<<20>>", self.IP, self.Port)
     
-    #improvement (add get_distance_front(self)) etc
+    def get_distance_front(self):
+        result = self.get_distance()
+        
+        # Vérifiez que result est un tuple (ou une liste)
+        if isinstance(result, (tuple, list)):
+            distance_front, _, _, _ = result
+            return int(distance_front)
+        else:
+            # Si ce n'est pas un tuple ou une liste, gérer l'erreur
+            print("Erreur : get_distance() n'a pas retourné un tuple ou une liste")
+            distance_front = 600
+            return distance_front
+   
+    def get_distance_right(self):
+        result = self.get_distance()
+        
+        # Vérifiez que result est un tuple (ou une liste)
+        if isinstance(result, (tuple, list)):
+            _, distance_right, _, _ = result
+            return int(distance_right)
+        else:
+            print("Erreur : get_distance() n'a pas retourné un tuple ou une liste")
+            distance_right = 600
+            return distance_right
+    
+    def get_distance_back(self):
+        # return self.get_distance()[2]
+        result = self.get_distance()
+        
+        # Vérifiez que result est un tuple (ou une liste)
+        if isinstance(result, (tuple, list)):
+            _, _, distance_back, _ = result
+            return int(distance_back)
+        else:
+            print("Erreur : get_distance() n'a pas retourné un tuple ou une liste")
+            distance_back = 600
+            return distance_back
+    
+    def get_distance_left(self):
+        result = self.get_distance()
+        
+        # Vérifiez que result est un tuple (ou une liste)
+        if isinstance(result, (tuple, list)):
+            _, _, _, distance_left = result
+            return int(distance_left)
+        else:
+            print("Erreur : get_distance() n'a pas retourné un tuple ou une liste")
+            distance_left = 600
+            return distance_left
     #-----------------------------------------------------------------------------
     def get_angle(self):
         return classification("<<30>>",self.IP, self.Port)
