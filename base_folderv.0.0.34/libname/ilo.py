@@ -774,12 +774,12 @@ class robot(object):
         msg = "<<70d"+str(id)+"v"+str(value)+">>"
         socket_send(msg, self.IP, self.Port) 
 
-    def set_autonomous_mode(self, number: int):
-        msg = "<<80n"+str(number)+">>"
+    def set_autonomous_mode(self, value: str):
+        msg = "<<80"+str(value)+">>"
         socket_send(msg, self.IP, self.Port) 
         
-    def set_autonomous_led(self, number: int):
-        msg = "<<81n"+str(number)+">>"
+    def set_autonomous_led(self, value: str):
+        msg = "<<81"+str(value)+">>"
         socket_send(msg,self.IP, self.Port)
 
     def control_single_motor_front_left(self, value: int):  # de -100 à 100
