@@ -8,7 +8,7 @@ print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 #-----------------------------------------------------------------------------
-import socket, time, keyboard, subprocess, platform
+import socket, time, keyboard, subprocess, platform, websocket
 from prettytable import PrettyTable
 
 tab_IP = []
@@ -109,8 +109,16 @@ def list_function():
     print("")
     print("test_connection()                             -> stop the robot if it is properly connected")
 #-----------------------------------------------------------------------------
-def socket_send(msg, IP, Port):
+def socket_send(ws, msg):
     #print(msg)
+    try:
+        ws.send(msg)
+        time.sleep(0.1)
+        return True
+    except Exception as e:
+        print(f'Error of connection with ilo to send message: {e}')
+        return False
+    
     global s
     try:
         s = socket.socket()
@@ -124,30 +132,26 @@ def socket_send(msg, IP, Port):
         print('Error of connection with ilo to send message')
         return False
 #-----------------------------------------------------------------------------
-def socket_read(IP, Port):
+def socket_read(ws):
     #print(msg)
     global s
     try:
-        # s.connect((IP, Port))
-        s.bind(IP, Port)
-        s.listen()
-        conn, addr = s.accept()
-
-        data = str(conn.recv(1024))[1:]
-    
+        data = ws.recv()  # Lecture des donnees via WebSocket
+        data = data[1:]  # Suppression du premier caractere si necessaire
+        
         print(data)
-        time.sleep(0.05)           #  20Hz
+        time.sleep(0.05)  # 20Hz
         return data
-    except:
-        print('Error of connection with ilo to receive message')
+    except websocket.WebSocketException as e:
+        print(f'Error of connection with ilo to receive message: {e}')
         return False
 #-----------------------------------------------------------------------------
-def classification(trame, IP, Port):
+def classification(trame, ws):
     try: 
         global s
-        socket_send(trame, IP, Port)
+        socket_send(trame, ws)
         #print('trame envoyée: ', trame)
-        data = str(s.recv(1024))[2:]
+        data = ws.recv()[2:]
 
         #data = socket_read(IP, Port)
         #print ('data reçu:   ', data)
@@ -225,86 +229,70 @@ def classification(trame, IP, Port):
         print('Communication Err: classification')
         return -1
 #-----------------------------------------------------------------------------
-def ping_ip(ip, count=2, timeout=5):
-    
-    """
-    Ping une adresse IP pour vérifier si elle est active.
-    
-    Paramètres:
-    ip (str): L'adresse IP à pinger.
-    count (int): Nombre de tentatives de ping (par défaut 1).
-    timeout (int): Délai d'attente pour chaque ping en secondes (par défaut 1).
-    
-    Retourne:
-    bool: True si l'adresse IP est joignable, False sinon.
-    """
-    # Détermine la commande en fonction du système d'exploitation
-    param_count = '-n' if platform.system().lower() == 'windows' else '-c'
-    param_timeout = '-w' if platform.system().lower() == 'windows' else '-W'
-    
-    command = ['ping', param_count, str(count), param_timeout, str(timeout), ip]
-    
-    try:
-        # Exécute la commande ping et capture la sortie
-        output = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
-        # Vérifie la sortie en fonction du système d'exploitation
-        if platform.system().lower() == 'windows':
-            return 'TTL=' in output.stdout
-        else:
-            return '1 packets received' in output.stdout or '1 received' in output.stdout
-    except Exception as e:
-        print(f"Erreur lors de l'exécution de la commande ping: {e}")
-        return False
-#-----------------------------------------------------------------------------
 def check_robot_on_network():
-    print("Looking for ilo on your network ...")
-    global tab_IP
 
-    Port = 81
-    # Check if we are using ilo on AP
-    ilo_AP = False
-    
-    if ping_ip("192.168.4.1") == True:
-        if socket_send("io", "192.168.4.1", 81):
-            tab_IP.append(["192.168.4.1", 1])
-            ilo_AP = True
-    
-    if ilo_AP == False:
-        base_ip = "192.168.1."
-        ilo_ID  = 1
-        tab_IP  = []
-        c = 5                             # checking 5 more IP address after
+    try:
+        print("Looking for ilo on your network ...")
+        global tab_IP
+        tab_IP = []
 
-        for i in range(100, 200):         # between 192.168.1.100 and 192.168.1.200
-            ip_check = f"{base_ip}{i}"
-            if ping_ip(ip_check) == True:
-                IP = ip_check
-                if (socket_send("<<>>", IP, Port)):
-                    tab_IP.append([IP, ilo_ID])
-                    ilo_ID +=1 
-                else:
-                    c -=1
-                    if c==0:
-                        break
-            else:
-                c -=1
-                if c==0:
-                    break
+        global ws
+        
+        # Check if we are using ilo on AP
+        ilo_AP = False
+        
+        try:
+            ws_url = "ws://192.168.4.1:4583"
+            print(ws_url)
+            ws = websocket.create_connection(ws_url)
+            print("WebSocket connection opened")
+            if socket_send(ws, "ilo"):
+                tab_IP.append(["192.168.4.1", 1])
+                ilo_AP = True
+                ws.close()
+        except:
+            pass
+        
+        if not ilo_AP:
+            base_ip = "192.168.1."
+            ilo_ID  = 1
+            c = 5                             # checking 5 more IP address after
 
-    #display the IP and ID
-    #print(tab_IP)
-    table = PrettyTable()
-    table.field_names = ["IP Address", "ID of ilo"]
-    for row in tab_IP:
-        table.add_row(row)
-    
-    if len(tab_IP) != 0:
-        print(table)
-        print("")
-        print("Use for exemple: my_ilo = ilo.robot(1) to created object my_ilo with the ID = 1")
-    else:
-        print("Unfornutaly no one ilo is present on your current network, check you connection.")
+            try:
+                for i in range(100, 200):         # between 192.168.1.100 and 192.168.1.200
+                    ip_check = f"{base_ip}{i}"
+                    IP = ip_check
+                    ws_url = f"ws://{IP}:4583"
+                    print(ws_url)
+                    ws = websocket.create_connection(ws_url)
+                    print("WebSocket connection opened")
+                    if (socket_send(ws, "<<>>")):
+                        tab_IP.append([IP, ilo_ID])
+                        ilo_ID +=1
+                    else:
+                        c -=1
+                        if c==0:
+                            break
+                    ws.close()
+            except:
+                print("error connection with ilo on LAN")
+
+        #display the IP and ID
+        #print(tab_IP)
+        table = PrettyTable()
+        table.field_names = ["IP Address", "ID of ilo"]
+        for row in tab_IP:
+            table.add_row(row)
+        
+        if len(tab_IP) != 0:
+            print(table)
+            print("")
+            print("Use for exemple: my_ilo = ilo.robot(1) to created object my_ilo with the ID = 1")
+        else:
+            print("Unfornutaly no one ilo is present on your current network, check you connection.")
+
+    except Exception as e:
+        print(f"WebSocket error: {e}")
 #-----------------------------------------------------------------------------   
 def get_IP_from_ID(ID):
     for item in tab_IP:
@@ -319,10 +307,11 @@ class robot(object):
     
     def __init__(self, ID):
         self.ID = ID
-        self.Port = 81
+        self.Port = 4583
+        self.ws = None
         self.connect = False
-        if get_IP_from_ID(self.ID):
-            self.IP = get_IP_from_ID(self.ID)
+        self.IP = get_IP_from_ID(self.ID)
+        if self.ID:
             print(self.IP)
             self.connection()
         else:
@@ -336,21 +325,22 @@ class robot(object):
         
         """
         
-        if self.connect == True:
+        if self.connect:
             print('Your robot is already connected')
-            return None
+            return
 
         else:
             print('Connecting...')
             try:
-                socket_send("ilo", self.IP, self.Port)
+                self.ws = websocket.create_connection(f"ws://{self.IP}:{self.Port}")
+                socket_send(self.ws, "ilo")
                 time.sleep(1)
-                socket_send("<<>>", self.IP, self.Port)
+                socket_send(self.ws, "<<>>")
                 print('Connected')
                 self.connect = True
                 '''
                 ping = socket.socket()
-                ping.connect((self.IP, self.Port))
+                ping.connect((self.ws))
                 
                 msg = "ilo"
                 ping.send(msg.encode())
@@ -363,7 +353,7 @@ class robot(object):
 
                 s = socket.socket()
                 msg = "io"
-                s.connect((self.IP, self.Port))
+                s.connect((self.ws))
                 s.send(msg.encode())
                 '''
 
@@ -388,7 +378,7 @@ class robot(object):
         Stop the robot
         :return:
         """
-        socket_send("<<>>", self.IP, self.Port)
+        socket_send(self.ws, "<<>>")
     #-----------------------------------------------------------------------------
     def pause(self):
         self.direct_control(128,128,128)
@@ -401,22 +391,22 @@ class robot(object):
         """
         #ilo.step('front')
         if self.connect == True:
-            if isinstance(direction, str) == False:
-                print ('direction should be an string as front, back, left, rot_trigo, rot_clock, stop')
+            if not isinstance(direction, str):
+                print ('Direction should be an string as front, back, left, rot_trigo, rot_clock, stop')
                 return None
 
             if direction == 'front':
-                socket_send("<<avpx110yr>>", self.IP, self.Port)
+                socket_send(self.ws, "<<avpx110yr>>")
             elif direction == 'back':
-                socket_send("<<avpx010yr>>", self.IP, self.Port)
+                socket_send(self.ws, "<<avpx010yr>>")
             elif direction == 'left':
-                socket_send("<<avpxy010r>>", self.IP, self.Port)
+                socket_send(self.ws, "<<avpxy010r>>")
             elif direction == 'right':
-                socket_send("<<avpxy110r>>", self.IP, self.Port)
+                socket_send(self.ws, "<<avpxy110r>>")
             elif direction == 'rot_trigo':
-                socket_send("<<avpxyr090>>", self.IP, self.Port)
+                socket_send(self.ws, "<<avpxyr090>>")
             elif direction == 'rot_clock':
-                socket_send("<<avpxyr190>>", self.IP, self.Port)
+                socket_send(self.ws, "<<avpxyr190>>")
             elif direction == 'stop':
                 self.stop()
             else:
@@ -473,7 +463,7 @@ class robot(object):
         new_command = "<<av" + str_command +"pxyr>>"
         return new_command
     #-----------------------------------------------------------------------------
-    def move(self, direction, speed):
+    def move(self, direction: str, speed: int):
         """
         Move ilorobot with selected direction, speed and time control
         :param direction: is a string and should be (front, back, left, right, rot_trigo or rot_clock)
@@ -486,17 +476,14 @@ class robot(object):
         #global preview_stop
         #preview_stop = True
 
-        if isinstance(direction, str) == False:
-            print ('direction should be an string as front, back, left, rot_trigo, rot_clock')
+        if not isinstance(direction, str):
+            print ("Error : the 'direction' parameter must be a string as front, back, left, rot_trigo or rot_clock")
             return None
-        if isinstance(speed, int) == False:
-            print ('speed should be an integer between 0 to 100')
-            return None
-        if speed > 100:
-            print ('speed should be an integer between 0 to 100')
-            return None
-        if speed < 0:
-            print ('speed should be an integer between 0 to 100')
+        if not isinstance(speed, int):
+            print ("Error : the 'speed' parameter must be a integer")
+            return None     
+        if speed> 100 or speed<0:
+            print ("Error : 'speed' parameter must be include between 0 and 100")
             return None
 
         if direction == 'front':
@@ -516,37 +503,37 @@ class robot(object):
             return None
 
         corrected_command = self.correction_command(command)
-        socket_send(corrected_command, self.IP, self.Port)
+        socket_send(self.ws, corrected_command)
     #-----------------------------------------------------------------------------
-    def direct_control(self, axial, radial, rotation):
+    def direct_control(self, axial: int, radial: int, rotation: int):
         """
         Control ilorobot with full control
         :param axial, radial, rotation: is an integer from 0 to 255. Value from 0 to 128 are negative and value from 128 to 255 are positive
         :return:
         """
 
-        if isinstance(axial, int) == False:
-            print ('axial should be an integer')
+        if not isinstance(axial, int):
+            print ("Error : the 'axial' parameter must be a int")
             return None
         if axial> 255 or axial<0:
-            print ('axial should be include between 0 and 255')
+            print ("Error : 'axial' parameter must be include between 0 and 255")
             return None
-        if isinstance(radial, int) == False:
-            print ('Radial should be an integer')
+        if not isinstance(radial, int):
+            print ("Error : the 'radial' parameter must be a int")
             return None
         if radial> 255 or radial<0:
-            print ('Radial should be include between 0 and 255')
+            print ("Error : 'radial' parameter must be include between 0 and 255")
             return None
-        if isinstance(rotation, int) == False:
-            print ('rotation should be an integer')
+        if not isinstance(rotation, int):
+            print ("Error : the 'rotation' parameter must be a int")
             return None
         if rotation> 255 or rotation<0:
-            print ('rotation should be include between 0 and 255')
+            print ("Error : 'rotation' parameter must be include between 0 and 255")
             return None
 
         command = [axial, radial, rotation]
         corrected_command = self.correction_command(command)
-        socket_send(corrected_command, self.IP, self.Port)
+        socket_send(self.ws, corrected_command)
     #-----------------------------------------------------------------------------
     def game(self):
         """
@@ -619,17 +606,22 @@ class robot(object):
             print("You have to be connected to ILO before play with it, use ilo.connection()")
     #-----------------------------------------------------------------------------
     def set_name(self, name: str):
+
+        if not isinstance(name, str):
+            print ("Error : the 'name' parameter must be a string")
+            return None
+        
         msg = "<<0n"+str(name)+">>"
-        socket_send(msg, self.IP, self.Port)
+        socket_send(self.ws, msg)
         
     def get_name(self):
-        return classification("<<92>>", self.IP, self.Port)
+        return classification(self.ws, "<<92>>")
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
-        return classification("<<10>>", self.IP, self.Port)
+        return classification(self.ws, "<<10>>")
     #-----------------------------------------------------------------------------
     def get_color_clear(self):
-        return classification("<<11>>", self.IP, self.Port)
+        return classification(self.ws, "<<11>>")
     
     def get_color_clear_left(self):
         return self.get_color_clear()[0]
@@ -641,7 +633,7 @@ class robot(object):
         return self.get_color_clear()[2]
     #-----------------------------------------------------------------------------
     def get_line(self):
-        return classification("<<12>>", self.IP, self.Port)
+        return classification(self.ws, "<<12>>")
 
     def get_line_left(self):
         return self.get_line()[0]
@@ -652,15 +644,20 @@ class robot(object):
     def get_line_right(self):
         return self.get_line()[2]
 
-    def set_line_threshold_value(self, val: int):
-        msg = "<<13t"+str(val)+">>"
-        socket_send(msg, self.IP, self.Port)
+    def set_line_threshold_value(self, value: int):
+
+        if not isinstance(value, int):
+            print ("Error : the 'value' parameter must be a int")
+            return None
+
+        msg = "<<13t"+str(value)+">>"
+        socket_send(self.ws, msg)
         
     def get_line_threshold_value(self):
-        return classification("<<14>>", self.IP, self.Port)
+        return classification(self.ws, "<<14>>")
     #-----------------------------------------------------------------------------
     def get_distance(self):
-        return classification("<<20>>", self.IP, self.Port)
+        return classification(self.ws, "<<20>>")
     
     def get_distance_front(self):
         result = self.get_distance()
@@ -713,76 +710,178 @@ class robot(object):
             return distance_left
     #-----------------------------------------------------------------------------
     def get_angle(self):
-        return classification("<<30>>",self.IP, self.Port)
+        return classification(self.ws, "<<30>>")
 
     def reset_angle(self):
-        socket_send("<<31>>",self.IP, self.Port)
+        socket_send(self.ws, "<<31>>")
 
     def get_imu(self):
-        return classification("<<32>>",self.IP, self.Port)
+        return classification(self.ws, "<<32>>")
     #-----------------------------------------------------------------------------
     def get_battery(self):
-        return classification("<<40>>",self.IP, self.Port)
+        return classification(self.ws, "<<40>>")
     #-----------------------------------------------------------------------------
     def get_led_color(self):
-        return classification("<<50>>",self.IP, self.Port)
+        return classification(self.ws, "<<50>>")
             
-    def set_led_color(self,r, g, b):
+    def set_led_color(self,red: int, green: int, blue : int):
         # make integer test and test min and max value
-        msg = "<<51r"+str(r)+"g"+str(g)+"b"+str(b)+">>"
-        socket_send(msg, self.IP, self.Port)    
 
-    def set_led_shape(self, val):
-        msg = "<<52v"+str(val)+">>"
-        socket_send(msg, self.IP, self.Port) 
+        if not isinstance(red, int):
+            print ("Error : 'red' parameter must be a int")
+            return None
+        if red>255 or red<0:
+            print ("Error : 'red' parameter must be include between 0 and 255")
+            return None
+        if not isinstance(green, int):
+            print ("Error : 'green' parameter must be a int")
+            return None
+        if green> 255 or green<0:
+            print ("Error : 'green' parameter must be include between 0 and 255")
+            return None
+        if not isinstance(blue, int):
+            print ("Error : 'blue' parameter must be a int")
+            return None
+        if blue> 255 or blue<0:
+            print ("Error : 'blue' parameter must be include between 0 and 255")
+            return None
         
-    def set_led_anim(self,val):
-        msg = "<<53v"+str(val)+">>"
-        socket_send(msg, self.IP, self.Port) 
+        msg = "<<51r"+str(red)+"g"+str(green)+"b"+str(blue)+">>"
+        socket_send(self.ws, msg)    
 
-    def set_led_single(self, type: str, id: int, r: int, g: int, b: int):
+    def set_led_shape(self, value: str):
+
+        if not isinstance(value, str):
+            print ("Error : 'value' parameter must be a string")
+            return None
+
+        msg = "<<52v"+str(value)+">>"
+        socket_send(self.ws, msg) 
+        
+    def set_led_anim(self,value: str):
+
+        if not isinstance(value, str):
+            print ("Error : 'value' parameter must be a string")
+            return None
+
+
+        msg = "<<53v"+str(value)+">>"
+        socket_send(self.ws, msg) 
+
+    def set_led_single(self, type: str, id: int, red: int, green: int, blue: int):
+
+        if not isinstance(type, str):
+            print ("Error : 'type' parameter must be a string")
+            return None
+        if type != "center" and type != "circle":
+            print ("Error : 'type' parameter must be center or circle")
+            return None
+        if not isinstance(id, int):
+            print ("Error : 'id' parameter must be a int")
+            return None
+        
+        if not isinstance(red, int):
+            print ("Error : 'red' parameter must be a int")
+            return None
+        if red> 255 or red<0:
+            print ("Error : 'red' parameter must be include between 0 and 255")
+            return None
+        if not isinstance(green, int):
+            print ("Error : 'green' parameter must be a int")
+            return None
+        if green> 255 or green<0:
+            print ("Error : 'green' parameter must be include between 0 and 255")
+            return None
+        if not isinstance(blue, int):
+            print ("Error : 'blue' parameter must be a int")
+            return None
+        if blue> 255 or blue<0:
+            print ("Error : 'blue' parameter must be include between 0 and 255")
+            return None
+        
         if type == "center":
             type = True
-        if type == "cercle":
+        if type == "circle":
             type = False
-        msg = "<<55t"+str(type)+"d"+str(id)+"r"+str(r)+"g"+str(g)+"b"+str(b)+">>"
-        socket_send(msg, self.IP, self.Port)
+        msg = "<<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g"+str(green)+"b"+str(blue)+">>"
+        socket_send(self.ws, msg)
 
-    def set_led_captor(self,bool):
-        if (bool == True):
+    def set_led_captor(self,state: bool):
+
+        if not isinstance(state, bool):
+            print ("Error : 'state' parameter must be a bool")
+            return None
+
+        if (state == True):
             msg = "<<54l1>>"
-        elif (bool == False) :
+        elif (state == False) :
             msg = "<<54l0>>"
-        socket_send(msg, self.IP, self.Port) 
+        socket_send(self.ws, msg) 
     #-----------------------------------------------------------------------------
     def get_acc_motor(self):
-        return classification("<<60>>",self.IP, self.Port)
+        return classification(self.ws, "<<60>>")
     
-    def set_acc_motor(self, val: int):
+    def set_acc_motor(self, value: int):
         # make integer test and test min and max value
-        if val < 10 : val = 10
-        elif val > 100 : val = 100
-        msg = "<<61a"+str(val)+">>"
-        socket_send(msg, self.IP, self.Port) 
+
+        if not isinstance(value, int):
+            print ("Error : 'value' parameter must be a int")
+            return None
+        if value> 100 or value<10:
+            print ("Error : 'value' parameter must be include between 10 and 100")
+            return None
+
+        if value < 10 : value = 10
+        elif value > 100 : value = 100
+        msg = "<<61a"+str(value)+">>"
+        socket_send(self.ws, msg) 
 
     def drive_single_motor(self, id: int, value: int):        # à mettre en pourcentage
+
+        if not isinstance(id, int):
+            print ("Error : 'id' parameter must be a int")
+            return None
+        if id> 255 or id<0:
+            print ("Error : 'id' parameter must be include between 0 and 255")
+            return None
+        if not isinstance(value, int):
+            print ("Error : 'value' parameter must be a int")
+            return None
+        if value> 100 or value<-100:
+            print ("Error : 'value' parameter must be include between -100 and 100")
+            return None
         if id < 0 : id = 0
         elif id > 255 : id = 255
         if value < -100 : value = -100
         elif value > 100 : value = 100
         value = value * 70
         msg = "<<70d"+str(id)+"v"+str(value)+">>"
-        socket_send(msg, self.IP, self.Port) 
+        socket_send(self.ws, msg) 
 
     def set_autonomous_mode(self, value: str):
+
+        if not isinstance(value, str):
+            print ("Error : 'value' parameter must be a string")
+            return None
+
         msg = "<<80"+str(value)+">>"
-        socket_send(msg, self.IP, self.Port) 
+        socket_send(self.ws, msg) 
         
     def set_autonomous_led(self, value: str):
+        
+        if not isinstance(value, str):
+            print ("Error : 'value' parameter must be a string")
+            return None
+        
         msg = "<<81"+str(value)+">>"
-        socket_send(msg,self.IP, self.Port)
+        socket_send(self.ws, msg)
 
     def control_single_motor_front_left(self, value: int):  # de -100 à 100
+        
+        if not isinstance(value, int):
+            print ("Error : 'value' parameter must be a int")
+            return None
+        
         self.drive_single_motor(1,value)
         
         # if isinstance(pourcentage, int) == False:
@@ -790,12 +889,27 @@ class robot(object):
         # pass
 
     def control_single_motor_front_right(self, value: int):
+        
+        if not isinstance(value, int):
+            print ("Error : 'value' parameter must be a int")
+            return None
+        
         self.drive_single_motor(2,value)
 
     def control_single_motor_back_left(self, value: int):
+        
+        if not isinstance(value, int):
+            print ("Error : 'value' parameter must be a int")
+            return None
+        
         self.drive_single_motor(4, value)
 
     def control_single_motor_back_right(self, value: int):
+
+        if not isinstance(value, int):
+            print ("Error : 'value' parameter must be a int")
+            return None
+        
         self.drive_single_motor(3, value)
 
     def get_vmax():
@@ -813,16 +927,31 @@ class robot(object):
         pass
     #-----------------------------------------------------------------------------
     def set_wifi_credentials(self, ssid: str, password: str):
-        msg = "<<90s"+str(ssid)+"p"+str(password)+">>"
-        socket_send(msg, self.IP, self.Port)
+
+        if not isinstance(ssid, str): 
+            print ("Error : 'ssid' parameter must be a string")
+            return None
+            
+        if not isinstance(password, str):
+            print("Error : 'password' parameter must be a string")
+            return none
+        
+        msg = "<90s"+str(ssid)+">"
+        socket_send(self.ws, msg)
+
+        msg = "<91p"+str(password)+">"
+        socket_send(self.ws, msg)
 
     def get_wifi_credentials(self):
-        return classification("<<91>>", self.IP, self.Port)
+        return classification(self.ws, "<92>")
     #---------------------------------------------------------------------------------   
     def set_debug_state(self, state: bool):
-        msg = "<<94"+str(state)+">>"
-        socket_send(msg, self.IP, self.Port)
-    
+
+        if not isinstance(state, bool):
+            print ("Error : 'state' parameter must be a bool like True or False")
+            return None
+
+        msg = "<94"+str(state)+">"
+        socket_send(self.ws, msg)
 #---------------------------------------------------------------------------------
-check_robot_on_network()
     
