@@ -8,7 +8,7 @@ print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 #-----------------------------------------------------------------------------
-import socket, time, keyboard, subprocess, platform, websocket
+import socket, time, keyboard, subprocess, platform, websockets, asyncio
 from prettytable import PrettyTable
 
 tab_IP = []
@@ -109,47 +109,29 @@ def list_function():
     print("")
     print("test_connection()                             -> stop the robot if it is properly connected")
 #-----------------------------------------------------------------------------
-def socket_send(ws, msg):
-    #print(msg)
+async def socket_send(ws, msg):
     try:
-        ws.send(msg)
-        #time.sleep(0.1)
+        await ws.send(msg)
         return True
-    except Exception as e:
+    except websockets.WebSocketException as e:
         print(f'Error of connection with ilo to send message: {e}')
         return False
-    '''
-    global s
-    try:
-        s = socket.socket()
-        s.connect((IP, Port))
-        s.send(msg.encode())
-        #deviceIP = s.getsockname()[0]     # IP of the machine
-        #print('device_control_IP', deviceIP)
-        time.sleep(0.1)           #  10Hz
-        return True
-    except:
-        print('Error of connection with ilo to send message')
-        return False'''
 #-----------------------------------------------------------------------------
-def socket_read(ws):
-    #print(msg)
-    global s
+async def socket_read(ws):
     try:
-        data = ws.recv()  # Lecture des donnees via WebSocket
-        data = data[1:]  # Suppression du premier caractere si necessaire
-        
+        data = await ws.recv()
+        data = data[1:]
         print(data)
-        time.sleep(0.05)  # 20Hz
+        await asyncio.sleep(0.05)
         return data
-    except websocket.WebSocketException as e:
+    except websockets.WebSocketException as e:
         print(f'Error of connection with ilo to receive message: {e}')
         return False
 #-----------------------------------------------------------------------------
-def classification(trame, ws):
+def classification(ws, trame):
     try: 
         global s
-        socket_send(trame, ws)
+        socket_send(ws, trame)
         #print('trame envoyée: ', trame)
         data = ws.recv()[2:]
 
@@ -185,21 +167,21 @@ def classification(trame, ws):
             distance_back  = data[data.find('b')+1 : data.find('l')]
             distance_left  = data[data.find('l')+1 : data.find('>')]
             return distance_front, distance_right, distance_back, distance_left
-            
-        if data[2:4] == "32":
+
+        if data[2:4] == "30": #données traités en degrés
             roll  = int(data[data.find('r')+1 : data.find('p')])
             pitch = int(data[data.find('p')+1 : data.find('y')])
             yaw   = int(data[data.find('y')+1 : data.find('>')])
             return roll, pitch, yaw
-            
-        '''if data[2:4] == "32":
-            accelX  = int(data[data.find('x')+1 : data.find('y')])
-            accelY  = int(data[data.find('y')+1 : data.find('z')])
-            accelZ  = int(data[data.find('z')+1 : data.find('t')])
-            gyroX   = int(data[data.find('t')+1 : data.find('r')])
-            gyroY   = int(data[data.find('r')+1 : data.find('l')])
-            gyroZ   = int(data[data.find('l')+1 : data.find('>')])
-            return accelX, accelY, accelZ, gyroX, gyroY, gyroZ'''
+
+        if data[2:4] == "32":
+            accX  = int(data[data.find('x')+1 : data.find('y')])
+            accY  = int(data[data.find('y')+1 : data.find('z')])
+            accZ  = int(data[data.find('z')+1 : data.find('r')])
+            gyroX = int(data[data.find('r')+1 : data.find('p')])
+            gyroY = int(data[data.find('p')+1 : data.find('g')])
+            gyroZ = int(data[data.find('g')+1 : data.find('>')])
+            return accX, accY, accZ, gyroX, gyroY, gyroZ
 
         if data[2:4] == "40":
             status_battery      = int(data[data.find('s')+1 : data.find('p')])
@@ -229,75 +211,90 @@ def classification(trame, ws):
         print('Communication Err: classification')
         return -1
 #-----------------------------------------------------------------------------
-def check_robot_on_network():
-
+def run_async_task(coro):
     try:
-        print("Looking for ilo on your network ...")
-        global tab_IP
-        tab_IP = []
+        # Vérifie si une boucle d'événements asyncio est déjà en cours d'exécution
+        loop = asyncio.get_running_loop()
+    except RuntimeError:  # Pas de boucle en cours d'exécution
+        loop = None
 
-        global ws
-        
-        # Check if we are using ilo on AP
-        ilo_AP = False
-        
+    if loop and loop.is_running():
+        # Si une boucle est déjà en cours d'exécution, planifie l'exécution de la coroutine
+        return asyncio.create_task(coro)
+    else:
+        # Si aucune boucle n'est en cours d'exécution, en démarre une nouvelle
+        return asyncio.run(coro)
+
+def check_robot_on_network():
+    async def check_robot_on_network_async():
         try:
-            ws_url = "ws://192.168.4.1:4583"
-            print(ws_url)
-            ws = websocket.create_connection(ws_url)
-            print("WebSocket connection opened")
-            if socket_send(ws, "ilo"):
-                tab_IP.append(["192.168.4.1", 1])
-                ilo_AP = True
-                ws.close()
-        except:
-            pass
-        
-        if not ilo_AP:
-            base_ip = "192.168.1."
-            ilo_ID  = 1
-            c = 5                             # checking 5 more IP address after
+            print("Looking for ilo on your network ...")
+
+            ilo_AP = False
+            tab_IP.clear()
 
             try:
-                for i in range(100, 200):         # between 192.168.1.100 and 192.168.1.200
-                    ip_check = f"{base_ip}{i}"
-                    IP = ip_check
-                    ws_url = f"ws://{IP}:4583"
-                    print(ws_url)
-                    ws = websocket.create_connection(ws_url)
+                
+                ws_url = "ws://192.168.4.1:4583"
+                print(ws_url)
+                async with websockets.connect(ws_url) as ws:
                     print("WebSocket connection opened")
-                    if (socket_send(ws, "<<>>")):
-                        tab_IP.append([IP, ilo_ID])
-                        ilo_ID +=1
-                    else:
-                        c -=1
-                        if c==0:
-                            break
-                    ws.close()
-            except:
-                print("error connection with ilo on LAN")
+                    if await socket_send(ws, "ilo"):
+                        tab_IP.append(["192.168.4.1", 1])
+                        ilo_AP = True
+            except Exception as e:
+                print(f"Error checking AP: {e}")
+                pass
 
-        #display the IP and ID
-        #print(tab_IP)
-        table = PrettyTable()
-        table.field_names = ["IP Address", "ID of ilo"]
-        for row in tab_IP:
-            table.add_row(row)
-        
-        if len(tab_IP) != 0:
-            print(table)
-            print("")
-            print("Use for exemple: my_ilo = ilo.robot(1) to created object my_ilo with the ID = 1")
-        else:
-            print("Unfornutaly no one ilo is present on your current network, check you connection.")
+            if not ilo_AP:
+                base_ip = "192.168.1."
+                ilo_ID = 1
+                c = 5
 
-    except Exception as e:
-        print(f"WebSocket error: {e}")
+                tasks = []
+                for i in range(100, 200):
+                    ip_check = f"{base_ip}{i}"
+                    ws_url = f"ws://{ip_check}:4583"
+                    print(ws_url)
+                    tasks.append(check_ip(ip_check, ws_url, ilo_ID, tab_IP))
+                    ilo_ID += 1
+                    c -= 1
+                    if c == 0:
+                        break
+
+                await asyncio.gather(*tasks)
+
+            table = PrettyTable()
+            table.field_names = ["IP Address", "ID of ilo"]
+            for row in tab_IP:
+                table.add_row(row)
+
+            if tab_IP:
+                print(table)
+                print("")
+                print("Use for example: my_ilo = ilo.robot(1) to create object my_ilo with the ID = 1")
+            else:
+                print("Unfortunately no ilo is present on your current network, check your connection.")
+
+        except Exception as e:
+            print(f"WebSocket error: {e}")
+
+    async def check_ip(ip, ws_url, ilo_ID, tab_IP):
+        try:
+            async with websockets.connect(ws_url) as ws:
+                print("WebSocket connection opened")
+                if await socket_send(ws, "<<>>"):
+                    tab_IP.append([ip, ilo_ID])
+        except Exception as e:
+            print(f"Error connecting to {ip}: {e}")
+
+    run_async_task(check_robot_on_network_async())
 #-----------------------------------------------------------------------------   
 def get_IP_from_ID(ID):
     for item in tab_IP:
         if item[1] == ID:
             return item[0]
+    print(f"Error: No IP address found for ID {ID}")
     return None
 #-----------------------------------------------------------------------------
 #exemple of creation of object robot
@@ -311,53 +308,54 @@ class robot(object):
         self.ws = None
         self.connect = False
         self.IP = get_IP_from_ID(self.ID)
-        if self.ID:
-            print(self.IP)
+        if self.IP:
+            print(f"Robot IP address found: {self.IP}")
             self.connection()
         else:
-            print("You have to run before the command line to know the robot present our your network: ilo.check_ilo_on_network()")
+            print("You have to run the command to know the robots present on your network: ilo.check_robot_on_network()")
 
     #-----------------------------------------------------------------------------
+
     def connection(self):
-    
         """
-        Connection of your machine to robot object 
-        
+        Connection of your machine to the robot object.
+        This method is synchronous and handles the WebSocket connection using asyncio internally.
         """
-        
         if self.connect:
             print('Your robot is already connected')
             return
 
-        else:
-            print('Connecting...')
+        if not self.IP:
+            print("Error: IP address is not set. Cannot connect to the robot.")
+            return
+
+        print('Connecting...')
+
+        async def _connection_async():
+            """
+            Asynchronous task to establish the WebSocket connection.
+            This coroutine is defined within the synchronous connection method.
+            """
             try:
-                self.ws = websocket.create_connection(f"ws://{self.IP}:{self.Port}")
-                socket_send(self.ws, "ilo")
-                print('Connected')
-                self.connect = True
-                '''
-                ping = socket.socket()
-                ping.connect((self.ws))
-                
-                msg = "ilo"
-                ping.send(msg.encode())
-                ping.close()
+                async with websockets.connect(f"ws://{self.IP}:{self.Port}") as ws:
+                    self.ws = ws
+                    await socket_send(self.ws, "<>")
+                    print('Connected')
+                    self.connect = True
+            except socket.gaierror as e:
+                print(f"Error in resolving the host: {e}")
+            except Exception as e:
+                print(f"Failed to connect: {e}")
 
-                inform = socket.socket()
-                inform.bind((deviceIP, self.Port))
+        try:
+            run_async_task(_connection_async())
+        except Exception as e:
+            print(f"Error in the connection process: {e}")
+            print(" --> If the dysfunction continues, switch off and switch on ilo")
 
-                time.sleep(1)
 
-                s = socket.socket()
-                msg = "io"
-                s.connect((self.ws))
-                s.send(msg.encode())
-                '''
 
-            except:
-                print("Error connection: you have to be connect to the ilo wifi network")
-                print(" --> If the disfonction continu, switch off and switch on ilo")
+        # print("Error connection: you have to be connect to the ilo wifi network")
     #-----------------------------------------------------------------------------
     def test_connection(self):
         """
@@ -376,7 +374,7 @@ class robot(object):
         Stop the robot
         :return:
         """
-        socket_send(self.ws, "<<>>")
+        socket_send(self.ws, "<>")
     #-----------------------------------------------------------------------------
     def pause(self):
         self.direct_control(128,128,128)
@@ -394,17 +392,17 @@ class robot(object):
                 return None
 
             if direction == 'front':
-                socket_send(self.ws, "<<avpx110yr>>")
+                socket_send(self.ws, "<avpx110yr>")
             elif direction == 'back':
-                socket_send(self.ws, "<<avpx010yr>>")
+                socket_send(self.ws, "<avpx010yr>")
             elif direction == 'left':
-                socket_send(self.ws, "<<avpxy010r>>")
+                socket_send(self.ws, "<avpxy010r>")
             elif direction == 'right':
-                socket_send(self.ws, "<<avpxy110r>>")
+                socket_send(self.ws, "<avpxy110r>")
             elif direction == 'rot_trigo':
-                socket_send(self.ws, "<<avpxyr090>>")
+                socket_send(self.ws, "<avpxyr090>")
             elif direction == 'rot_clock':
-                socket_send(self.ws, "<<avpxyr190>>")
+                socket_send(self.ws, "<avpxyr190>")
             elif direction == 'stop':
                 self.stop()
             else:
@@ -631,7 +629,7 @@ class robot(object):
         return self.get_color_clear()[2]
     #-----------------------------------------------------------------------------
     def get_line(self):
-        return classification(self.ws, "<<12>>")
+        return classification(self.ws, "<12>")
 
     def get_line_left(self):
         return self.get_line()[0]
@@ -648,14 +646,14 @@ class robot(object):
             print ("Error : the 'value' parameter must be a int")
             return None
 
-        msg = "<<13t"+str(value)+">>"
+        msg = "<13t"+str(value)+">"
         socket_send(self.ws, msg)
         
     def get_line_threshold_value(self):
-        return classification(self.ws, "<<14>>")
+        return classification(self.ws, "<14>")
     #-----------------------------------------------------------------------------
     def get_distance(self):
-        return classification(self.ws, "<<20>>")
+        return classification(self.ws, "<20>")
     
     def get_distance_front(self):
         result = self.get_distance()
@@ -708,19 +706,19 @@ class robot(object):
             return distance_left
     #-----------------------------------------------------------------------------
     def get_angle(self):
-        return classification(self.ws, "<<30>>")
+        return classification(self.ws, "<30>")
 
     def reset_angle(self):
-        socket_send(self.ws, "<<31>>")
+        socket_send(self.ws, "<31>")
 
-    def get_imu(self):
-        return classification(self.ws, "<<32>>")
+    def get_raw_imu(self):
+        return classification(self.ws, "<32>")
     #-----------------------------------------------------------------------------
     def get_battery(self):
-        return classification(self.ws, "<<40>>")
+        return classification(self.ws, "<40>")
     #-----------------------------------------------------------------------------
     def get_led_color(self):
-        return classification(self.ws, "<<50>>")
+        return classification(self.ws, "<50>")
             
     def set_led_color(self,red: int, green: int, blue : int):
         # make integer test and test min and max value
@@ -836,12 +834,15 @@ class robot(object):
 
     def drive_single_motor(self, id: int, value: int):        # à mettre en pourcentage
 
-        if not isinstance(id, int):
-            print ("Error : 'id' parameter must be a int")
-            return None
-        if id> 255 or id<0:
-            print ("Error : 'id' parameter must be include between 0 and 255")
-            return None
+        # if not isinstance(id, int):
+        #     print ("Error : 'id' parameter must be a int")
+        #     return None
+        # if id> 255 or id<0:
+        #     print ("Error : 'id' parameter must be include between 0 and 255")
+        #     return None
+
+        assert isinstance(id, int) and 0 <= id <= 255, "Error: 'id' must be an integer between 0 and 255"
+
         if not isinstance(value, int):
             print ("Error : 'value' parameter must be a int")
             return None
