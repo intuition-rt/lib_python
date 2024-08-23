@@ -113,12 +113,12 @@ def socket_send(ws, msg):
     #print(msg)
     try:
         ws.send(msg)
-        time.sleep(0.1)
+        #time.sleep(0.1)
         return True
     except Exception as e:
         print(f'Error of connection with ilo to send message: {e}')
         return False
-    
+    '''
     global s
     try:
         s = socket.socket()
@@ -130,7 +130,7 @@ def socket_send(ws, msg):
         return True
     except:
         print('Error of connection with ilo to send message')
-        return False
+        return False'''
 #-----------------------------------------------------------------------------
 def socket_read(ws):
     #print(msg)
@@ -334,8 +334,6 @@ class robot(object):
             try:
                 self.ws = websocket.create_connection(f"ws://{self.IP}:{self.Port}")
                 socket_send(self.ws, "ilo")
-                time.sleep(1)
-                socket_send(self.ws, "<<>>")
                 print('Connected')
                 self.connect = True
                 '''
@@ -460,7 +458,7 @@ class robot(object):
 
         new_command = []
         str_command = str(list_course[0] + list_course[1] + list_course[2])
-        new_command = "<<av" + str_command +"pxyr>>"
+        new_command = "<av" + str_command +"pxyr>"
         return new_command
     #-----------------------------------------------------------------------------
     def move(self, direction: str, speed: int):
@@ -611,17 +609,17 @@ class robot(object):
             print ("Error : the 'name' parameter must be a string")
             return None
         
-        msg = "<<0n"+str(name)+">>"
+        msg = "<0n"+str(name)+">"
         socket_send(self.ws, msg)
         
     def get_name(self):
-        return classification(self.ws, "<<92>>")
+        return classification(self.ws, "<92>")
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
-        return classification(self.ws, "<<10>>")
+        return classification(self.ws, "<10>")
     #-----------------------------------------------------------------------------
     def get_color_clear(self):
-        return classification(self.ws, "<<11>>")
+        return classification(self.ws, "<11>")
     
     def get_color_clear_left(self):
         return self.get_color_clear()[0]
