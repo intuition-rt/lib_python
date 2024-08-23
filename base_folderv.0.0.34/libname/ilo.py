@@ -146,82 +146,80 @@ def socket_read(ws):
         print(f'Error of connection with ilo to receive message: {e}')
         return False
 #-----------------------------------------------------------------------------
-def classification(trame, ws):
+def classification(ws, trame):
     try: 
         global s
-        socket_send(trame, ws)
+        socket_send(ws, trame)
         #print('trame envoyée: ', trame)
-        data = ws.recv()[2:]
+        data = ws.recv()
+        # print ("data reçu: ", data)
+        # print ('data indice: ', str(data[1:3]))
 
-        #data = socket_read(IP, Port)
-        #print ('data reçu:   ', data)
-        #print ('data indice: ', data[2])
-        #print (str(data[2:4]))
-        if data[2:4] == "10":
+        if str(data[1:3]) == "10":
             red_color   = data[data.find('r')+1 : data.find('g')]
             green_color = data[data.find('g')+1 : data.find('b')]
             blue_color  = data[data.find('b')+1 : data.find('>')]
             return red_color, green_color, blue_color
 
-        if data[2:4] == "11":
+        if str(data[1:3]) == "11":
             clear_left   = int(data[data.find('l')+1 : data.find('m')])
             clear_center = int(data[data.find('m')+1 : data.find('r')])
             clear_right  = int(data[data.find('r')+1 : data.find('>')])
             return clear_left, clear_center, clear_right
         
-        if data[2:4] == "12":
+        if str(data[1:3]) == "12":
             line_left   = int(data[data.find('l')+1 : data.find('m')])
             line_center = int(data[data.find('m')+1 : data.find('r')])
             line_right  = int(data[data.find('r')+1 : data.find('>')])
             return line_left, line_center, line_right
 
-        if data[2:4] == "14" :
+        if str(data[1:3]) == "14" :
             line_threshold_value = int(data[data.find('t')+1 : data.find('>')])
             return line_threshold_value
 
-        if data[2:4] == "20":
+        if str(data[1:3]) == "20":
             distance_front = data[data.find('f')+1 : data.find('r')]
             distance_right = data[data.find('r')+1 : data.find('b')]
             distance_back  = data[data.find('b')+1 : data.find('l')]
             distance_left  = data[data.find('l')+1 : data.find('>')]
             return distance_front, distance_right, distance_back, distance_left
             
-        if data[2:4] == "32":
-            roll  = int(data[data.find('r')+1 : data.find('p')])
-            pitch = int(data[data.find('p')+1 : data.find('y')])
-            yaw   = int(data[data.find('y')+1 : data.find('>')])
+        if str(data[1:3]) == "30": #données traités en degrés
+            roll  = float(data[data.find('r')+1 : data.find('p')])
+            pitch = float(data[data.find('p')+1 : data.find('y')])
+            yaw   = float(data[data.find('y')+1 : data.find('>')])
             return roll, pitch, yaw
-            
-        '''if data[2:4] == "32":
-            accelX  = int(data[data.find('x')+1 : data.find('y')])
-            accelY  = int(data[data.find('y')+1 : data.find('z')])
-            accelZ  = int(data[data.find('z')+1 : data.find('t')])
-            gyroX   = int(data[data.find('t')+1 : data.find('r')])
-            gyroY   = int(data[data.find('r')+1 : data.find('l')])
-            gyroZ   = int(data[data.find('l')+1 : data.find('>')])
-            return accelX, accelY, accelZ, gyroX, gyroY, gyroZ'''
 
-        if data[2:4] == "40":
+        if str(data[1:3]) == "32":
+            accX  = int(data[data.find('x')+1 : data.find('y')])
+            accY  = int(data[data.find('y')+1 : data.find('z')])
+            accZ  = int(data[data.find('z')+1 : data.find('r')])
+            gyroX = int(data[data.find('r')+1 : data.find('p')])
+            gyroY = int(data[data.find('p')+1 : data.find('g')])
+            gyroZ = int(data[data.find('g')+1 : data.find('>')])
+            return accX, accY, accZ, gyroX, gyroY, gyroZ
+
+        if str(data[1:3]) == "40":
             status_battery      = int(data[data.find('s')+1 : data.find('p')])
             pourcentage_battery = int(data[data.find('p')+1 : data.find('>')]) 
             return status_battery, pourcentage_battery
         
-        if data[2:4] == "50":
+        if str(data[1:3]) == "50":
             red_led   = int(data[data.find('r')+1 : data.find('g')])
             green_led = int(data[data.find('g')+1 : data.find('b')])
             blue_led  = int(data[data.find('b')+1 : data.find('>')])
             return red_led, green_led, blue_led
         
-        if data[2:4] == "60":
+        if str(data[1:3]) == "60":
             acc_motor  = int(data[data.find('a')+1 : data.find('>')])
             return acc_motor
         
-        if data[2:4] == "91":
+        if str(data[1:3]) == "91":
             ssid     = str(data[data.find('s')+1 : data.find('p')])
             password = str(data[data.find('p')+1 : data.find('>')])
             return ssid, password
         
-        if data[2:4] == "92":
+        if str(data[1:3]) == "92":
             hostname = str(data[data.find('n')+1 : data.find('>')])
             return hostname
         
@@ -246,7 +244,7 @@ def check_robot_on_network():
             print(ws_url)
             ws = websocket.create_connection(ws_url)
             print("WebSocket connection opened")
-            if socket_send(ws, "ilo"):
+            if socket_send(ws, "<ilo>"):
                 tab_IP.append(["192.168.4.1", 1])
                 ilo_AP = True
                 ws.close()
@@ -333,7 +331,7 @@ class robot(object):
             print('Connecting...')
             try:
                 self.ws = websocket.create_connection(f"ws://{self.IP}:{self.Port}")
-                socket_send(self.ws, "ilo")
+                socket_send(self.ws, "<ilo>")
                 print('Connected')
                 self.connect = True
                 '''
@@ -376,7 +374,7 @@ class robot(object):
         Stop the robot
         :return:
         """
-        socket_send(self.ws, "<<>>")
+        socket_send(self.ws, "<>")
     #-----------------------------------------------------------------------------
     def pause(self):
         self.direct_control(128,128,128)
@@ -394,17 +392,17 @@ class robot(object):
                 return None
 
             if direction == 'front':
-                socket_send(self.ws, "<<avpx110yr>>")
+                socket_send(self.ws, "<avpx110yr>")
             elif direction == 'back':
-                socket_send(self.ws, "<<avpx010yr>>")
+                socket_send(self.ws, "<avpx010yr>")
             elif direction == 'left':
-                socket_send(self.ws, "<<avpxy010r>>")
+                socket_send(self.ws, "<avpxy010r>")
             elif direction == 'right':
-                socket_send(self.ws, "<<avpxy110r>>")
+                socket_send(self.ws, "<avpxy110r>")
             elif direction == 'rot_trigo':
-                socket_send(self.ws, "<<avpxyr090>>")
+                socket_send(self.ws, "<avpxyr090>")
             elif direction == 'rot_clock':
-                socket_send(self.ws, "<<avpxyr190>>")
+                socket_send(self.ws, "<avpxyr190>")
             elif direction == 'stop':
                 self.stop()
             else:
@@ -511,19 +509,19 @@ class robot(object):
         """
 
         if not isinstance(axial, int):
-            print ("Error : the 'axial' parameter must be a int")
+            print ("Error : the 'axial' parameter must be a integer")
             return None
         if axial> 255 or axial<0:
             print ("Error : 'axial' parameter must be include between 0 and 255")
             return None
         if not isinstance(radial, int):
-            print ("Error : the 'radial' parameter must be a int")
+            print ("Error : the 'radial' parameter must be a integer")
             return None
         if radial> 255 or radial<0:
             print ("Error : 'radial' parameter must be include between 0 and 255")
             return None
         if not isinstance(rotation, int):
-            print ("Error : the 'rotation' parameter must be a int")
+            print ("Error : the 'rotation' parameter must be a integer")
             return None
         if rotation> 255 or rotation<0:
             print ("Error : 'rotation' parameter must be include between 0 and 255")
@@ -631,7 +629,7 @@ class robot(object):
         return self.get_color_clear()[2]
     #-----------------------------------------------------------------------------
     def get_line(self):
-        return classification(self.ws, "<<12>>")
+        return classification(self.ws, "<12>")
 
     def get_line_left(self):
         return self.get_line()[0]
@@ -645,17 +643,17 @@ class robot(object):
     def set_line_threshold_value(self, value: int):
 
         if not isinstance(value, int):
-            print ("Error : the 'value' parameter must be a int")
+            print ("Error : the 'value' parameter must be a integer")
             return None
 
-        msg = "<<13t"+str(value)+">>"
+        msg = "<13t"+str(value)+">"
         socket_send(self.ws, msg)
         
     def get_line_threshold_value(self):
-        return classification(self.ws, "<<14>>")
+        return classification(self.ws, "<14>")
     #-----------------------------------------------------------------------------
     def get_distance(self):
-        return classification(self.ws, "<<20>>")
+        return classification(self.ws, "<20>")
     
     def get_distance_front(self):
         result = self.get_distance()
@@ -708,43 +706,43 @@ class robot(object):
             return distance_left
     #-----------------------------------------------------------------------------
     def get_angle(self):
-        return classification(self.ws, "<<30>>")
+        return classification(self.ws, "<30>")
 
     def reset_angle(self):
-        socket_send(self.ws, "<<31>>")
+        socket_send(self.ws, "<31>")
 
-    def get_imu(self):
-        return classification(self.ws, "<<32>>")
+    def get_raw_imu(self):
+        return classification(self.ws, "<32>")
     #-----------------------------------------------------------------------------
     def get_battery(self):
-        return classification(self.ws, "<<40>>")
+        return classification(self.ws, "<40>")
     #-----------------------------------------------------------------------------
     def get_led_color(self):
-        return classification(self.ws, "<<50>>")
+        return classification(self.ws, "<50>")
             
     def set_led_color(self,red: int, green: int, blue : int):
         # make integer test and test min and max value
 
         if not isinstance(red, int):
-            print ("Error : 'red' parameter must be a int")
+            print ("Error : 'red' parameter must be a integer")
             return None
         if red>255 or red<0:
             print ("Error : 'red' parameter must be include between 0 and 255")
             return None
         if not isinstance(green, int):
-            print ("Error : 'green' parameter must be a int")
+            print ("Error : 'green' parameter must be a integer")
             return None
         if green> 255 or green<0:
             print ("Error : 'green' parameter must be include between 0 and 255")
             return None
         if not isinstance(blue, int):
-            print ("Error : 'blue' parameter must be a int")
+            print ("Error : 'blue' parameter must be a integer")
             return None
         if blue> 255 or blue<0:
             print ("Error : 'blue' parameter must be include between 0 and 255")
             return None
         
-        msg = "<<51r"+str(red)+"g"+str(green)+"b"+str(blue)+">>"
+        msg = "<51r"+str(red)+"g"+str(green)+"b"+str(blue)+">"
         socket_send(self.ws, msg)    
 
     def set_led_shape(self, value: str):
@@ -753,7 +751,7 @@ class robot(object):
             print ("Error : 'value' parameter must be a string")
             return None
 
-        msg = "<<52v"+str(value)+">>"
+        msg = "<52v"+str(value)+">"
         socket_send(self.ws, msg) 
         
     def set_led_anim(self,value: str):
@@ -763,7 +761,7 @@ class robot(object):
             return None
 
 
-        msg = "<<53v"+str(value)+">>"
+        msg = "<53v"+str(value)+">"
         socket_send(self.ws, msg) 
 
     def set_led_single(self, type: str, id: int, red: int, green: int, blue: int):
@@ -775,23 +773,23 @@ class robot(object):
             print ("Error : 'type' parameter must be center or circle")
             return None
         if not isinstance(id, int):
-            print ("Error : 'id' parameter must be a int")
+            print ("Error : 'id' parameter must be a integer")
             return None
         
         if not isinstance(red, int):
-            print ("Error : 'red' parameter must be a int")
+            print ("Error : 'red' parameter must be a integer")
             return None
         if red> 255 or red<0:
             print ("Error : 'red' parameter must be include between 0 and 255")
             return None
         if not isinstance(green, int):
-            print ("Error : 'green' parameter must be a int")
+            print ("Error : 'green' parameter must be a integer")
             return None
         if green> 255 or green<0:
             print ("Error : 'green' parameter must be include between 0 and 255")
             return None
         if not isinstance(blue, int):
-            print ("Error : 'blue' parameter must be a int")
+            print ("Error : 'blue' parameter must be a integer")
             return None
         if blue> 255 or blue<0:
             print ("Error : 'blue' parameter must be include between 0 and 255")
@@ -801,7 +799,7 @@ class robot(object):
             type = True
         if type == "circle":
             type = False
-        msg = "<<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g"+str(green)+"b"+str(blue)+">>"
+        msg = "<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g"+str(green)+"b"+str(blue)+">"
         socket_send(self.ws, msg)
 
     def set_led_captor(self,state: bool):
@@ -811,19 +809,19 @@ class robot(object):
             return None
 
         if (state == True):
-            msg = "<<54l1>>"
+            msg = "<54l1>"
         elif (state == False) :
-            msg = "<<54l0>>"
+            msg = "<54l0>"
         socket_send(self.ws, msg) 
     #-----------------------------------------------------------------------------
     def get_acc_motor(self):
-        return classification(self.ws, "<<60>>")
+        return classification(self.ws, "<60>")
     
     def set_acc_motor(self, value: int):
         # make integer test and test min and max value
 
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a int")
+            print ("Error : 'value' parameter must be a integer")
             return None
         if value> 100 or value<10:
             print ("Error : 'value' parameter must be include between 10 and 100")
@@ -831,19 +829,28 @@ class robot(object):
 
         if value < 10 : value = 10
         elif value > 100 : value = 100
-        msg = "<<61a"+str(value)+">>"
+        msg = "<61a"+str(value)+">"
         socket_send(self.ws, msg) 
 
     def drive_single_motor(self, id: int, value: int):        # à mettre en pourcentage
 
+        # if not isinstance(id, int):
+        #     print ("Error : 'id' parameter must be a int")
+        #     return None
+        # if id> 255 or id<0:
+        #     print ("Error : 'id' parameter must be include between 0 and 255")
+        #     return None
+
+
         if not isinstance(id, int):
-            print ("Error : 'id' parameter must be a int")
+            print ("Error : 'id' parameter must be a integer")
             return None
-        if id> 255 or id<0:
+        if id>255 or id<0:
             print ("Error : 'id' parameter must be include between 0 and 255")
             return None
+        
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a int")
+            print ("Error : 'value' parameter must be a integer")
             return None
         if value> 100 or value<-100:
             print ("Error : 'value' parameter must be include between -100 and 100")
@@ -853,7 +860,7 @@ class robot(object):
         if value < -100 : value = -100
         elif value > 100 : value = 100
         value = value * 70
-        msg = "<<70d"+str(id)+"v"+str(value)+">>"
+        msg = "<70d"+str(id)+"v"+str(value)+">"
         socket_send(self.ws, msg) 
 
     def set_autonomous_mode(self, value: str):
@@ -862,7 +869,7 @@ class robot(object):
             print ("Error : 'value' parameter must be a string")
             return None
 
-        msg = "<<80"+str(value)+">>"
+        msg = "<80"+str(value)+">"
         socket_send(self.ws, msg) 
         
     def set_autonomous_led(self, value: str):
@@ -871,13 +878,13 @@ class robot(object):
             print ("Error : 'value' parameter must be a string")
             return None
         
-        msg = "<<81"+str(value)+">>"
+        msg = "<81"+str(value)+">"
         socket_send(self.ws, msg)
 
     def control_single_motor_front_left(self, value: int):  # de -100 à 100
         
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a int")
+            print ("Error : 'value' parameter must be a integer")
             return None
         
         self.drive_single_motor(1,value)
@@ -889,7 +896,7 @@ class robot(object):
     def control_single_motor_front_right(self, value: int):
         
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a int")
+            print ("Error : 'value' parameter must be a integer")
             return None
         
         self.drive_single_motor(2,value)
@@ -897,7 +904,7 @@ class robot(object):
     def control_single_motor_back_left(self, value: int):
         
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a int")
+            print ("Error : 'value' parameter must be a integer")
             return None
         
         self.drive_single_motor(4, value)
@@ -905,7 +912,7 @@ class robot(object):
     def control_single_motor_back_right(self, value: int):
 
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a int")
+            print ("Error : 'value' parameter must be a integer")
             return None
         
         self.drive_single_motor(3, value)
