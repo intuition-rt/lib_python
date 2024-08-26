@@ -202,22 +202,50 @@ class robot(object):
         self.ws = None
         self.connect = False
         self.IP = get_IP_from_ID(self.ID)
+
+        self.hostname = ""
         
-        self.color_rgb = (0,0,0)
+        self.red_color   = 0
+        self.green_color = 0
+        self.blue_color  = 0
+
+        self.clear_left   = 0
+        self.clear_center = 0
+        self.clear_right  = 0
+
+        self.line_left   = 0
+        self.line_center = 0 
+        self.line_right  = 0
         
-        #self.
+        self.line_threshold_value = 0
         
         self.distance_front = 0
         self.distance_right = 0
         self.distance_back  = 0
         self.distance_left  = 0
-        
+
+        self.roll  = 0
+        self.pitch = 0
+        self.yaw   = 0
+
+        self.accX  = 0
+        self.accY  = 0
+        self.accZ  = 0
+        self.gyroX = 0
+        self.gyroY = 0
+        self.gyroZ = 0
+
+        self.battery_status      = 0
+        self.battery_pourcentage = 0
+
+        self.red_led   = 0
+        self.green_led = 0
+        self.blue_led  = 0
+
         self.acc_motor = 0
         
-        self.battery_pourcentage = 0
-        self.battery_state        = 0
-        
-        self.credentiels = ("ssid", "password")
+        self.ssid     = ""
+        self.password = ""
  
         # -- marin add all other data of the robot
         # -- thinking to a solution to get data from additionnal captor connnected on the top of the robot via accesoire PCB
@@ -300,26 +328,22 @@ class robot(object):
         try: 
 
             if str(data[1:3]) == "10":
-                red_color   = data[data.find('r')+1 : data.find('g')]
-                green_color = data[data.find('g')+1 : data.find('b')]
-                blue_color  = data[data.find('b')+1 : data.find('>')]
-                return red_color, green_color, blue_color
+                self.red_color   = data[data.find('r')+1 : data.find('g')]
+                self.green_color = data[data.find('g')+1 : data.find('b')]
+                self.blue_color  = data[data.find('b')+1 : data.find('>')]
 
             if str(data[1:3]) == "11":
-                clear_left   = int(data[data.find('l')+1 : data.find('m')])
-                clear_center = int(data[data.find('m')+1 : data.find('r')])
-                clear_right  = int(data[data.find('r')+1 : data.find('>')])
-                return clear_left, clear_center, clear_right
+                self.clear_left   = int(data[data.find('l')+1 : data.find('m')])
+                self.clear_center = int(data[data.find('m')+1 : data.find('r')])
+                self.clear_right  = int(data[data.find('r')+1 : data.find('>')])
             
             if str(data[1:3]) == "12":
-                line_left   = int(data[data.find('l')+1 : data.find('m')])
-                line_center = int(data[data.find('m')+1 : data.find('r')])
-                line_right  = int(data[data.find('r')+1 : data.find('>')])
-                return line_left, line_center, line_right
+                self.line_left   = int(data[data.find('l')+1 : data.find('m')])
+                self.line_center = int(data[data.find('m')+1 : data.find('r')])
+                self.line_right  = int(data[data.find('r')+1 : data.find('>')])
     
             if str(data[1:3]) == "14" :
-                line_threshold_value = int(data[data.find('t')+1 : data.find('>')])
-                return line_threshold_value
+                self.line_threshold_value = int(data[data.find('t')+1 : data.find('>')])
             
             if str(data[1:3]) == "20":
                 self.distance_front = int(data[data.find('f')+1 : data.find('r')])
@@ -339,34 +363,28 @@ class robot(object):
                 self.accX  = int(data[data.find('x')+1 : data.find('y')])
                 self.accY  = int(data[data.find('y')+1 : data.find('z')])
                 self.accZ  = int(data[data.find('z')+1 : data.find('r')])
-                gyroX = int(data[data.find('r')+1 : data.find('p')])
-                gyroY = int(data[data.find('p')+1 : data.find('g')])
-                gyroZ = int(data[data.find('g')+1 : data.find('>')])
-                return accX, accY, accZ, gyroX, gyroY, gyroZ
+                self.gyroX = int(data[data.find('r')+1 : data.find('p')])
+                self.gyroY = int(data[data.find('p')+1 : data.find('g')])
+                self.gyroZ = int(data[data.find('g')+1 : data.find('>')])
     
             if str(data[1:3]) == "40":
-                status_battery      = int(data[data.find('s')+1 : data.find('p')])
-                pourcentage_battery = int(data[data.find('p')+1 : data.find('>')]) 
-                return status_battery, pourcentage_battery
+                self.battery_status      = int(data[data.find('s')+1 : data.find('p')])
+                self.battery_pourcentage = int(data[data.find('p')+1 : data.find('>')]) 
             
             if str(data[1:3]) == "50":
-                red_led   = int(data[data.find('r')+1 : data.find('g')])
-                green_led = int(data[data.find('g')+1 : data.find('b')])
-                blue_led  = int(data[data.find('b')+1 : data.find('>')])
-                return red_led, green_led, blue_led
+                self.red_led   = int(data[data.find('r')+1 : data.find('g')])
+                self.green_led = int(data[data.find('g')+1 : data.find('b')])
+                self.blue_led  = int(data[data.find('b')+1 : data.find('>')])
             
             if str(data[1:3]) == "60":
-                acc_motor  = int(data[data.find('a')+1 : data.find('>')])
-                return acc_motor
+                self.acc_motor  = int(data[data.find('a')+1 : data.find('>')])
             
             if str(data[1:3]) == "91":
-                ssid     = str(data[data.find('s')+1 : data.find('p')])
-                password = str(data[data.find('p')+1 : data.find('>')])
-                return ssid, password
+                self.ssid     = str(data[data.find('s')+1 : data.find('p')])
+                self.password = str(data[data.find('p')+1 : data.find('>')])
             
             if str(data[1:3]) == "92":
-                hostname = str(data[data.find('n')+1 : data.find('>')])
-                return hostname
+                self.hostname = str(data[data.find('n')+1 : data.find('>')])
         
         except:
             print('Communication Err: process data')  # -- marin add e to check the error
@@ -656,38 +674,56 @@ class robot(object):
         self.web_socket_send(msg) 
         
     def get_name(self):
-        return classification(self.ws, "<92>")
+        self.web_socket_send("<92>")
+        time.sleep(0.1)
+        return (self.hostname)
     
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
         self.web_socket_send("<10>")
         time.sleep(0.1)
-        return (self.color_rgb)
+        return (self.red_color, self.green_color, self.blue_color)
     
     #-----------------------------------------------------------------------------
     def get_color_clear(self):
-        return classification(self.ws, "<11>")
+        self.web_socket_send("<11>")
+        time.sleep(0.1)
+        return (self.clear_left, self.clear_center, self.clear_right)
     
     def get_color_clear_left(self):
-        return self.get_color_clear()[0]
+        self.web_socket_send("<11>")
+        time.sleep(0.1)
+        return (self.clear_left)
     
     def get_color_clear_center(self):
-        return self.get_color_clear()[1]
+        self.web_socket_send("<11>")
+        time.sleep(0.1)
+        return (self.clear_center)
 
     def get_color_clear_right(self):
-        return self.get_color_clear()[2]
+        self.web_socket_send("<11>")
+        time.sleep(0.1)
+        return (self.clear_right)
     #-----------------------------------------------------------------------------
     def get_line(self):
-        return classification(self.ws, "<12>")
+        self.web_socket_send("<12>")
+        time.sleep(0.1)
+        return (self.line_left, self.line_center, self.line_right)
 
     def get_line_left(self):
-        return self.get_line()[0]
+        self.web_socket_send("<12>")
+        time.sleep(0.1)
+        return (self.line_left)
     
     def get_line_center(self):
-        return self.get_line()[1]
+        self.web_socket_send("<12>")
+        time.sleep(0.1)
+        return (self.line_center)
 
     def get_line_right(self):
-        return self.get_line()[2]
+        self.web_socket_send("<12>")
+        time.sleep(0.1)
+        return (self.line_right)
 
     def set_line_threshold_value(self, value: int):
 
@@ -699,7 +735,9 @@ class robot(object):
         self.web_socket_send(msg)  
      
     def get_line_threshold_value(self):
-        return classification(self.ws, "<14>")
+        self.web_socket_send("<14>")
+        time.sleep(0.1)
+        return (self.line_threshold_value)
     #-----------------------------------------------------------------------------
     def get_distance(self):
         self.web_socket_send("<20>")
@@ -729,22 +767,22 @@ class robot(object):
     def get_angle(self):
         self.web_socket_send("<30>")
         time.sleep(0.1)
-        return (self.angle)
-    
-    def get_pitch(self):
-        self.web_socket_send("<30>")
-        time.sleep(0.1)
-        return (self.angle)
+        return (self.roll, self.pitch, self.yaw)
     
     def get_roll(self):
         self.web_socket_send("<30>")
         time.sleep(0.1)
-        return (self.angle)
+        return (self.roll)
+
+    def get_pitch(self):
+        self.web_socket_send("<30>")
+        time.sleep(0.1)
+        return (self.pitch)
     
     def get_yaw(self):
         self.web_socket_send("<30>")
         time.sleep(0.1)
-        return (self.angle)
+        return (self.yaw)
 
     def reset_angle(self):
         self.web_socket_send("<31>")
@@ -752,19 +790,19 @@ class robot(object):
     def get_raw_imu(self):
         self.web_socket_send("<32>")
         time.sleep(0.1)
-        return (self.imu)
+        return (self.accX, self.accY, self.accZ, self.gyroX, self.gyroY, self.gyroZ)
  
     #-----------------------------------------------------------------------------
     def get_battery(self):
         self.web_socket_send("<40>")
         time.sleep(0.1)
-        return (self.battery_pourcentage, self.battery_state)
+        return (self.battery_status, self.battery_pourcentage)
     
     #-----------------------------------------------------------------------------
     def get_led_color(self):
         self.web_socket_send("<50>")
         time.sleep(0.1)
-        return (self.led_color)
+        return (self.self.red_led, self.green_led, self.blue_led)
             
     def set_led_color(self,red: int, green: int, blue : int):
         if not isinstance(red, int):
@@ -993,7 +1031,7 @@ class robot(object):
     def get_wifi_credentials(self):
         self.web_socket_send("<92>")
         time.sleep(0.1)
-        return (self.credentiels)
+        return (self.credentials)
     #---------------------------------------------------------------------------------   
     def set_debug_state(self, state: bool):
 
