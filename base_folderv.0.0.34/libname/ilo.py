@@ -1031,7 +1031,7 @@ class robot(object):
     def get_wifi_credentials(self):
         self.web_socket_send("<92>")
         time.sleep(0.1)
-        return (self.credentials)
+        return (self.ssid, self.password)
     #---------------------------------------------------------------------------------   
     def set_debug_state(self, state: bool):
 
