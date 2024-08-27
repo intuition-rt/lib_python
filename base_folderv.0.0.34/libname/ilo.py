@@ -12,7 +12,6 @@ import time, keyboard, websocket, threading
 from prettytable import PrettyTable
 
 tab_IP = []
-
 #-----------------------------------------------------------------------------
 def info():
     """
@@ -22,7 +21,6 @@ def info():
     print("ilo robot is an education robot controlable by direct python command")
     print("To know every fonction available with ilo,  use ilo.list_function() command line")
     print("You are using the version ", version)
-    
 #-----------------------------------------------------------------------------
 def list_function():
     print("info()                                        -> print info about ilorobot")
@@ -118,8 +116,7 @@ def co_web_socket_send(ws, msg):
         return True
     except Exception as e:
         print(f'Error of connection with ilo to send message: {e}')
-        return False
-    
+        return False  
 #-----------------------------------------------------------------------------
 def check_robot_on_network():
 
@@ -184,15 +181,13 @@ def check_robot_on_network():
             print("Unfornutaly no one ilo is present on your current network, check you connection.")
 
     except Exception as e:
-        print(f"WebSocket error: {e}")
-        
+        print(f"WebSocket error: {e}")      
 #-----------------------------------------------------------------------------   
 def get_IP_from_ID(ID):
     for item in tab_IP:
         if item[1] == ID:
             return item[0]
     return None
-
 #-----------------------------------------------------------------------------
 class robot(object):
     
@@ -258,7 +253,6 @@ class robot(object):
             self.connection()
         else:
             print("You have to run before the command line to know the robot present our your network: ilo.check_ilo_on_network()")
-
     #-----------------------------------------------------------------------------
     def connection(self):
         """
@@ -285,8 +279,7 @@ class robot(object):
                     print("Error connection: you have to be connect to the ilo wifi network")
                     print(" --> If the disfonction continu, switch off and switch on ilo")
                     print(f"Error connecting to the robot: {e}")
-                    self.connect = False
-          
+                    self.connect = False   
     #-----------------------------------------------------------------------------
     def web_socket_send(self, message):
         """
@@ -300,7 +293,6 @@ class robot(object):
                 print(f"Error sending message: {e}")
         else:
             print("WebSocket is not connected.")
-
     #-----------------------------------------------------------------------------
     def web_socket_receive(self):
         """
@@ -315,7 +307,6 @@ class robot(object):
                 print(f"WebSocket error: {e}")
                 #-- marin bonne solution ici pour debugger d'afficher directement le message d'erreur 
                 break
-    
     #-----------------------------------------------------------------------------
     def process_received_data(self, data):
         """
@@ -379,17 +370,16 @@ class robot(object):
             if str(data[1:3]) == "60":
                 self.acc_motor  = int(data[data.find('a')+1 : data.find('>')])
             
-            if str(data[1:3]) == "91":
+            if str(data[1:3]) == "92":
                 self.ssid     = str(data[data.find('s')+1 : data.find('p')])
                 self.password = str(data[data.find('p')+1 : data.find('>')])
             
-            if str(data[1:3]) == "92":
+            if str(data[1:3]) == "93":
                 self.hostname = str(data[data.find('n')+1 : data.find('>')])
         
         except:
             print('Communication Err: process data')  # -- marin add e to check the error
-            return None
-        
+            return None  
     #-----------------------------------------------------------------------------
     def stop_reception(self):
         """
@@ -403,14 +393,12 @@ class robot(object):
             self.ws.close()
             self.connect = False
             print("WebSocket connection closed.")
-
     #-----------------------------------------------------------------------------
     def __del__(self):
         """
         Destructor to ensure the WebSocket connection is closed gracefully.
         """
         self.stop_reception()
-
     #-----------------------------------------------------------------------------
     def test_connection(self):
         """
@@ -423,23 +411,20 @@ class robot(object):
         except:
             print("Error connection to the robot")
             return False
-        
     #-----------------------------------------------------------------------------    
     def stop(self):
         """
         Stop the robot and free engines
     
         """
-        self.web_socket_send("<>")
-        
+        self.web_socket_send("<>")   
     #-----------------------------------------------------------------------------
     def pause(self):
         """
         Stop the robot and block engines
     
         """
-        self.direct_control(128,128,128)
-        
+        self.direct_control(128,128,128)  
     #-----------------------------------------------------------------------------
     def step(self, direction):
         """
@@ -467,7 +452,6 @@ class robot(object):
             self.stop()
         else:
             print('direction name is not correct')
-
     #-----------------------------------------------------------------------------
     def list_order(self, ilo_list):
         """
@@ -480,8 +464,7 @@ class robot(object):
             return None
 
         for i in range(len(ilo_list)):
-            self.step(ilo_list[i])
-            
+            self.step(ilo_list[i])     
     #-----------------------------------------------------------------------------
     def correction_command(self, list_course):
         #convert a list of 3 elements to a sendable string
@@ -517,7 +500,6 @@ class robot(object):
         str_command = str(list_course[0] + list_course[1] + list_course[2])
         new_command = "<av" + str_command +"pxyr>"
         return new_command
-    
     #-----------------------------------------------------------------------------
     def move(self, direction: str, speed: int):
         """
@@ -560,7 +542,6 @@ class robot(object):
 
         corrected_command = self.correction_command(command)
         self.web_socket_send(corrected_command) 
-        
     #-----------------------------------------------------------------------------
     def direct_control(self, axial: int, radial: int, rotation: int):
         """
@@ -590,8 +571,7 @@ class robot(object):
 
         command = [axial, radial, rotation]
         corrected_command = self.correction_command(command)
-        self.web_socket_send(corrected_command)
-        
+        self.web_socket_send(corrected_command)  
     #-----------------------------------------------------------------------------
     def game(self):
         """
@@ -661,10 +641,9 @@ class robot(object):
                     self.direct_control(axial_value, radial_value, rotation_value)
                     new_keyboard_instruction = False
         else:
-            print("You have to be connected to ILO before play with it, use ilo.connection()")
-            
+            print("You have to be connected to ILO before play with it, use ilo.connection()")   
     #-----------------------------------------------------------------------------
-    def set_name(self, name: str):
+    def set_name(self, name: str): # going to be change by <93n>
 
         if not isinstance(name, str):
             print ("Error : the 'name' parameter must be a string")
@@ -674,16 +653,14 @@ class robot(object):
         self.web_socket_send(msg) 
         
     def get_name(self):
-        self.web_socket_send("<92>")
+        self.web_socket_send("<93>")
         time.sleep(0.1)
         return (self.hostname)
-    
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
         self.web_socket_send("<10>")
         time.sleep(0.1)
         return (self.red_color, self.green_color, self.blue_color)
-    
     #-----------------------------------------------------------------------------
     def get_color_clear(self):
         self.web_socket_send("<11>")
@@ -791,13 +768,11 @@ class robot(object):
         self.web_socket_send("<32>")
         time.sleep(0.1)
         return (self.accX, self.accY, self.accZ, self.gyroX, self.gyroY, self.gyroZ)
- 
     #-----------------------------------------------------------------------------
     def get_battery(self):
         self.web_socket_send("<40>")
         time.sleep(0.1)
-        return (self.battery_status, self.battery_pourcentage)
-    
+        return (self.battery_status, self.battery_pourcentage) 
     #-----------------------------------------------------------------------------
     def get_led_color(self):
         self.web_socket_send("<50>")
@@ -878,9 +853,9 @@ class robot(object):
             return None
         
         if type == "center":
-            type = True
+            type = "true"
         if type == "circle":
-            type = False
+            type = "false"
         msg = "<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g"+str(green)+"b"+str(blue)+">"
         self.web_socket_send(msg)
 
@@ -916,15 +891,7 @@ class robot(object):
         msg = "<61a"+str(value)+">"
         self.web_socket_send(msg) 
 
-    def drive_single_motor(self, id: int, value: int):        # à mettre en pourcentage
-
-        # if not isinstance(id, int):
-        #     print ("Error : 'id' parameter must be a int")
-        #     return None
-        # if id> 255 or id<0:
-        #     print ("Error : 'id' parameter must be include between 0 and 255")
-        #     return None
-
+    def drive_single_motor(self, id: int, value: int):
 
         if not isinstance(id, int):
             print ("Error : 'id' parameter must be a integer")
@@ -1010,7 +977,6 @@ class robot(object):
     def set_mode_motor():
         #between position or wheel mode
         pass
-
     #-----------------------------------------------------------------------------
     def set_wifi_credentials(self, ssid: str, password: str):
 
@@ -1041,6 +1007,5 @@ class robot(object):
 
         msg = "<94"+str(state)+">"
         self.web_socket_send(msg)
-        
 #---------------------------------------------------------------------------------
     
