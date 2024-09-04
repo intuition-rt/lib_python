@@ -658,7 +658,7 @@ class robot(object):
             print ("Error : the 'name' parameter must be a string")
             return None
         
-        msg = "<0n"+str(name)+">"
+        msg = "<94n"+str(name)+">"
         self.web_socket_send(msg) 
         
     def get_name(self):
