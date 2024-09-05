@@ -33,17 +33,20 @@ pip install ilo --upgrade
 
 - [PrettyTable - A simple Python library for easily displaying tabular data in a visually appealing ASCII table format.](https://pypi.org/project/prettytable/)
 
-Don't worry, this dependency is automatically installed with the ilo library.
+- [WebSocket-Client - websocket-client is a WebSocket client for Python. It provides access to low level APIs for WebSockets.](https://pypi.org/project/websocket-client/)
+
+Don't worry, these dependencies are automatically installed with the ilo library.
 
 ## Example
 
 ```
 import ilo
 
+ilo.check_robot_on_network()
+
 my_ilo = ilo.robot(1)
 
-my_ilo.set_led_color(200,0,0)      # color is red
-my_ilo.set_led_color(0,0,200)      # color is blue
+my_ilo.set_led_color(255,0,0)      # set the robot color to red
 
 while true:
 
@@ -65,6 +68,8 @@ while true:
         print("ilo moves to the left at 70% speed")
 ```
 
-## About us
+## What else? 
 
-Find us on our [***website***](https://ilorobot.com) ;)
+Bug reports, patches and suggestions are welcome!
+
+Contact us through our [***website***](https://ilorobot.com) ;)

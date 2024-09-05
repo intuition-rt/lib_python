@@ -1,9 +1,9 @@
 # This python scrip is the library for using the robot ilo with python command on WiFi
 # INTUITION ROBOTIQUE ET TECHNOLOGIES ALL RIGHT RESERVED
-# 06/08/2024
+# 05/09/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.34"
+version = "0.35"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
