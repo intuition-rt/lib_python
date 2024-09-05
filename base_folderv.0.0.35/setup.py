@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.0.34'
+VERSION = '0.0.35'
 DESCRIPTION = 'Control ilo robot using python command.'
 with open('README.md') as f:
     long_description = f.read()
@@ -11,7 +11,7 @@ setup(
     version=VERSION,
     author="intuition RT (SLB)",
     author_email="<contact@ilorobot.com>",
-    url="https://github.com/ilorobot/python-library",
+    url="https://ilorobot.com",
     description=DESCRIPTION,
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -20,18 +20,18 @@ setup(
     install_requires=[
         "keyboard",
         "prettytable",
+        "websocket-client"
     ],
-    keywords=['python'],
+    keywords=['python', 'education'],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
-        "Natural Language :: English"
+        "Natural Language :: English",
         "Programming Language :: Python :: 3",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: OS Independent",
-        "Programming Language :: Python",
         "Topic :: Education",
     ]
 )
