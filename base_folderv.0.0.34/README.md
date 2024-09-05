@@ -11,13 +11,20 @@ A package that lets users control ilo the new educational robot using python com
 - Moves the robot in **many directions** with python commands line
 - Creates **movement loops**
 - Play with the robot in **real time** with your keyboard
-- Use **colored plates** to make the robot move
+- Use **colored plates** to make the robot move and many other **autonomous modes**
 
 ## Where to get it ?
 
 ```
 # with pip
 pip install ilo
+```
+
+## How to update it ?
+
+```
+# with pip
+pip install ilo --upgrade
 ```
 
 ## Dependencies
@@ -33,30 +40,28 @@ Don't worry, this dependency is automatically installed with the ilo library.
 ```
 import ilo
 
-ilo.connection()
+my_ilo = ilo.robot(1)
 
-print("ilo is connected")
-
-ilo.set_led_color_rgb(200,0,0)      # color is red
-ilo.set_led_color_rgb(0,0,200)      # color is blue
+my_ilo.set_led_color(200,0,0)      # color is red
+my_ilo.set_led_color(0,0,200)      # color is blue
 
 while true:
 
     print("Ilo moves forward")
-    ilo.move("front", 100)
+    my_ilo.move("front", 100)
     
-    while ilo.get_distance() > 20:
+    while my_ilo.get_distance() > 20:
         pass
         
-    ilo.stop()
+    my_ilo.stop()
     print("ilo has encountered an obstacle")
     
-    if ilo.get_distance() > 20:
-        ilo.move("right", 80)
+    if my_ilo.get_distance() > 20:
+        my_ilo.move("right", 80)
         print("ilo moves to the right at 80% speed")
     
     else:
-        ilo.move("left", 70)
+        my_ilo.move("left", 70)
         print("ilo moves to the left at 70% speed")
 ```
 

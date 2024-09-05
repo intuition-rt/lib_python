@@ -1,9 +1,9 @@
 # This python scrip is the library for using the robot ilo with python command on WiFi
 # INTUITION ROBOTIQUE ET TECHNOLOGIES ALL RIGHT RESERVED
-# 27/05/2024
+# 06/08/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.32"
+version = "0.34"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
@@ -72,17 +72,14 @@ def list_function():
     print("                                                 red, green and blue are integers and must be between 0 and 255")
     print("")
     print("set_led_shape(value)                          -> set ilorobot leds shape")
-    print("                                                 value is an integer and must be between 0 and 19")
-    print("                                                 0 = smiley          1 = play      2 = back arrow      3 = pause")
-    print("                                                 4 = left arrow      5 = stop      6 = right arrow     7 = rot_trigo arrow")
-    print("                                                 8 = front arrow     9 = rot_clock arrow        10 to 19 = number 0 to 9")
+    print("                                                 value is a string and must be selected from this list: [front, back, right, left, rot_clock, rot_trigo, ")
+    print("                                                 stop, play, pause, smiely, 10(number 0), 11 (number 1), up to number 9, ring_1, ring_2, ring_3, ring_4, ")
+    print("                                                 ring_5]")
+    print("                                                 8 = ")
     print("")
-    print("set_led_anim(value, repetition)               -> set ilorobot leds animations")
-    print("                                                 value is an integer and must be between 0 and 9")
-    print("                                                 repetition is an integer and represents the number of times the animation will loop")
-    print("                                                 0 = waving          1 = cercle rotation      2 =      3 = cercle stars")
-    # print("                                                 4 =       5 =                  6 =      7 = ")
-    # print("                                                 8 =      9 =     ")
+    print("set_led_anim(value)                           -> set ilorobot leds animations")
+    print("                                                 value is a string and must be selected from this list: [labyrinth, color_displacement, line_tracking, imu_water, ")
+    print("                                                 distance_displacement]")
     print("")
     print("set_led_captor(bool)                          -> turns on/off the lights under the robot")
     print("")
@@ -150,78 +147,78 @@ def classification(trame, IP, Port):
         global s
         socket_send(trame, IP, Port)
         #print('trame envoyée: ', trame)
-        data = str(s.recv(1024))[1:]
+        data = str(s.recv(1024))[2:]
 
         #data = socket_read(IP, Port)
-        print ('data reçu:   ', data)
+        #print ('data reçu:   ', data)
         #print ('data indice: ', data[2])
         #print (str(data[2:4]))
         if data[2:4] == "10":
             red_color   = data[data.find('r')+1 : data.find('g')]
             green_color = data[data.find('g')+1 : data.find('b')]
-            blue_color  = data[data.find('b')+1 : data.find('o')]
+            blue_color  = data[data.find('b')+1 : data.find('>')]
             return red_color, green_color, blue_color
 
         if data[2:4] == "11":
             clear_left   = int(data[data.find('l')+1 : data.find('m')])
             clear_center = int(data[data.find('m')+1 : data.find('r')])
-            clear_right  = int(data[data.find('r')+1 : data.find('o')])
+            clear_right  = int(data[data.find('r')+1 : data.find('>')])
             return clear_left, clear_center, clear_right
         
         if data[2:4] == "12":
             line_left   = int(data[data.find('l')+1 : data.find('m')])
             line_center = int(data[data.find('m')+1 : data.find('r')])
-            line_right  = int(data[data.find('r')+1 : data.find('o')])
+            line_right  = int(data[data.find('r')+1 : data.find('>')])
             return line_left, line_center, line_right
 
         if data[2:4] == "14" :
-            line_threshold_value = int(data[data.find('t')+1 : data.find('o')])
+            line_threshold_value = int(data[data.find('t')+1 : data.find('>')])
             return line_threshold_value
 
         if data[2:4] == "20":
-            front = data[data.find('f')+1 : data.find('r')]
-            right = data[data.find('r')+1 : data.find('b')]
-            back  = data[data.find('b')+1 : data.find('l')]
-            left  = data[data.find('l')+1 : data.find('o')]
-            return front, right, back, left
-            
-        if data[2:4] == "30":
-            roll  = int(data[data.find('r')+1 : data.find('p')])
-            pitch = int(data[data.find('p')+1 : data.find('y')])
-            yaw   = int(data[data.find('y')+1 : data.find('o')])
-            return roll, pitch, yaw
+            distance_front = data[data.find('f')+1 : data.find('r')]
+            distance_right = data[data.find('r')+1 : data.find('b')]
+            distance_back  = data[data.find('b')+1 : data.find('l')]
+            distance_left  = data[data.find('l')+1 : data.find('>')]
+            return distance_front, distance_right, distance_back, distance_left
             
         if data[2:4] == "32":
+            roll  = int(data[data.find('r')+1 : data.find('p')])
+            pitch = int(data[data.find('p')+1 : data.find('y')])
+            yaw   = int(data[data.find('y')+1 : data.find('>')])
+            return roll, pitch, yaw
+            
+        '''if data[2:4] == "32":
             accelX  = int(data[data.find('x')+1 : data.find('y')])
             accelY  = int(data[data.find('y')+1 : data.find('z')])
             accelZ  = int(data[data.find('z')+1 : data.find('t')])
             gyroX   = int(data[data.find('t')+1 : data.find('r')])
             gyroY   = int(data[data.find('r')+1 : data.find('l')])
-            gyroZ   = int(data[data.find('l')+1 : data.find('o')])
-            return accelX, accelY, accelZ, gyroX, gyroY, gyroZ
+            gyroZ   = int(data[data.find('l')+1 : data.find('>')])
+            return accelX, accelY, accelZ, gyroX, gyroY, gyroZ'''
 
         if data[2:4] == "40":
             status_battery      = int(data[data.find('s')+1 : data.find('p')])
-            pourcentage_battery = int(data[data.find('p')+1 : data.find('o')]) 
+            pourcentage_battery = int(data[data.find('p')+1 : data.find('>')]) 
             return status_battery, pourcentage_battery
         
         if data[2:4] == "50":
             red_led   = int(data[data.find('r')+1 : data.find('g')])
             green_led = int(data[data.find('g')+1 : data.find('b')])
-            blue_led  = int(data[data.find('b')+1 : data.find('o')])
+            blue_led  = int(data[data.find('b')+1 : data.find('>')])
             return red_led, green_led, blue_led
         
         if data[2:4] == "60":
-            acc_motor  = int(data[data.find('a')+1 : data.find('o')])
+            acc_motor  = int(data[data.find('a')+1 : data.find('>')])
             return acc_motor
         
         if data[2:4] == "91":
             ssid     = str(data[data.find('s')+1 : data.find('p')])
-            password = str(data[data.find('p')+1 : data.find('o')])
+            password = str(data[data.find('p')+1 : data.find('>')])
             return ssid, password
         
         if data[2:4] == "92":
-            hostname = str(data[data.find('n')+1 : data.find('o')])
+            hostname = str(data[data.find('n')+1 : data.find('>')])
             return hostname
         
     except:
@@ -260,7 +257,7 @@ def ping_ip(ip, count=2, timeout=5):
         print(f"Erreur lors de l'exécution de la commande ping: {e}")
         return False
 #-----------------------------------------------------------------------------
-def check_ilo_on_network():
+def check_robot_on_network():
     print("Looking for ilo on your network ...")
     global tab_IP
 
@@ -283,7 +280,7 @@ def check_ilo_on_network():
             ip_check = f"{base_ip}{i}"
             if ping_ip(ip_check) == True:
                 IP = ip_check
-                if (socket_send("io", IP, Port)):
+                if (socket_send("<<>>", IP, Port)):
                     tab_IP.append([IP, ilo_ID])
                     ilo_ID +=1 
                 else:
@@ -348,7 +345,7 @@ class robot(object):
             try:
                 socket_send("ilo", self.IP, self.Port)
                 time.sleep(1)
-                socket_send("io", self.IP, self.Port)
+                socket_send("<<>>", self.IP, self.Port)
                 print('Connected')
                 self.connect = True
                 '''
@@ -391,8 +388,8 @@ class robot(object):
         Stop the robot
         :return:
         """
-        socket_send("io", self.IP, self.Port)
-    #------------------------------------------- ---------------------------------
+        socket_send("<<>>", self.IP, self.Port)
+    #-----------------------------------------------------------------------------
     def pause(self):
         self.direct_control(128,128,128)
     #-----------------------------------------------------------------------------
@@ -405,21 +402,21 @@ class robot(object):
         #ilo.step('front')
         if self.connect == True:
             if isinstance(direction, str) == False:
-                print ('direction should be an string as front, back, left, rot_trigo, rot_clock','stop')
+                print ('direction should be an string as front, back, left, rot_trigo, rot_clock, stop')
                 return None
 
             if direction == 'front':
-                socket_send("iavpx110yro", self.IP, self.Port)
+                socket_send("<<avpx110yr>>", self.IP, self.Port)
             elif direction == 'back':
-                socket_send("iavpx010yro", self.IP, self.Port)
+                socket_send("<<avpx010yr>>", self.IP, self.Port)
             elif direction == 'left':
-                socket_send("iavpxy010ro", self.IP, self.Port)
+                socket_send("<<avpxy010r>>", self.IP, self.Port)
             elif direction == 'right':
-                socket_send("iavpxy110ro", self.IP, self.Port)
+                socket_send("<<avpxy110r>>", self.IP, self.Port)
             elif direction == 'rot_trigo':
-                socket_send("iavpxyr090o", self.IP, self.Port)
+                socket_send("<<avpxyr090>>", self.IP, self.Port)
             elif direction == 'rot_clock':
-                socket_send("iavpxyr190o", self.IP, self.Port)
+                socket_send("<<avpxyr190>>", self.IP, self.Port)
             elif direction == 'stop':
                 self.stop()
             else:
@@ -473,7 +470,7 @@ class robot(object):
 
         new_command = []
         str_command = str(list_course[0] + list_course[1] + list_course[2])
-        new_command = "iav" + str_command +"pxyro"
+        new_command = "<<av" + str_command +"pxyr>>"
         return new_command
     #-----------------------------------------------------------------------------
     def move(self, direction, speed):
@@ -622,17 +619,17 @@ class robot(object):
             print("You have to be connected to ILO before play with it, use ilo.connection()")
     #-----------------------------------------------------------------------------
     def set_name(self, name: str):
-        msg = "i0n"+str(name)+"o"
+        msg = "<<0n"+str(name)+">>"
         socket_send(msg, self.IP, self.Port)
         
     def get_name(self):
-        return classification("i92o", self.IP, self.Port)
+        return classification("<<92>>", self.IP, self.Port)
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
-        return classification("i10o", self.IP, self.Port)
+        return classification("<<10>>", self.IP, self.Port)
     #-----------------------------------------------------------------------------
     def get_color_clear(self):
-        return classification("i11o", self.IP, self.Port)
+        return classification("<<11>>", self.IP, self.Port)
     
     def get_color_clear_left(self):
         return self.get_color_clear()[0]
@@ -644,7 +641,7 @@ class robot(object):
         return self.get_color_clear()[2]
     #-----------------------------------------------------------------------------
     def get_line(self):
-        return classification("i12o", self.IP, self.Port)
+        return classification("<<12>>", self.IP, self.Port)
 
     def get_line_left(self):
         return self.get_line()[0]
@@ -656,68 +653,116 @@ class robot(object):
         return self.get_line()[2]
 
     def set_line_threshold_value(self, val: int):
-        msg = "i13t"+str(val)+"o"
+        msg = "<<13t"+str(val)+">>"
         socket_send(msg, self.IP, self.Port)
         
     def get_line_threshold_value(self):
-        return classification("i14o", self.IP, self.Port)
+        return classification("<<14>>", self.IP, self.Port)
     #-----------------------------------------------------------------------------
     def get_distance(self):
-        return classification("i20o", self.IP, self.Port)
+        return classification("<<20>>", self.IP, self.Port)
     
-    #improvement (add get_distance_front(self)) etc
+    def get_distance_front(self):
+        result = self.get_distance()
+        
+        # Vérifiez que result est un tuple (ou une liste)
+        if isinstance(result, (tuple, list)):
+            distance_front, _, _, _ = result
+            return int(distance_front)
+        else:
+            # Si ce n'est pas un tuple ou une liste, gérer l'erreur
+            print("Erreur : get_distance() n'a pas retourné un tuple ou une liste")
+            distance_front = 600
+            return distance_front
+   
+    def get_distance_right(self):
+        result = self.get_distance()
+        
+        # Vérifiez que result est un tuple (ou une liste)
+        if isinstance(result, (tuple, list)):
+            _, distance_right, _, _ = result
+            return int(distance_right)
+        else:
+            print("Erreur : get_distance() n'a pas retourné un tuple ou une liste")
+            distance_right = 600
+            return distance_right
+    
+    def get_distance_back(self):
+        # return self.get_distance()[2]
+        result = self.get_distance()
+        
+        # Vérifiez que result est un tuple (ou une liste)
+        if isinstance(result, (tuple, list)):
+            _, _, distance_back, _ = result
+            return int(distance_back)
+        else:
+            print("Erreur : get_distance() n'a pas retourné un tuple ou une liste")
+            distance_back = 600
+            return distance_back
+    
+    def get_distance_left(self):
+        result = self.get_distance()
+        
+        # Vérifiez que result est un tuple (ou une liste)
+        if isinstance(result, (tuple, list)):
+            _, _, _, distance_left = result
+            return int(distance_left)
+        else:
+            print("Erreur : get_distance() n'a pas retourné un tuple ou une liste")
+            distance_left = 600
+            return distance_left
     #-----------------------------------------------------------------------------
     def get_angle(self):
-        return classification("i30o",self.IP, self.Port)
+        return classification("<<30>>",self.IP, self.Port)
 
     def reset_angle(self):
-        socket_send("i31o",self.IP, self.Port)
+        socket_send("<<31>>",self.IP, self.Port)
 
     def get_imu(self):
-        return classification("i32o",self.IP, self.Port)
+        return classification("<<32>>",self.IP, self.Port)
     #-----------------------------------------------------------------------------
     def get_battery(self):
-        return classification("i40o",self.IP, self.Port)
+        return classification("<<40>>",self.IP, self.Port)
     #-----------------------------------------------------------------------------
     def get_led_color(self):
-        return classification("150o",self.IP, self.Port)
+        return classification("<<50>>",self.IP, self.Port)
             
     def set_led_color(self,r, g, b):
         # make integer test and test min and max value
-        msg = "i51r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
+        msg = "<<51r"+str(r)+"g"+str(g)+"b"+str(b)+">>"
         socket_send(msg, self.IP, self.Port)    
 
     def set_led_shape(self, val):
-        msg = "i52v"+str(val)+"o"
+        msg = "<<52v"+str(val)+">>"
         socket_send(msg, self.IP, self.Port) 
         
-    def set_led_anim(self,val, rep):
-        msg = "i53v"+str(val)+"r"+str(rep)+"o"
+    def set_led_anim(self,val):
+        msg = "<<53v"+str(val)+">>"
         socket_send(msg, self.IP, self.Port) 
 
-    def set_led_single(type: str, id: int, r: int, g: int, b: int):
+    def set_led_single(self, type: str, id: int, r: int, g: int, b: int):
         if type == "center":
             type = True
         if type == "cercle":
             type = False
-        msg = "i55t"+str(type)+"d"+str(id)+"r"+str(r)+"g"+str(g)+"b"+str(b)+"o"
-        socket_send(msg)
+        msg = "<<55t"+str(type)+"d"+str(id)+"r"+str(r)+"g"+str(g)+"b"+str(b)+">>"
+        socket_send(msg, self.IP, self.Port)
 
     def set_led_captor(self,bool):
         if (bool == True):
-            msg = "i54l1o"
+            msg = "<<54l1>>"
         elif (bool == False) :
-            msg = "i54l0o"
+            msg = "<<54l0>>"
         socket_send(msg, self.IP, self.Port) 
     #-----------------------------------------------------------------------------
     def get_acc_motor(self):
-        return classification("i60o",self.IP, self.Port)
+        return classification("<<60>>",self.IP, self.Port)
     
     def set_acc_motor(self, val: int):
         # make integer test and test min and max value
         if val < 10 : val = 10
         elif val > 100 : val = 100
-        msg = "i61a"+str(val)+"o"
+        msg = "<<61a"+str(val)+">>"
         socket_send(msg, self.IP, self.Port) 
 
     def drive_single_motor(self, id: int, value: int):        # à mettre en pourcentage
@@ -726,12 +771,16 @@ class robot(object):
         if value < -100 : value = -100
         elif value > 100 : value = 100
         value = value * 70
-        msg = "i70d"+str(id)+"v"+str(value)+"o"
+        msg = "<<70d"+str(id)+"v"+str(value)+">>"
         socket_send(msg, self.IP, self.Port) 
 
-    def set_autonomous_mode(self, number: int):
-        msg = "i80n"+str(number)+"o"
+    def set_autonomous_mode(self, value: str):
+        msg = "<<80"+str(value)+">>"
         socket_send(msg, self.IP, self.Port) 
+        
+    def set_autonomous_led(self, value: str):
+        msg = "<<81"+str(value)+">>"
+        socket_send(msg,self.IP, self.Port)
 
     def control_single_motor_front_left(self, value: int):  # de -100 à 100
         self.drive_single_motor(1,value)
@@ -764,11 +813,16 @@ class robot(object):
         pass
     #-----------------------------------------------------------------------------
     def set_wifi_credentials(self, ssid: str, password: str):
-        msg = "i90s"+str(ssid)+"p"+str(password)+"o"
+        msg = "<<90s"+str(ssid)+"p"+str(password)+">>"
         socket_send(msg, self.IP, self.Port)
 
     def get_wifi_credentials(self):
-        return classification("i91o", self.IP, self.Port)
+        return classification("<<91>>", self.IP, self.Port)
+    #---------------------------------------------------------------------------------   
+    def set_debug_state(self, state: bool):
+        msg = "<<94"+str(state)+">>"
+        socket_send(msg, self.IP, self.Port)
+    
 #---------------------------------------------------------------------------------
-check_ilo_on_network()
+check_robot_on_network()
     
