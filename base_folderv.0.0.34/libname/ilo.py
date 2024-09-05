@@ -108,83 +108,82 @@ def list_function():
     print("")
     print("test_connection()                             -> stop the robot if it is properly connected")
 #-----------------------------------------------------------------------------
-def co_web_socket_send(ws, msg):
-    #print(msg)
+def co_web_socket_send(ws, message):
     try:
-        ws.send(msg)
-        #time.sleep(0.1)
-        return True
+        ws.send(message)
+        response = ws.recv()
+        print(f"Sent: {message}, Received: {response}")  # Debugging line
+        return response == "ilo"  # Adjusted to match the expected response
     except Exception as e:
-        print(f'Error of connection with ilo to send message: {e}')
-        return False  
-#-----------------------------------------------------------------------------
-def check_robot_on_network():
+        print(f"Error sending message: {e}")
+        return False
 
+def check_robot_on_network():
     try:
         print("Looking for ilo on your network ...")
         global tab_IP
         tab_IP = []
-
-        global ws
-        
-        # Check if we are using ilo on AP
         ilo_AP = False
         
         try:
             ws_url = "ws://192.168.4.1:4583"
             print(ws_url)
-            ws = websocket.create_connection(ws_url)
-            print("WebSocket connection opened")
+            ws = websocket.create_connection(ws_url, timeout = 0.5)
             if co_web_socket_send(ws, "<ilo>"):
                 tab_IP.append(["192.168.4.1", 1])
                 ilo_AP = True
                 ws.close()
-        except:
+                print("Your robot is working as an access point")
+        except: 
             pass
         
         if not ilo_AP:
             base_ip = "192.168.1."
-            ilo_ID  = 1
-            c = 5                             # checking 5 more IP address after
+            ilo_ID = 1
+            c = 3                       # Checking 3 more IP addresses after success
 
-            try:
-                for i in range(100, 200):         # between 192.168.1.100 and 192.168.1.200
-                    ip_check = f"{base_ip}{i}"
-                    IP = ip_check
-                    ws_url = f"ws://{IP}:4583"
-                    print(ws_url)
-                    ws = websocket.create_connection(ws_url)
-                    print("WebSocket connection opened")
-                    if (co_web_socket_send(ws, "<>")):
+            for i in range(100, 200):  # Between 192.168.1.100 and 192.168.1.200
+                ip_check = f"{base_ip}{i}"
+                IP = ip_check
+                ws_url = f"ws://{IP}:4583"
+                print(f"Checking {ws_url}")
+                c -= 1
+                if c == 0:
+                    break
+                
+                try:
+                    ws = websocket.create_connection(ws_url, timeout = 0.5)  # Set timeout for each connection
+                    if co_web_socket_send(ws, "<ilo>"):
                         tab_IP.append([IP, ilo_ID])
-                        ilo_ID +=1
-                    else:
-                        c -=1
-                        if c==0:
-                            break
-                    ws.close()
-            except:
-                print("error connection with ilo on LAN")
-
-        #display the IP and ID
-        #print(tab_IP)
+                        ilo_ID += 1
+                        c += 1
+                        ws.close()
+                        
+                except:
+                    continue  # Continue to the next IP
+                    
+       
+        # Display the IP and ID
         table = PrettyTable()
-        table.field_names = ["IP Address", "ID of ilo"]
+        table.field_names = ["IP Address", "ID of ilo"] #♥add the name info <93>
         for row in tab_IP:
             table.add_row(row)
         
         if len(tab_IP) != 0:
             print(table)
             print("")
-            print("Use for exemple: my_ilo = ilo.robot(1) to created object my_ilo with the ID = 1")
+            print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
         else:
-            print("Unfornutaly no one ilo is present on your current network, check you connection.")
+            print("Unfortunately, no ilo is present on your current network. Check your connection.")
 
     except Exception as e:
-        print(f"WebSocket error: {e}")      
+        print(f"WebSocket error: {e}")    
 #-----------------------------------------------------------------------------   
 def get_IP_from_ID(ID):
+    print(ID)
+    global tab_IP
     for item in tab_IP:
+        print(item[1])
         if item[1] == ID:
             return item[0]
     return None
@@ -406,7 +405,7 @@ class robot(object):
         :return: True or False 
         """
         try:
-            self.stop()
+            self.web_socket_send("<ilo>")
             return True
         except:
             print("Error connection to the robot")
@@ -718,7 +717,7 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def get_distance(self):
         self.web_socket_send("<20>")
-        time.sleep(0.1)
+        time.sleep(0.15)
         return (self.distance_front, self.distance_right, self.distance_back, self.distance_left)
     
     def get_distance_front(self):
