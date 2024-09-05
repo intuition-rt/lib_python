@@ -49,3 +49,4 @@ from ilo import set_mode_motor
 from ilo import free_motor
 from ilo import set_wifi_credentials
 from ilo import get_wifi_credentials
+from ilo import set_debug_state
