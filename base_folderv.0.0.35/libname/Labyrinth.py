@@ -1,33 +1,33 @@
 import ilo
 import time
 
-my_ilo = ilo.robot(2)
+my_ilo = ilo.robot(1)
 
 def check_obstacle():
     while my_ilo.get_distance_front() < 60:
         my_ilo.stop
-        print("je me stop")
+        print("ilo stops")
         while my_ilo.get_distance_front() < 60:
             my_ilo.step("rot_trigo")
             time.sleep(1.5)
-            print("je tourne")
+            print("ilo turns")
     my_ilo.move("front", 50)
-    print("j'avance")
+    print("ilo moves forward")
 
 
 while True :
     
     if my_ilo.get_distance_front() <= 60:
         my_ilo.stop()
-        print("stop")
+        print("ilo stops")
         
         my_ilo.step("rot_trigo")
-        print("rot_trigo")
+        print("ilo makes a rot_trigo turn")
         time.sleep(2)
         
         
     else :
         my_ilo.move("front", 5)
-        print("front")
+        print("ilo moves forward")
         
     time.sleep(0.2)

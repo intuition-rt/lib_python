@@ -785,7 +785,7 @@ class robot(object):
     def get_led_color(self):
         self.web_socket_send("<50>")
         time.sleep(0.1)
-        return (self.self.red_led, self.green_led, self.blue_led)
+        return (self.red_led, self.green_led, self.blue_led)
             
     def set_led_color(self,red: int, green: int, blue : int):
         if not isinstance(red, int):
@@ -898,7 +898,7 @@ class robot(object):
         elif value > 100 : value = 100
         msg = "<61a"+str(value)+">"
         self.web_socket_send(msg) 
-
+    #-----------------------------------------------------------------------------
     def drive_single_motor(self, id: int, value: int):
 
         if not isinstance(id, int):
@@ -922,23 +922,6 @@ class robot(object):
         msg = "<70d"+str(id)+"v"+str(value)+">"
         self.web_socket_send(msg)
 
-    def set_autonomous_mode(self, value: str):
-
-        if not isinstance(value, str):
-            print ("Error : 'value' parameter must be a string")
-            return None
-
-        msg = "<80"+str(value)+">"
-        self.web_socket_send(msg) 
-        
-    def set_autonomous_led(self, value: str):
-        
-        if not isinstance(value, str):
-            print ("Error : 'value' parameter must be a string")
-            return None
-        
-        msg = "<81"+str(value)+">"
-        self.web_socket_send(msg)
 
     def control_single_motor_front_left(self, value: int):  # de -100 à 100
         
@@ -985,6 +968,16 @@ class robot(object):
     def set_mode_motor():
         #between position or wheel mode
         pass
+
+    #-----------------------------------------------------------------------------
+    def set_autonomous_mode(self, value: str):
+
+        if not isinstance(value, str):
+            print ("Error : 'value' parameter must be a string")
+            return None
+
+        msg = "<80"+str(value)+">"
+        self.web_socket_send(msg) 
     #-----------------------------------------------------------------------------
     def set_wifi_credentials(self, ssid: str, password: str):
 
@@ -1007,6 +1000,20 @@ class robot(object):
         time.sleep(0.1)
         return (self.ssid, self.password)
     #---------------------------------------------------------------------------------   
+    def set_name(self, name: str): # going to be change by <93n>
+
+        if not isinstance(name, str):
+            print ("Error : the 'name' parameter must be a string")
+            return None
+        
+        msg = "<94n"+str(name)+">"
+        self.web_socket_send(msg) 
+        
+    def get_name(self):
+        self.web_socket_send("<93>")
+        time.sleep(0.1)
+        return (self.hostname)
+    #-----------------------------------------------------------------------------
     def set_debug_state(self, state: bool):
 
         if not isinstance(state, bool):
@@ -1015,5 +1022,5 @@ class robot(object):
 
         msg = "<94"+str(state)+">"
         self.web_socket_send(msg)
-#---------------------------------------------------------------------------------
+    #---------------------------------------------------------------------------------
     
