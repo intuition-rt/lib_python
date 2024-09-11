@@ -13,10 +13,28 @@
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
 -
 
+## Version 35:
+
+Date de publication: 05/09/2024
+
+Ajout par rapport à la version précédente:
+```
+• Fix websocket error
+```
+
+## Version 34:
+
+Date de publication: 28/08/2024
+
+Ajout par rapport à la version précédente:
+```
+• Passage de socket a websocket
+• Ajout et fix de nouvelles méthodes
+```
+
 ## Version 33:
 
-Date de publication:
-Objectif : 06/08/2024
+Date de publication: 06/08/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -25,8 +43,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 32:
 
-Date de publication:
-Objectif : 19/06/2024
+Date de publication: 19/06/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -35,8 +52,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 31:
 
-Date de publication:
-Objectif : 07/06/2024
+Date de publication: 07/06/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -45,8 +61,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 30:
 
-Date de publication:
-Objectif : 29/05/2024
+Date de publication: 29/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -57,8 +72,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 29:
 
-Date de publication:
-Objectif : 17/05/2024
+Date de publication: 17/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -68,8 +82,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 28:
 
-Date de publication:
-Objectif : 16/05/2024
+Date de publication: 16/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -78,8 +91,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 27:
 
-Date de publication:
-Objectif : 16/05/2024
+Date de publication: 16/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -88,8 +100,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 26:
 
-Date de publication:
-Objectif : 16/05/2024
+Date de publication: 16/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -100,8 +111,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 25:
 
-Date de publication:
-Objectif : 15/05/2024
+Date de publication: 15/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -113,8 +123,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 24:
 
-Date de publication:
-Objectif : 10/05/2024
+Date de publication: 10/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -123,8 +132,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 23:
 
-Date de publication:
-Objectif : 10/05/2024
+Date de publication: 10/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -134,8 +142,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 22:
 
-Date de publication:
-Objectif : 03/05/2024
+Date de publication: 03/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -145,8 +152,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 21:
 
-Date de publication:
-Objectif : 02/05/2024
+Date de publication: 02/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -155,8 +161,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 20:
 
-Date de publication:
-Objectif : 02/05/2024
+Date de publication: 02/05/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -165,8 +170,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 19:
 
-Date de publication:
-Objectif : 26/04/2024
+Date de publication: 26/04/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -175,8 +179,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 18:
 
-Date de publication:
-Objectif : 23/02/2024
+Date de publication: 23/02/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -186,8 +189,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 17:
 
-Date de publication:
-Objectif : 23/02/2024
+Date de publication: 23/02/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -196,8 +198,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 16:
 
-Date de publication:
-Objectif : 22/02/2024
+Date de publication: 22/02/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -207,8 +208,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 15:
 
-Date de publication:
-Objectif : 21/02/2024
+Date de publication: 21/02/2024
 
 Ajout par rapport à la version précédente:
 ```
@@ -218,8 +218,7 @@ Ajout par rapport à la version précédente:
 
 ## Version 14
 
-Date de publication:
-Objectif : 21/02/2024
+Date de publication: 21/02/2024
 
 Ajout par rapport à la version précédente:
 ```
