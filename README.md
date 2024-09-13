@@ -2,16 +2,14 @@
 
 ## Liste des évolutions souhaitées:
 
-- Retourner des entiers en nom des string pour distance couleur à l'intérieur des list
-- Mise à jour des trames de commande (commande leds, mode autonome, changement wifi)
-- Envoyer un commande d'arrêt (ilo.stop() en sorti du mode game et ajouter un stop via le numéro 5)
 - Limitation de l'utilisation des variable global
 - Contrôle singulier d’un unique moteur
-  - Idée de trame ‘im(ID)v(velocity)o’  //pb la gestion du mode servo
   - ‘im(ID)to’ exemple pour retour d’info de température
 - Gérer l’accès aux capteurs I2C de la carte accessoire
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
--
+- Mettre à jour list_function
+- Mettre commentaire de chaque méthode
+- Check si la méthod set_led_single est ok
 
 ## Version 35:
 
