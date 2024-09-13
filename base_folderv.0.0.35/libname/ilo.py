@@ -3,7 +3,7 @@
 # 05/09/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.35"
+version = "0.36 - test"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
@@ -122,10 +122,10 @@ def co_web_socket_send(ws, message):
         ws.send(message)
         response = ws.recv()
         print(f"Sent: {message}, Received: {response}")  # Debugging line
-        return response == "ilo"  # Adjusted to match the expected response
+        return response  # Adjusted to match the expected response
     except Exception as e:
         print(f"Error sending message: {e}")
-        return False
+        return "..."
 
 def check_robot_on_network():
     try:
@@ -137,9 +137,10 @@ def check_robot_on_network():
         try:
             ws_url = "ws://192.168.4.1:4583"
             print(ws_url)
-            ws = websocket.create_connection(ws_url, timeout = 0.5)
-            if co_web_socket_send(ws, "<ilo>"):
-                tab_IP.append(["192.168.4.1", 1])
+            ws = websocket.create_connection(ws_url, timeout = 1.3)
+            if co_web_socket_send(ws, "<ilo>") == "ilo":
+                tab_IP.append(["192.168.4.1", 1, co_web_socket_send(ws, "<930>")])
+                
                 ilo_AP = True
                 ws.close()
                 print("Your robot is working as an access point")
@@ -161,9 +162,9 @@ def check_robot_on_network():
                     break
                 
                 try:
-                    ws = websocket.create_connection(ws_url, timeout = 0.5)  # Set timeout for each connection
-                    if co_web_socket_send(ws, "<ilo>"):
-                        tab_IP.append([IP, ilo_ID])
+                    ws = websocket.create_connection(ws_url, timeout = 1.3)  # Set timeout for each connection
+                    if co_web_socket_send(ws, "<ilo>") == "ilo":
+                        tab_IP.append([IP, ilo_ID, co_web_socket_send(ws, "<930>")])
                         ilo_ID += 1
                         c += 1
                         ws.close()
@@ -174,7 +175,7 @@ def check_robot_on_network():
        
         # Display the IP and ID
         table = PrettyTable()
-        table.field_names = ["IP Address", "ID of ilo"] #♥add the name info <93>
+        table.field_names = ["IP Address", "ID of ilo", "Name of ilo"] #♥add the name info <93>
         for row in tab_IP:
             table.add_row(row)
         
@@ -249,6 +250,8 @@ class robot(object):
         
         self.ssid     = ""
         self.password = ""
+        
+        self.marker = True
  
         # -- marin add all other data of the robot
         # -- thinking to a solution to get data from additionnal captor connnected on the top of the robot via accesoire PCB
@@ -311,6 +314,7 @@ class robot(object):
                 data = self.ws.recv()
                 if data:
                     self.process_received_data(data)
+                    self.marker = True
             except websocket.WebSocketException as e:
                 print(f"WebSocket error: {e}")
                 #-- marin bonne solution ici pour debugger d'afficher directement le message d'erreur 
@@ -320,6 +324,7 @@ class robot(object):
         """
         Process the data received from the WebSocket and update the robot's attributes.
         """
+        print("")
         print(f"Received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
@@ -327,9 +332,9 @@ class robot(object):
         try: 
 
             if str(data[1:3]) == "10":
-                self.red_color   = data[data.find('r')+1 : data.find('g')]
-                self.green_color = data[data.find('g')+1 : data.find('b')]
-                self.blue_color  = data[data.find('b')+1 : data.find('>')]
+                self.red_color   = int(data[data.find('r')+1 : data.find('g')])
+                self.green_color = int(data[data.find('g')+1 : data.find('b')])
+                self.blue_color  = int(data[data.find('b')+1 : data.find('>')])
 
             if str(data[1:3]) == "11":
                 self.clear_left   = int(data[data.find('l')+1 : data.find('m')])
@@ -662,7 +667,9 @@ class robot(object):
         
     def get_name(self):
         self.web_socket_send("<93>")
-        time.sleep(0.1)
+        self.marker = False
+        while not self.marker :
+            pass
         return (self.hostname)
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
@@ -999,20 +1006,6 @@ class robot(object):
         self.web_socket_send("<92>")
         time.sleep(0.1)
         return (self.ssid, self.password)
-    #---------------------------------------------------------------------------------   
-    def set_name(self, name: str): # going to be change by <93n>
-
-        if not isinstance(name, str):
-            print ("Error : the 'name' parameter must be a string")
-            return None
-        
-        msg = "<94n"+str(name)+">"
-        self.web_socket_send(msg) 
-        
-    def get_name(self):
-        self.web_socket_send("<93>")
-        time.sleep(0.1)
-        return (self.hostname)
     #-----------------------------------------------------------------------------
     def set_debug_state(self, state: bool):
 
