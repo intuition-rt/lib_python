@@ -2,7 +2,6 @@
 
 ## Liste des évolutions souhaitées:
 
-- Limitation de l'utilisation des variable global
 - Contrôle singulier d’un unique moteur
   - ‘im(ID)to’ exemple pour retour d’info de température
 - Gérer l’accès aux capteurs I2C de la carte accessoire

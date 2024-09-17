@@ -1,9 +1,9 @@
-# This python scrip is the library for using the robot ilo with python command on WiFi
+# This python script is the library for using the robot ilo with python command on WiFi
 # INTUITION ROBOTIQUE ET TECHNOLOGIES ALL RIGHT RESERVED
-# 05/09/2024
+# 16/09/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.36 - test"
+version = "0.36"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
@@ -16,13 +16,15 @@ tab_IP = []
 def info():
     """
     Print info about ilorobot
-    :return:
     """
     print("ilo robot is an education robot controlable by direct python command")
     print("To know every fonction available with ilo,  use ilo.list_function() command line")
     print("You are using the version ", version)
 #-----------------------------------------------------------------------------
 def list_function():
+    '''
+    Print the list of all the functions available in the library
+    '''
     print("info()                                        -> print info about ilorobot")
     print(" ")
     print("check_robot_on_network()                      -> scan the network for robots")
@@ -118,6 +120,9 @@ def list_function():
     print("test_connection()                             -> stop the robot if it is properly connected")
 #-----------------------------------------------------------------------------
 def co_web_socket_send(ws, message):
+    '''
+    Send a message over the WebSocket connection
+    '''
     try:
         ws.send(message)
         response = ws.recv()
@@ -128,6 +133,9 @@ def co_web_socket_send(ws, message):
         return "..."
 
 def check_robot_on_network():
+    """
+    Check the presence of the ilo(s) on the network
+    """
     try:
         print("Looking for ilo on your network ...")
         global tab_IP
@@ -190,6 +198,9 @@ def check_robot_on_network():
         print(f"WebSocket error: {e}")    
 #-----------------------------------------------------------------------------   
 def get_IP_from_ID(ID):
+    '''
+    Get the IP address of the robot from its ID
+    '''
     print(ID)
     global tab_IP
     for item in tab_IP:
@@ -268,7 +279,6 @@ class robot(object):
     def connection(self):
         """
         Connection of your machine to robot object 
-        
         """
         if self.connect:
             print('Your robot is already connected')
@@ -307,7 +317,7 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def web_socket_receive(self):
         """
-        Thread function to continuously receive data from the WebSocket.
+        Thread function to continuously receive data from the WebSocket
         """
         while self.recv_thread_running:
             try:
@@ -322,7 +332,7 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def process_received_data(self, data):
         """
-        Process the data received from the WebSocket and update the robot's attributes.
+        Process the data received from the WebSocket and update the robot's attributes
         """
         print("")
         print(f"Received: {data}")
@@ -396,7 +406,7 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def stop_reception(self):
         """
-        Stop the WebSocket reception thread and close the connection.
+        Stop the WebSocket reception thread and close the connection
         """
         self.recv_thread_running = False
         if self.recv_thread:
@@ -409,14 +419,14 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def __del__(self):
         """
-        Destructor to ensure the WebSocket connection is closed gracefully.
+        Destructor to ensure the WebSocket connection is closed gracefully
         """
         self.stop_reception()
     #-----------------------------------------------------------------------------
     def test_connection(self):
         """
         Test the connection to the robot via a try of stop method
-        :return: True or False 
+        :return: True or False
         """
         try:
             self.web_socket_send("<ilo>")
@@ -427,26 +437,32 @@ class robot(object):
     #-----------------------------------------------------------------------------    
     def stop(self):
         """
-        Stop the robot and free engines
-    
+        Stop ilo and free its engines
         """
         self.web_socket_send("<>")   
     #-----------------------------------------------------------------------------
     def pause(self):
         """
-        Stop the robot and block engines
-    
+        Stop ilo and block its motors
         """
         self.direct_control(128,128,128)  
     #-----------------------------------------------------------------------------
     def step(self, direction):
         """
-        Move by step ilorobot with selected direction during 2 seconds
-        :param direction:
-        :return: Is a string and should be (front, back, left, right, rot_trigo or rot_clock)
+        Move ilo in the selected direction for 2 seconds
+
+        Parameters:
+            direction (str): The direction in which the robot is moving
+
+        Raises:
+            TypeError: If the direction is not a string
+            ValueError: If the direction is not one of the following: front, back, left, right, rot_trigo, rot_clock or stop
+
+        Examples:
+            my_ilo.step("front")
         """
         if not isinstance(direction, str):
-            print ('Direction should be an string as front, back, left, rot_trigo, rot_clock, stop')
+            print ('Direction should be an string')
             return None
 
         if direction == 'front':
@@ -464,24 +480,34 @@ class robot(object):
         elif direction == 'stop':
             self.stop()
         else:
-            print('direction name is not correct')
+            print('Direction should be "front", "back", "left", "rot_trigo", "rot_clock", "stop"')
     #-----------------------------------------------------------------------------
     def list_order(self, ilo_list):
         """
-        ilo will execute a list of successive displacment define in ilo_list
-        :param ilo_list: example : ['front', 'left', 'front', 'rot_trigo', 'back'] (value of ilo_list are a string)
-        :return: 
+        ilo will execute a list of successive moves defined in ilo_list
+
+        Parameters
+        ----------
+            ilo_list : list of str
+                List of possible moves: front, back, left, right, rot_trigo, rot_clock, stop
+
+        Raises:
+            TypeError: If ilo_list is not a list
+
+        Examples:
+            my_ilo.list_order(['front', 'left', 'front', 'rot_trigo', 'back'])
         """
         if isinstance(ilo_list, list) == False:
-            print ('the variable should be a list, with inside string as front, back, left, rot_trigo, rot_clock')
+            print ('ilo_list should be a list')
             return None
 
         for i in range(len(ilo_list)):
             self.step(ilo_list[i])     
     #-----------------------------------------------------------------------------
     def correction_command(self, list_course):
-        #convert a list of 3 elements to a sendable string
-
+        '''
+        Convert a list of 3 elements to a sendable string
+        '''
         if int(list_course[0]) >= 100:
             list_course[0] = str(list_course[0])
         elif 100 > int(list_course[0]) >= 10:
@@ -516,10 +542,20 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def move(self, direction: str, speed: int):
         """
-        Move ilorobot with selected direction, speed and time control
-        :param direction: is a string and should be (front, back, left, right, rot_trigo or rot_clock)
-        :param speed: is an integer from 0 to 100, as a pourcentage
-        :return:
+        Move ilo with selected direction, speed and time control
+
+        Parameters:
+            direction (str): The direction in which the robot is moving
+            speed (int): The speed of the robot, as a percentage
+
+        Raises:
+            TypeError: If the direction is not a string
+            ValueError: If the direction is not one of the following: front, back, left, right, rot_trigo, rot_clock or stop
+            TypeError: If the speed is not an integer
+            ValueError: If the speed is not between 0 and 100
+
+        Examples:
+            my_ilo.move("front", 50)
         """
 
         #ilo.move('front', 50)
@@ -528,13 +564,13 @@ class robot(object):
         #preview_stop = True
 
         if not isinstance(direction, str):
-            print ("Error : the 'direction' parameter must be a string as front, back, left, rot_trigo or rot_clock")
+            print ("Error : the 'direction' parameter must be a string")
             return None
         if not isinstance(speed, int):
             print ("Error : the 'speed' parameter must be a integer")
             return None     
         if speed> 100 or speed<0:
-            print ("Error : 'speed' parameter must be include between 0 and 100")
+            print ("Error : the 'speed' parameter must be include between 0 and 100")
             return None
 
         if direction == 'front':
@@ -550,7 +586,7 @@ class robot(object):
         elif direction == 'rot_clock':
             command = [128,128,int((speed*1.28)+128)]
         else:
-            print('direction is not correct')
+            print('Direction should be "front", "back", "left", "rot_trigo", "rot_clock", "stop"')
             return None
 
         corrected_command = self.correction_command(command)
@@ -558,9 +594,24 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def direct_control(self, axial: int, radial: int, rotation: int):
         """
-        Control ilorobot with full control
-        :param axial, radial, rotation: is an integer from 0 to 255. Value from 0 to 128 are negative and value from 128 to 255 are positive
-        :return:
+        Control ilo with full control \n
+        Value from 0 to 128 are negative and value from 128 to 255 are positive
+
+        Parameters:
+            axial (int): [...]
+            radial (int): [...]
+            rotation (int): [...]
+
+        Raises:
+            TypeError: If axial is not an integer
+            ValueError: If axial is not between 0 and 255
+            TypeError: If radial is not an integer
+            ValueError: If radial is not between 0 and 255
+            TypeError: If rotation is not an integer
+            ValueError: If rotation is not between 0 and 255
+
+        Examples:
+            my_ilo.direct_control(150, 150, 150)
         """
 
         if not isinstance(axial, int):
@@ -590,7 +641,12 @@ class robot(object):
         """
         Control ilo using arrow or numb pad of your keyboard. \n
         Available keyboard touch: 8,2,4,6,1,3 | space = stop | esc = quit
-        :return:
+
+        Raises:
+            ConnectionError: If you are not connected to ilo
+        
+        Examples:
+            my_ilo.game()
         """
 
         if self.test_connection() == True:
@@ -657,7 +713,19 @@ class robot(object):
             print("You have to be connected to ILO before play with it, use ilo.connection()")   
     #-----------------------------------------------------------------------------
     def set_name(self, name: str): # going to be change by <93n>
+        """
+        Set a new name for your ilo
 
+        Parameters:
+            name (str): the name you want for your ilo
+
+        Raises:
+            TypeError: If name is not a string
+
+        Examples:
+            my_ilo.set_name("Marin's ilo")
+        """
+    
         if not isinstance(name, str):
             print ("Error : the 'name' parameter must be a string")
             return None
@@ -666,6 +734,9 @@ class robot(object):
         self.web_socket_send(msg) 
         
     def get_name(self):
+        """
+        Reads the name you have given to your ilo
+        """
         self.web_socket_send("<93>")
         self.marker = False
         while not self.marker :
@@ -673,51 +744,90 @@ class robot(object):
         return (self.hostname)
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
+        """
+        Displays the color below ilo
+        """
         self.web_socket_send("<10>")
         time.sleep(0.1)
         return (self.red_color, self.green_color, self.blue_color)
     #-----------------------------------------------------------------------------
     def get_color_clear(self):
+        """
+        Displays the brightness below ilo
+        """
         self.web_socket_send("<11>")
         time.sleep(0.1)
         return (self.clear_left, self.clear_center, self.clear_right)
     
     def get_color_clear_left(self):
+        """
+        Displays the brightness below ilo on the left
+        """
         self.web_socket_send("<11>")
         time.sleep(0.1)
         return (self.clear_left)
     
     def get_color_clear_center(self):
+        """
+        Displays the brightness below ilo in the center
+        """
         self.web_socket_send("<11>")
         time.sleep(0.1)
         return (self.clear_center)
 
     def get_color_clear_right(self):
+        """
+        Displays the brightness below ilo on the right
+        """
         self.web_socket_send("<11>")
         time.sleep(0.1)
         return (self.clear_right)
     #-----------------------------------------------------------------------------
     def get_line(self):
+        """
+        Detects whether ilo is on a line or not
+        """
         self.web_socket_send("<12>")
         time.sleep(0.1)
         return (self.line_left, self.line_center, self.line_right)
 
     def get_line_left(self):
+        """
+        Detects whether ilo is on a line or not according to the left sensor
+        """
         self.web_socket_send("<12>")
         time.sleep(0.1)
         return (self.line_left)
     
     def get_line_center(self):
+        """
+        Detects whether ilo is on a line or not according to the center sensor
+        """
         self.web_socket_send("<12>")
         time.sleep(0.1)
         return (self.line_center)
 
     def get_line_right(self):
+        """
+        Detects whether ilo is on a line or not according to the right sensor
+        """
         self.web_socket_send("<12>")
         time.sleep(0.1)
         return (self.line_right)
 
     def set_line_threshold_value(self, value: int):
+        """
+        Set the new threshold value for the line detection
+
+        Parameters:
+            value (int): the new threshold value
+
+        Raises:
+            TypeError: If value is not an integer
+
+        Examples:
+            my_ilo.set_line_treshold_value(40)
+        """
 
         if not isinstance(value, int):
             print ("Error : the 'value' parameter must be a integer")
@@ -727,74 +837,136 @@ class robot(object):
         self.web_socket_send(msg)  
      
     def get_line_threshold_value(self):
+        """
+        Displays the threshold value for the line detection
+        """
         self.web_socket_send("<14>")
         time.sleep(0.1)
         return (self.line_threshold_value)
     #-----------------------------------------------------------------------------
     def get_distance(self):
+        """
+        Get the distance around ilo
+        """
         self.web_socket_send("<20>")
         time.sleep(0.15)
         return (self.distance_front, self.distance_right, self.distance_back, self.distance_left)
     
     def get_distance_front(self):
+        """
+        Get the distance in front of ilo
+        """
         self.web_socket_send("<20>")
         time.sleep(0.1)
         return (self.distance_front)
    
     def get_distance_right(self):
+        """
+        Get the distance on the right of ilo
+        """
         self.web_socket_send("<20>")
         time.sleep(0.1)
         return (self.distance_right)
     
     def get_distance_back(self):
+        """
+        Get the distance behind ilo
+        """
         self.web_socket_send("<20>")
         time.sleep(0.1)
         return (self.distance_back)
     
     def get_distance_left(self):
+        """
+        Get the distance on the left of ilo
+        """
         self.web_socket_send("<20>")
         time.sleep(0.1)
         return (self.distance_left)
     #-----------------------------------------------------------------------------
     def get_angle(self):
+        """
+        Get the angle of ilo
+        """
         self.web_socket_send("<30>")
         time.sleep(0.1)
         return (self.roll, self.pitch, self.yaw)
     
     def get_roll(self):
+        """
+        Get the roll angle of ilo
+        """
         self.web_socket_send("<30>")
         time.sleep(0.1)
         return (self.roll)
 
     def get_pitch(self):
+        """
+        Get the pitch angle of ilo
+        """
         self.web_socket_send("<30>")
         time.sleep(0.1)
         return (self.pitch)
     
     def get_yaw(self):
+        """
+        Get the yaw angle of ilo
+        """
         self.web_socket_send("<30>")
         time.sleep(0.1)
         return (self.yaw)
 
     def reset_angle(self):
+        """
+        Reset the angle of ilo
+        """
         self.web_socket_send("<31>")
 
     def get_raw_imu(self):
+        """
+        Get the raw data from the IMU
+        """
         self.web_socket_send("<32>")
         time.sleep(0.1)
         return (self.accX, self.accY, self.accZ, self.gyroX, self.gyroY, self.gyroZ)
     #-----------------------------------------------------------------------------
     def get_battery(self):
+        """
+        Get the battery status and percentage of ilo
+        """
         self.web_socket_send("<40>")
         time.sleep(0.1)
         return (self.battery_status, self.battery_pourcentage) 
     #-----------------------------------------------------------------------------
     def get_led_color(self):
+        """
+        Get the color of the ilo leds
+        """
         self.web_socket_send("<50>")
         time.sleep(0.1)
         return (self.red_led, self.green_led, self.blue_led)
             
     def set_led_color(self,red: int, green: int, blue : int):
+        """
+        Set the ilo leds color
+
+        Parameters:
+            red (int): the red value of the color
+            green (int): the green value of the color
+            blue (int): the blue value of the color
+
+        Raises:
+            TypeError: If red is not an integer
+            ValueError: If red is not between 0 and 255
+            TypeError: If green is not an integer
+            ValueError: If green is not between 0 and 255
+            TypeError: If blue is not an integer
+            ValueError: If blue is not between 0 and 255
+
+        Examples:
+            my_ilo.set_led_color(128, 0, 128)
+        """
+
         if not isinstance(red, int):
             print ("Error : 'red' parameter must be a integer")
             return None
@@ -818,6 +990,18 @@ class robot(object):
         self.web_socket_send(msg)
 
     def set_led_shape(self, value: str):
+        """
+        Set the ilo leds shape
+
+        Parameters:
+            value (str): the shape of the leds
+
+        Raises:
+            TypeError: If value is not a string
+
+        Examples:
+            my_ilo.set_led_shape("smiley")
+        """
 
         if not isinstance(value, str):
             print ("Error : 'value' parameter must be a string")
@@ -827,6 +1011,18 @@ class robot(object):
         self.web_socket_send(msg)
         
     def set_led_anim(self,value: str):
+        """
+        Define the animation of ilo LEDs
+
+        Parameters:
+            value (str): led animation name
+
+        Raises:
+            TypeError: If value is not a string
+
+        Examples:
+            my_ilo.set_led_anim("wave")
+        """
 
         if not isinstance(value, str):
             print ("Error : 'value' parameter must be a string")
@@ -837,6 +1033,30 @@ class robot(object):
         self.web_socket_send(msg)
 
     def set_led_single(self, type: str, id: int, red: int, green: int, blue: int):
+        """
+        Lights up an individual led in the led matrix
+
+        Parameters:
+            type (str): allows you to choose whether to light a led on the circle or on the center
+            id (int): led number (id)
+            red (int): red value of the color
+            green (int): green value of the color
+            blue (int): blue value of the color
+
+        Raises:
+            TypeError: If type is not a string
+            ValueError: If type is not "center" or "circle"
+            TypeError: If id is not an integer
+            TypeError: If red is not an integer
+            ValueError: If red is not between 0 and 255
+            TypeError: If green is not an integer
+            ValueError: If green is not between 0 and 255
+            TypeError: If blue is not an integer
+            ValueError: If blue is not between 0 and 255
+
+        Examples:
+            my_ilo.set_led_single("center", 15, 255, 255, 255)
+        """
 
         if not isinstance(type, str):
             print ("Error : 'type' parameter must be a string")
@@ -875,6 +1095,18 @@ class robot(object):
         self.web_socket_send(msg)
 
     def set_led_captor(self,state: bool):
+        """
+        lights up the leds under ilo
+
+        Parameters:
+            state (bool): allows you to turn on or off the leds
+
+        Raises:
+            TypeError: If state is not a bool
+
+        Examples:
+            my_ilo.set_led_captor(True)
+        """
 
         if not isinstance(state, bool):
             print ("Error : 'state' parameter must be a bool")
@@ -887,12 +1119,27 @@ class robot(object):
         self.web_socket_send(msg)
     #-----------------------------------------------------------------------------
     def get_acc_motor(self):
+        """
+        Get the acceleration of all motors
+        """
         self.web_socket_send("<60>")
         time.sleep(0.1)
         return (self.acc_motor)
     
     def set_acc_motor(self, value: int):
-        # make integer test and test min and max value
+        """
+        Set the acceleration of all motors
+
+        Parameters:
+            value (int): the acceleration value
+
+        Raises:
+            TypeError: If value is not an integer
+            ValueError: If value is not between 10 and 100
+
+        Examples:
+            my_ilo.set_acc_motor(67)
+        """
 
         if not isinstance(value, int):
             print ("Error : 'value' parameter must be a integer")
@@ -907,6 +1154,22 @@ class robot(object):
         self.web_socket_send(msg) 
     #-----------------------------------------------------------------------------
     def drive_single_motor(self, id: int, value: int):
+        """
+        Drive a single motor with is id
+
+        Parameters:
+            id (int): the motor id
+            value (int): the motor speed in percentage
+
+        Raises:
+            TypeError: If id is not an integer
+            ValueError: If id is not between 0 and 255
+            TypeError: If value is not an integer
+            ValueError: If value is not between -100 and 100
+
+        Examples:
+            my_ilo.drive_single_motor(1, 50)
+        """
 
         if not isinstance(id, int):
             print ("Error : 'id' parameter must be a integer")
@@ -929,9 +1192,19 @@ class robot(object):
         msg = "<70d"+str(id)+"v"+str(value)+">"
         self.web_socket_send(msg)
 
-
     def control_single_motor_front_left(self, value: int):  # de -100 à 100
-        
+        """
+        Control the front left motor
+
+        Parameters:
+            value (int): the motor speed in percentage
+
+        Raises:
+            TypeError: If value is not an integer
+
+        Examples:
+            my_ilo.drive_single_motor_front_left(50)
+        """
         if not isinstance(value, int):
             print ("Error : 'value' parameter must be a integer")
             return None
@@ -943,7 +1216,18 @@ class robot(object):
         # pass
 
     def control_single_motor_front_right(self, value: int):
-        
+        """
+        Control the front right motor
+
+        Parameters:
+            value (int): the motor speed in percentage
+
+        Raises:
+            TypeError: If value is not an integer
+
+        Examples:
+            my_ilo.drive_single_motor_front_right(50)
+        """
         if not isinstance(value, int):
             print ("Error : 'value' parameter must be a integer")
             return None
@@ -951,7 +1235,19 @@ class robot(object):
         self.drive_single_motor(2,value)
 
     def control_single_motor_back_left(self, value: int):
-        
+        """
+        Control the back left motor
+
+        Parameters:
+            value (int): the motor speed in percentage
+
+        Raises:
+            TypeError: If value is not an integer
+
+        Examples:
+            my_ilo.drive_single_motor_back_left(50)
+        """
+
         if not isinstance(value, int):
             print ("Error : 'value' parameter must be a integer")
             return None
@@ -959,6 +1255,18 @@ class robot(object):
         self.drive_single_motor(4, value)
 
     def control_single_motor_back_right(self, value: int):
+        """
+        Control the back right motor
+
+        Parameters:
+            value (int): the motor speed in percentage
+
+        Raises:
+            TypeError: If value is not an integer
+
+        Examples:
+            my_ilo.drive_single_motor_back_right(50)
+        """
 
         if not isinstance(value, int):
             print ("Error : 'value' parameter must be a integer")
@@ -978,6 +1286,18 @@ class robot(object):
 
     #-----------------------------------------------------------------------------
     def set_autonomous_mode(self, value: str):
+        """
+        Launch ilo in an autonomous mode
+
+        Parameters:
+            value (str): the autonomous mode you want to launch
+
+        Raises:
+            TypeError: If value is not a string
+
+        Examples:
+            my_ilo.set_autonomous_mode("distance_displacement")
+        """
 
         if not isinstance(value, str):
             print ("Error : 'value' parameter must be a string")
@@ -987,6 +1307,20 @@ class robot(object):
         self.web_socket_send(msg) 
     #-----------------------------------------------------------------------------
     def set_wifi_credentials(self, ssid: str, password: str):
+        """
+        Enter your wifi details to enable ilo to connect to your network
+
+        Parameters:
+            ssid (str): the name of your wifi network
+            password (str): the password of your wifi network
+
+        Raises:
+            TypeError: If ssid is not a string
+            TypeError: If password is not a string
+
+        Examples:
+            my_ilo.set_wifi_credentials("my_wifi", "my_password")
+        """
 
         if not isinstance(ssid, str): 
             print ("Error : 'ssid' parameter must be a string")
@@ -1003,6 +1337,9 @@ class robot(object):
         self.web_socket_send(msg)
 
     def get_wifi_credentials(self):
+        """
+        Get wifi credentials registered on ilo
+        """
         self.web_socket_send("<92>")
         time.sleep(0.1)
         return (self.ssid, self.password)
