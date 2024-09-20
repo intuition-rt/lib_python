@@ -103,7 +103,7 @@ def list_function():
     print("set_acc_motor(val)                            -> set the acceleration of ilo")
     print("                                                 val is an integer")
     print("")
-    print("drive_single_motor(id, value)                 -> control only one motor at a time")
+    print("drive_single_motor_speed(id, value)           -> control only one motor at a time")
     print("                                                 id is a integer and must be between 0 and 255")
     print("                                                 value is a integer and must be between -100 and 100")
     print("")
@@ -256,11 +256,22 @@ class robot(object):
         self.red_led   = 0
         self.green_led = 0
         self.blue_led  = 0
-
-        self.acc_motor = 0
+  
+        self.motor_ping      = 0
+        self.motor_speed     = 0
+        self.motor_angle     = 0
+        self.motor_id        = 0
+        self.temp_motor      = 0
+        self.motor_volt      = 0
+        self.motor_torque    = 0
+        self.motor_current   = 0
+        self.motor_is_moving = 0
+        self.acc_motor       = 0
         
         self.ssid     = ""
         self.password = ""
+
+        self.global_trame = ""
         
         self.marker = True
  
@@ -323,8 +334,15 @@ class robot(object):
             try:
                 data = self.ws.recv()
                 if data:
-                    self.process_received_data(data)
-                    self.marker = True
+                    if '/' in data:
+                        # parcing
+                        sub_trames = data.split('/')[1:-1]
+                        
+                        for sub_trame in sub_trames:
+                            self.process_received_data(f"<{sub_trame}>")
+                    else :
+                        self.process_received_data(data)
+                        self.marker = True
             except websocket.WebSocketException as e:
                 print(f"WebSocket error: {e}")
                 #-- marin bonne solution ici pour debugger d'afficher directement le message d'erreur 
@@ -341,39 +359,39 @@ class robot(object):
         
         try: 
 
-            if str(data[1:3]) == "10":
+            if str(data[1:3]) == "10": # get_color_rgb
                 self.red_color   = int(data[data.find('r')+1 : data.find('g')])
                 self.green_color = int(data[data.find('g')+1 : data.find('b')])
                 self.blue_color  = int(data[data.find('b')+1 : data.find('>')])
 
-            if str(data[1:3]) == "11":
+            if str(data[1:3]) == "11": # get_color_clear
                 self.clear_left   = int(data[data.find('l')+1 : data.find('m')])
                 self.clear_center = int(data[data.find('m')+1 : data.find('r')])
                 self.clear_right  = int(data[data.find('r')+1 : data.find('>')])
             
-            if str(data[1:3]) == "12":
+            if str(data[1:3]) == "12": # get_line
                 self.line_left   = int(data[data.find('l')+1 : data.find('m')])
                 self.line_center = int(data[data.find('m')+1 : data.find('r')])
                 self.line_right  = int(data[data.find('r')+1 : data.find('>')])
     
-            if str(data[1:3]) == "14" :
+            if str(data[1:3]) == "14" : # get_line_threshold_value
                 self.line_threshold_value = int(data[data.find('t')+1 : data.find('>')])
             
-            if str(data[1:3]) == "20":
+            if str(data[1:3]) == "20": # get_distance
                 self.distance_front = int(data[data.find('f')+1 : data.find('r')])
                 self.distance_right = int(data[data.find('r')+1 : data.find('b')])
                 self.distance_back  = int(data[data.find('b')+1 : data.find('l')])
                 self.distance_left  = int(data[data.find('l')+1 : data.find('>')])
-               
+            
             #--marin add self to every parmaeter and add inside the init methof 
 
-            if str(data[1:3]) == "30": #données traités en degrés
+            if str(data[1:3]) == "30": # get_angle - données traités en degrés
                 self.roll  = float(data[data.find('r')+1 : data.find('p')])
                 self.pitch = float(data[data.find('p')+1 : data.find('y')])
                 self.yaw   = float(data[data.find('y')+1 : data.find('>')])
         
     
-            if str(data[1:3]) == "32":
+            if str(data[1:3]) == "32": #get_raw_imu
                 self.accX  = int(data[data.find('x')+1 : data.find('y')])
                 self.accY  = int(data[data.find('y')+1 : data.find('z')])
                 self.accZ  = int(data[data.find('z')+1 : data.find('r')])
@@ -381,27 +399,59 @@ class robot(object):
                 self.gyroY = int(data[data.find('p')+1 : data.find('g')])
                 self.gyroZ = int(data[data.find('g')+1 : data.find('>')])
     
-            if str(data[1:3]) == "40":
+            if str(data[1:3]) == "40": # get_battery
                 self.battery_status      = int(data[data.find('s')+1 : data.find('p')])
                 self.battery_pourcentage = int(data[data.find('p')+1 : data.find('>')]) 
             
-            if str(data[1:3]) == "50":
+            if str(data[1:3]) == "50": # get_led_color
                 self.red_led   = int(data[data.find('r')+1 : data.find('g')])
                 self.green_led = int(data[data.find('g')+1 : data.find('b')])
                 self.blue_led  = int(data[data.find('b')+1 : data.find('>')])
+
+            if str(data[1:3]) == "60": # ping_single_motor
+                self.motor_id   = int(data[data.find('i')+1 : data.find('s')])
+                self.motor_ping = int(data[data.find('s')+1 : data.find('>')])
+
+            if str(data[1:4]) == "611": # get_single_motor_speed
+                self.motor_id    = int(data[data.find('i')+1 : data.find('s')])
+                self.motor_speed = int(data[data.find('s')+1 : data.find('>')])
             
-            if str(data[1:3]) == "60":
-                self.acc_motor  = int(data[data.find('a')+1 : data.find('>')])
+            if str(data[1:4]) == "621": # get_single_motor_angle
+                self.motor_id    = int(data[data.find('i')+1 : data.find('a')])
+                self.motor_angle = int(data[data.find('a')+1 : data.find('>')])
+
+            if str(data[1:3]) == "63": # get_temp_single_motor
+                self.motor_id   = int(data[data.find('i')+1 : data.find('t')])
+                self.temp_motor = int(data[data.find('t')+1 : data.find('>')])
+
+            if str(data[1:3]) == "64": # get_volt_single_motor
+                self.motor_id   = int(data[data.find('i')+1 : data.find('v')])
+                self.motor_volt = int(data[data.find('v')+1 : data.find('>')])
+
+            if str(data[1:3]) == "65": # get_torque_single_motor
+                self.motor_id     = int(data[data.find('i')+1 : data.find('t')])
+                self.motor_torque = int(data[data.find('t')+1 : data.find('>')])
+
+            if str(data[1:3]) == "66":  # get_current_single_motor
+                self.motor_id = int(data[data.find('i')+1 : data.find('c')])
+                self.motor_current = int(data[data.find('c')+1 : data.find('>')])
+
+            if str(data[1:3]) == "67":  # get_motor_is_moving
+                self.motor_id = int(data[data.find('i')+1 : data.find('s')])
+                self.motor_is_moving = int(data[data.find('s')+1 : data.find('>')])
+
+            if str(data[1:3]) == "69": # get_acc_motor
+                self.acc_motor = int(data[data.find('a')+1 : data.find('>')])
             
-            if str(data[1:3]) == "92":
+            if str(data[1:3]) == "92": # get_wifi_credentials
                 self.ssid     = str(data[data.find('s')+1 : data.find('p')])
                 self.password = str(data[data.find('p')+1 : data.find('>')])
             
-            if str(data[1:3]) == "93":
+            if str(data[1:3]) == "93": # get_name
                 self.hostname = str(data[data.find('n')+1 : data.find('>')])
-        
+    
         except:
-            print('Communication Err: process data')  # -- marin add e to check the error
+            print('[COMMUNICATION ERROR] data process')  # -- marin add e to check the error
             return None  
     #-----------------------------------------------------------------------------
     def stop_reception(self):
@@ -447,7 +497,7 @@ class robot(object):
         """
         self.direct_control(128,128,128)  
     #-----------------------------------------------------------------------------
-    def step(self, direction):
+    def step(self, direction: str):
         """
         Move ilo in the selected direction for 2 seconds
 
@@ -462,7 +512,7 @@ class robot(object):
             my_ilo.step("front")
         """
         if not isinstance(direction, str):
-            print ('Direction should be an string')
+            print ('[ERROR] Direction should be a string')
             return None
 
         if direction == 'front':
@@ -480,7 +530,7 @@ class robot(object):
         elif direction == 'stop':
             self.stop()
         else:
-            print('Direction should be "front", "back", "left", "rot_trigo", "rot_clock", "stop"')
+            print('[ERROR] Direction should be "front", "back", "left", "rot_trigo", "rot_clock", "stop"')
     #-----------------------------------------------------------------------------
     def list_order(self, ilo_list):
         """
@@ -505,9 +555,9 @@ class robot(object):
             self.step(ilo_list[i])     
     #-----------------------------------------------------------------------------
     def correction_command(self, list_course):
-        '''
+        """
         Convert a list of 3 elements to a sendable string
-        '''
+        """
         if int(list_course[0]) >= 100:
             list_course[0] = str(list_course[0])
         elif 100 > int(list_course[0]) >= 10:
@@ -542,7 +592,7 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def move(self, direction: str, speed: int):
         """
-        Move ilo with selected direction, speed and time control
+        Move ilo with selected direction and speed
 
         Parameters:
             direction (str): The direction in which the robot is moving
@@ -564,13 +614,13 @@ class robot(object):
         #preview_stop = True
 
         if not isinstance(direction, str):
-            print ("Error : the 'direction' parameter must be a string")
+            print ("[ERROR] 'direction' parameter must be a string")
             return None
         if not isinstance(speed, int):
-            print ("Error : the 'speed' parameter must be a integer")
+            print ("[ERROR] 'speed' parameter must be a integer")
             return None     
         if speed> 100 or speed<0:
-            print ("Error : the 'speed' parameter must be include between 0 and 100")
+            print ("[ERROR] 'speed' parameter must be include between 0 and 100")
             return None
 
         if direction == 'front':
@@ -586,7 +636,7 @@ class robot(object):
         elif direction == 'rot_clock':
             command = [128,128,int((speed*1.28)+128)]
         else:
-            print('Direction should be "front", "back", "left", "rot_trigo", "rot_clock", "stop"')
+            print("[ERROR] 'direction' parameter should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock', 'stop'")
             return None
 
         corrected_command = self.correction_command(command)
@@ -615,22 +665,22 @@ class robot(object):
         """
 
         if not isinstance(axial, int):
-            print ("Error : the 'axial' parameter must be a integer")
+            print ("[ERROR] 'axial' parameter must be a integer")
             return None
         if axial> 255 or axial<0:
-            print ("Error : 'axial' parameter must be include between 0 and 255")
+            print ("[ERROR] 'axial' parameter must be include between 0 and 255")
             return None
         if not isinstance(radial, int):
-            print ("Error : the 'radial' parameter must be a integer")
+            print ("[ERROR] 'radial' parameter must be a integer")
             return None
         if radial> 255 or radial<0:
-            print ("Error : 'radial' parameter must be include between 0 and 255")
+            print ("[ERROR] 'radial' parameter must be include between 0 and 255")
             return None
         if not isinstance(rotation, int):
-            print ("Error : the 'rotation' parameter must be a integer")
+            print ("[ERROR] 'rotation' parameter must be a integer")
             return None
         if rotation> 255 or rotation<0:
-            print ("Error : 'rotation' parameter must be include between 0 and 255")
+            print ("[ERROR] 'rotation' parameter must be include between 0 and 255")
             return None
 
         command = [axial, radial, rotation]
@@ -712,37 +762,6 @@ class robot(object):
         else:
             print("You have to be connected to ILO before play with it, use ilo.connection()")   
     #-----------------------------------------------------------------------------
-    def set_name(self, name: str): # going to be change by <93n>
-        """
-        Set a new name for your ilo
-
-        Parameters:
-            name (str): the name you want for your ilo
-
-        Raises:
-            TypeError: If name is not a string
-
-        Examples:
-            my_ilo.set_name("Marin's ilo")
-        """
-    
-        if not isinstance(name, str):
-            print ("Error : the 'name' parameter must be a string")
-            return None
-        
-        msg = "<94n"+str(name)+">"
-        self.web_socket_send(msg) 
-        
-    def get_name(self):
-        """
-        Reads the name you have given to your ilo
-        """
-        self.web_socket_send("<93>")
-        self.marker = False
-        while not self.marker :
-            pass
-        return (self.hostname)
-    #-----------------------------------------------------------------------------
     def get_color_rgb(self):
         """
         Displays the color below ilo
@@ -761,7 +780,7 @@ class robot(object):
     
     def get_color_clear_left(self):
         """
-        Displays the brightness below ilo on the left
+        Displays the brightness below ilo only with left sensor
         """
         self.web_socket_send("<11>")
         time.sleep(0.1)
@@ -769,7 +788,7 @@ class robot(object):
     
     def get_color_clear_center(self):
         """
-        Displays the brightness below ilo in the center
+        Displays the brightness below ilo only with central sensor
         """
         self.web_socket_send("<11>")
         time.sleep(0.1)
@@ -777,7 +796,7 @@ class robot(object):
 
     def get_color_clear_right(self):
         """
-        Displays the brightness below ilo on the right
+        Displays the brightness below ilo only with right sensor
         """
         self.web_socket_send("<11>")
         time.sleep(0.1)
@@ -801,7 +820,7 @@ class robot(object):
     
     def get_line_center(self):
         """
-        Detects whether ilo is on a line or not according to the center sensor
+        Detects whether ilo is on a line or not according to the central sensor
         """
         self.web_socket_send("<12>")
         time.sleep(0.1)
@@ -820,7 +839,7 @@ class robot(object):
         Set the new threshold value for the line detection
 
         Parameters:
-            value (int): the new threshold value
+            value (int): new threshold value
 
         Raises:
             TypeError: If value is not an integer
@@ -830,7 +849,7 @@ class robot(object):
         """
 
         if not isinstance(value, int):
-            print ("Error : the 'value' parameter must be a integer")
+            print ("[ERROR] 'value' parameter must be a integer")
             return None
 
         msg = "<13t"+str(value)+">"
@@ -924,7 +943,7 @@ class robot(object):
 
     def get_raw_imu(self):
         """
-        Get the raw data from the IMU
+        Get IMU raw data
         """
         self.web_socket_send("<32>")
         time.sleep(0.1)
@@ -932,7 +951,7 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def get_battery(self):
         """
-        Get the battery status and percentage of ilo
+        Get battery status (charged or not) and percentage
         """
         self.web_socket_send("<40>")
         time.sleep(0.1)
@@ -940,7 +959,7 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def get_led_color(self):
         """
-        Get the color of the ilo leds
+        Get ilo LEDS color
         """
         self.web_socket_send("<50>")
         time.sleep(0.1)
@@ -948,7 +967,7 @@ class robot(object):
             
     def set_led_color(self,red: int, green: int, blue : int):
         """
-        Set the ilo leds color
+        Set the ilo LEDS color
 
         Parameters:
             red (int): the red value of the color
@@ -968,22 +987,22 @@ class robot(object):
         """
 
         if not isinstance(red, int):
-            print ("Error : 'red' parameter must be a integer")
+            print ("[ERROR] 'red' parameter must be a integer")
             return None
         if red>255 or red<0:
-            print ("Error : 'red' parameter must be include between 0 and 255")
+            print ("[ERROR] 'red' parameter must be include between 0 and 255")
             return None
         if not isinstance(green, int):
-            print ("Error : 'green' parameter must be a integer")
+            print ("[ERROR] 'green' parameter must be a integer")
             return None
         if green> 255 or green<0:
-            print ("Error : 'green' parameter must be include between 0 and 255")
+            print ("[ERROR] 'green' parameter must be include between 0 and 255")
             return None
         if not isinstance(blue, int):
-            print ("Error : 'blue' parameter must be a integer")
+            print ("[ERROR] 'blue' parameter must be a integer")
             return None
         if blue> 255 or blue<0:
-            print ("Error : 'blue' parameter must be include between 0 and 255")
+            print ("[ERROR] 'blue' parameter must be include between 0 and 255")
             return None
         
         msg = "<51r"+str(red)+"g"+str(green)+"b"+str(blue)+">"
@@ -991,7 +1010,7 @@ class robot(object):
 
     def set_led_shape(self, value: str):
         """
-        Set the ilo leds shape
+        Show designs on LEDS
 
         Parameters:
             value (str): the shape of the leds
@@ -1004,7 +1023,7 @@ class robot(object):
         """
 
         if not isinstance(value, str):
-            print ("Error : 'value' parameter must be a string")
+            print ("[ERROR] 'value' parameter must be a string")
             return None
 
         msg = "<52v"+str(value)+">"
@@ -1012,7 +1031,7 @@ class robot(object):
         
     def set_led_anim(self,value: str):
         """
-        Define the animation of ilo LEDs
+        Starting an animation with LEDs
 
         Parameters:
             value (str): led animation name
@@ -1025,7 +1044,7 @@ class robot(object):
         """
 
         if not isinstance(value, str):
-            print ("Error : 'value' parameter must be a string")
+            print ("[ERROR] 'value' parameter must be a string")
             return None
 
 
@@ -1038,7 +1057,7 @@ class robot(object):
 
         Parameters:
             type (str): allows you to choose whether to light a led on the circle or on the center
-            id (int): led number (id)
+            id (int): led number
             red (int): red value of the color
             green (int): green value of the color
             blue (int): blue value of the color
@@ -1059,32 +1078,32 @@ class robot(object):
         """
 
         if not isinstance(type, str):
-            print ("Error : 'type' parameter must be a string")
+            print ("[ERROR] 'type' parameter must be a string")
             return None
         if type != "center" and type != "circle":
-            print ("Error : 'type' parameter must be center or circle")
+            print ("[ERROR] 'type' parameter must be center or circle")
             return None
         if not isinstance(id, int):
-            print ("Error : 'id' parameter must be a integer")
+            print ("[ERROR] 'id' parameter must be a integer")
             return None
         
         if not isinstance(red, int):
-            print ("Error : 'red' parameter must be a integer")
+            print ("[ERROR] 'red' parameter must be a integer")
             return None
         if red> 255 or red<0:
-            print ("Error : 'red' parameter must be include between 0 and 255")
+            print ("[ERROR] 'red' parameter must be include between 0 and 255")
             return None
         if not isinstance(green, int):
-            print ("Error : 'green' parameter must be a integer")
+            print ("[ERROR] 'green' parameter must be a integer")
             return None
         if green> 255 or green<0:
-            print ("Error : 'green' parameter must be include between 0 and 255")
+            print ("[ERROR] 'green' parameter must be include between 0 and 255")
             return None
         if not isinstance(blue, int):
-            print ("Error : 'blue' parameter must be a integer")
+            print ("[ERROR] 'blue' parameter must be a integer")
             return None
         if blue> 255 or blue<0:
-            print ("Error : 'blue' parameter must be include between 0 and 255")
+            print ("[ERROR] 'blue' parameter must be include between 0 and 255")
             return None
         
         if type == "center":
@@ -1109,7 +1128,7 @@ class robot(object):
         """
 
         if not isinstance(state, bool):
-            print ("Error : 'state' parameter must be a bool")
+            print ("[ERROR] 'state' parameter must be a bool")
             return None
 
         if (state == True):
@@ -1122,7 +1141,7 @@ class robot(object):
         """
         Get the acceleration of all motors
         """
-        self.web_socket_send("<60>")
+        self.web_socket_send("<69>")
         time.sleep(0.1)
         return (self.acc_motor)
     
@@ -1142,57 +1161,86 @@ class robot(object):
         """
 
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a integer")
+            print ("[ERROR] 'value' parameter must be a integer")
             return None
         if value> 100 or value<10:
-            print ("Error : 'value' parameter must be include between 10 and 100")
+            print ("[ERROR] 'value' parameter must be include between 10 and 100")
             return None
 
         if value < 10 : value = 10
         elif value > 100 : value = 100
-        msg = "<61a"+str(value)+">"
+        msg = "<68a"+str(value)+">"
         self.web_socket_send(msg) 
     #-----------------------------------------------------------------------------
-    def drive_single_motor(self, id: int, value: int):
+    # <60i1s1>
+    def ping_single_motor(self, id: int):
         """
-        Drive a single motor with is id
+        Ping a single motor with is id
+
+        Parameters:
+            id (int): motor id
+
+        Raises:
+            TypeError: If id is not an integer
+            ValueError: If id is not between 0 and 255
+
+        Examples:
+            my_ilo.ping_single_motor(1)
+        """
+
+        if not isinstance(id, int):
+            print ("[ERROR] 'id' parameter must be a integer")
+            return None
+        if id>255 or id<0:
+            print ("[ERROR] 'id' parameter must be include between 0 and 255")
+            return None
+
+        msg = "<60i"+str(id)+">"
+        self.web_socket_send(msg)
+        time.sleep(0.1)
+        return (self.motor_id, self.motor_ping)
+    # <610i1v3000>
+    def drive_single_motor_speed(self, id: int, value: int):
+        """
+        Drive a single motor in speed with is id
 
         Parameters:
             id (int): the motor id
             value (int): the motor speed in percentage
 
         Raises:
-            TypeError: If id is not an integer
-            ValueError: If id is not between 0 and 255
-            TypeError: If value is not an integer
-            ValueError: If value is not between -100 and 100
+            TypeError: If 'id' is not an integer
+            ValueError: If 'id' is not between 0 and 255
+            TypeError: If 'value' is not an integer
+            ValueError: If 'value' is not between -100 and 100
 
         Examples:
-            my_ilo.drive_single_motor(1, 50)
+            my_ilo.drive_single_motor_speed(1, 50)
         """
 
         if not isinstance(id, int):
-            print ("Error : 'id' parameter must be a integer")
+            print ("[ERROR] 'id' parameter must be a integer")
             return None
         if id>255 or id<0:
-            print ("Error : 'id' parameter must be include between 0 and 255")
+            print ("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
         
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a integer")
+            print ("[ERROR] 'value' parameter must be a integer")
             return None
         if value> 100 or value<-100:
-            print ("Error : 'value' parameter must be include between -100 and 100")
+            print ("[ERROR] 'value' parameter must be include between -100 and 100")
             return None
+        
         if id < 0 : id = 0
         elif id > 255 : id = 255
         if value < -100 : value = -100
         elif value > 100 : value = 100
         value = value * 70
-        msg = "<70d"+str(id)+"v"+str(value)+">"
+        msg = "<610i"+str(id)+"v"+str(value)+">"
         self.web_socket_send(msg)
 
-    def control_single_motor_front_left(self, value: int):  # de -100 à 100
+    def drive_single_motor_speed_front_left(self, value: int):  # de -100 à 100
         """
         Control the front left motor
 
@@ -1200,22 +1248,18 @@ class robot(object):
             value (int): the motor speed in percentage
 
         Raises:
-            TypeError: If value is not an integer
+            TypeError: If 'value' is not an integer
 
         Examples:
-            my_ilo.drive_single_motor_front_left(50)
+            my_ilo.drive_single_motor_speed_front_left(50)
         """
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a integer")
+            print ("[ERROR] 'value' parameter must be a integer")
             return None
         
-        self.drive_single_motor(1,value)
-        
-        # if isinstance(pourcentage, int) == False:
-        #     print ('value should be an integer between -100 to 100')
-        # pass
+        self.drive_single_motor_speed(1,value)
 
-    def control_single_motor_front_right(self, value: int):
+    def drive_single_motor_speed_front_right(self, value: int):
         """
         Control the front right motor
 
@@ -1223,18 +1267,18 @@ class robot(object):
             value (int): the motor speed in percentage
 
         Raises:
-            TypeError: If value is not an integer
+            TypeError: If 'value' is not an integer
 
         Examples:
-            my_ilo.drive_single_motor_front_right(50)
+            my_ilo.drive_single_motor_speed_front_right(50)
         """
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a integer")
+            print ("[ERROR] 'value' parameter must be a integer")
             return None
         
-        self.drive_single_motor(2,value)
+        self.drive_single_motor_speed(2,value)
 
-    def control_single_motor_back_left(self, value: int):
+    def drive_single_motor_speed_back_left(self, value: int):
         """
         Control the back left motor
 
@@ -1242,19 +1286,19 @@ class robot(object):
             value (int): the motor speed in percentage
 
         Raises:
-            TypeError: If value is not an integer
+            TypeError: If 'value' is not an integer
 
         Examples:
-            my_ilo.drive_single_motor_back_left(50)
+            my_ilo.drive_single_motor_speed_back_left(50)
         """
 
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a integer")
+            print ("[ERROR] 'value' parameter must be a integer")
             return None
         
-        self.drive_single_motor(4, value)
+        self.drive_single_motor_speed(4, value)
 
-    def control_single_motor_back_right(self, value: int):
+    def drive_single_motor_motor_back_right(self, value: int):
         """
         Control the back right motor
 
@@ -1262,24 +1306,253 @@ class robot(object):
             value (int): the motor speed in percentage
 
         Raises:
-            TypeError: If value is not an integer
+            TypeError: If 'value' is not an integer
 
         Examples:
-            my_ilo.drive_single_motor_back_right(50)
+            my_ilo.drive_single_motor_speed_back_right(50)
         """
 
         if not isinstance(value, int):
-            print ("Error : 'value' parameter must be a integer")
+            print ("[ERROR] 'value' parameter must be a integer")
             return None
         
-        self.drive_single_motor(3, value)
+        self.drive_single_motor_speed(3, value)
+    #<611i1s3000>
+    def get_single_motor_speed(self, id: int):
+        """
+        Get the speed of single motor with is id
+
+        Parameters:
+            id (int): the motor whose speed you want to know
+
+        Raises:
+            TypeError: If 'id' is not an integer
+            ValueError: If 'id' is not between 0 and 255
+
+        Examples:
+            my_ilo.get_single_motor_speed(3)
+        """
+
+        if not isinstance(id, int):
+            print ("[ERROR] 'id' parameter must be a integer")
+            return None
+        if id>255 or id<0:
+            print ("[ERROR] 'id' parameter must be include between 0 and 255")
+            return None
+        
+        msg = "<611i"+str(id)+">"
+        self.web_socket_send(msg)
+        time.sleep(0.1)
+        return (self.motor_id, self.motor_speed)
+    # <620i6a90>
+    def drive_single_motor_angle(self, id: int, angle: int):
+        """
+        Drive a single motor in position with is id
+
+        Parameters:
+            id (int): the motor id
+            value (int): the motor angle
+
+        Raises:
+            TypeError: If 'id' is not an integer
+            ValueError: If 'id' is not between 0 and 255
+            TypeError: If 'angle' is not an integer
+            ValueError: If 'angle' is not between 0 and 4096
+
+        Examples:
+            my_ilo.drive_single_motor_speed(1, 50)
+        """
+
+        if not isinstance(id, int):
+            print ("[ERROR] 'id' parameter must be a integer")
+            return None
+        if id>255 or id<0:
+            print ("[ERROR] 'id' parameter must be include between 0 and 255")
+            return None
+        
+        if not isinstance(angle, int):
+            print ("[ERROR] 'value' parameter must be a integer")
+            return None
+        if angle>4096 or angle<0:
+            print ("[ERROR] 'value' parameter must be include between 0 and 4096")
+            return None
+        
+        if id < 0 : id = 0
+        elif id > 255 : id = 255
+        if angle < 0 : angle = 0
+        elif angle > 4096 : angle = 4096
+        msg = "<610i"+str(id)+"a"+str(angle)+">"
+        self.web_socket_send(msg)
+
+    # <621i6a90>
+    def get_single_motor_angle(self, id: int):
+        """
+        Get the angle of a single motor with is id
+
+        Parameters:
+            id (int): the motor whose angle you want to know
+
+        Raises:
+            TypeError: If 'id' is not an integer
+            ValueError: If 'id' is not between 0 and 255
+
+        Examples:
+            my_ilo.get_single_motor_angle(2)
+        """
+
+        if not isinstance(id, int):
+            print ("[ERROR] 'id' parameter must be a integer")
+            return None 
+        if id>255 or id<0:
+            print ("[ERROR] 'id' parameter must be include between 0 and 255")
+            return None
+
+        msg = "<621i"+str(id)+">"
+        self.web_socket_send(msg)
+        time.sleep(0.1)
+        return (self.motor_id, self.motor_angle)
+    # <63i1t45>
+    def get_temp_single_motor(self, id: int):
+        """
+        Get the temperature of a single motor with is id
+
+        Parameters:
+            id (int): the motor whose temperature you want to know
+
+        Raises:
+            TypeError: If 'id' is not an integer
+            ValueError: If 'id' is not between 0 and 255
+
+        Examples:
+            my_ilo.get_temp_single_motor(1)
+        """
+
+        if not isinstance(id, int):
+            print ("[ERROR] 'id' parameter must be a integer")
+            return None
+        if id>255 or id<0:
+            print ("[ERROR] 'id' parameter must be include between 0 and 255")
+            return None
+
+        msg = "<63i"+str(id)+">"
+        self.web_socket_send(msg)
+        time.sleep(0.1)
+        return (self.motor_id, self.temp_motor)
+    # <64i1v6.7>
+    def get_volt_single_motor(self, id: int):
+        """
+        Get the voltage of a single motor with is id
+
+        Parameters:
+            id (int): the motor whose voltage you want to know
+
+        Raises:
+            TypeError: If 'id' is not an integer
+            ValueError: If 'id' is not between 0 and 255
+
+        Examples:
+            my_ilo.get_volt_single_motor(1)
+        """
+
+        if not isinstance(id, int):
+            print ("[ERROR] 'id' parameter must be a integer")
+            return None
+        if id>255 or id<0:
+            print ("[ERROR] 'id' parameter must be include between 0 and 255")
+            return None
+
+        msg = "<64i"+str(id)+">"
+        self.web_socket_send(msg)
+        time.sleep(0.1)
+        return (self.motor_id, self.volt_motor)
+    # <65i1t20>
+    def get_torque_single_motor(self, id: int):
+        """
+        Get the torque of a single motor with is id
+
+        Parameters:
+            id (int): the motor whose torque you want to know
+
+        Raises:
+            TypeError: If 'id' is not an integer
+            ValueError: If 'id' is not between 0 and 255
+
+        Examples:
+            my_ilo.get_torque_single_motor(1)
+        """
+
+        if not isinstance(id, int):
+            print ("[ERROR] 'id' parameter must be a integer")
+            return None
+        if id>255 or id<0:
+            print ("[ERROR] 'id' parameter must be include between 0 and 255")
+            return None
+
+        msg = "<65i"+str(id)+">"
+        self.web_socket_send(msg)
+        time.sleep(0.1)
+        return (self.motor_id, self.torque_motor)
+    # <66i1c20>
+    def get_current_single_motor(self, id: int):
+        """
+        Get the current of a single motor with is id
+
+        Parameters:
+            id (int): the motor whose current you want to know
+
+        Raises:
+            TypeError: If 'id' is not an integer
+            ValueError: If 'id' is not between 0 and 255
+
+        Examples:
+            my_ilo.get_current_single_motor(1)
+        """
+
+        if not isinstance(id, int):
+            print ("[ERROR] 'id' parameter must be a integer")
+            return None
+        if id>255 or id<0:
+            print ("[ERROR] 'id' parameter must be include between 0 and 255")
+            return None
+
+        msg = "<66i"+str(id)+">"
+        self.web_socket_send(msg)
+        time.sleep(0.1)
+        return (self.motor_id, self.current_motor)
+    # <67i1s20>
+    def get_motor_is_moving(self, id: int):
+        """
+        Get the state of a single motor with is id
+
+        Parameters:
+            id (int): the motor whose state you want to know
+
+        Raises:
+            TypeError: If 'id' is not an integer
+            ValueError: If 'id' is not between 0 and 255
+
+        Examples:
+            my_ilo.get_motor_is_moving(1)
+        """
+
+        if not isinstance(id, int):
+            print ("[ERROR] 'id' parameter must be a integer")
+            return None
+        if id>255 or id<0:
+            print ("[ERROR] 'id' parameter must be include between 0 and 255")
+            return None
+
+        msg = "<67i"+str(id)+">"
+        self.web_socket_send(msg)
+        time.sleep(0.1)
+        return (self.motor_id, self.motor_moving)
 
     def get_vmax():
         pass
 
     def set_vmax(vmax):
         pass 
-    
+
     def set_mode_motor():
         #between position or wheel mode
         pass
@@ -1300,7 +1573,7 @@ class robot(object):
         """
 
         if not isinstance(value, str):
-            print ("Error : 'value' parameter must be a string")
+            print ("[ERROR] 'value' parameter must be a string")
             return None
 
         msg = "<80"+str(value)+">"
@@ -1323,11 +1596,11 @@ class robot(object):
         """
 
         if not isinstance(ssid, str): 
-            print ("Error : 'ssid' parameter must be a string")
+            print ("[ERROR] 'ssid' parameter must be a string")
             return None
             
         if not isinstance(password, str):
-            print("Error : 'password' parameter must be a string")
+            print("[ERROR] 'password' parameter must be a string")
             return None
         
         msg = "<90s"+str(ssid)+">"
@@ -1344,13 +1617,57 @@ class robot(object):
         time.sleep(0.1)
         return (self.ssid, self.password)
     #-----------------------------------------------------------------------------
+    def set_name(self, name: str): # going to be change by <93n>
+        """
+        Set a new name for your ilo
+
+        Parameters:
+            name (str): the name you want for your ilo
+
+        Raises:
+            TypeError: If name is not a string
+
+        Examples:
+            my_ilo.set_name("Marin's ilo")
+        """
+    
+        if not isinstance(name, str):
+            print ("[ERROR] 'name' parameter must be a string")
+            return None
+        
+        msg = "<94n"+str(name)+">"
+        self.web_socket_send(msg) 
+        
+    def get_name(self):
+        """
+        Reads the name you have given to your ilo
+        """
+        self.web_socket_send("<93>")
+        self.marker = False
+        while not self.marker :
+            pass
+        return (self.hostname)
+    #-----------------------------------------------------------------------------
     def set_debug_state(self, state: bool):
 
         if not isinstance(state, bool):
-            print ("Error : 'state' parameter must be a bool like True or False")
+            print ("[ERROR] 'state' parameter must be a bool like True or False")
             return None
 
         msg = "<94"+str(state)+">"
         self.web_socket_send(msg)
-    #---------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------
+    def get_global_trame(self):
+        """
+        Get the global trame of ilo
+        """
+        self.web_socket_send("<0/10/11/12/>")
+        time.sleep(0.1)
+        return (self.global_trame)
     
+    def del_global_trame(self):
+        """
+        Stop the global trame
+        """
+        self.web_socket_send("<00>")
+    #-----------------------------------------------------------------------------
