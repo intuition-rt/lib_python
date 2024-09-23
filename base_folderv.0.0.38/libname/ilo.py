@@ -3,7 +3,7 @@
 # 16/09/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.36"
+version = "0.38"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
@@ -267,6 +267,7 @@ class robot(object):
         self.motor_current   = 0
         self.motor_is_moving = 0
         self.acc_motor       = 0
+        self.tempo_pos       = 0
         
         self.ssid     = ""
         self.password = ""
@@ -440,8 +441,11 @@ class robot(object):
                 self.motor_id = int(data[data.find('i')+1 : data.find('s')])
                 self.motor_is_moving = int(data[data.find('s')+1 : data.find('>')])
 
-            if str(data[1:3]) == "69": # get_acc_motor
+            if str(data[1:4]) == "681": # get_acc_motor
                 self.acc_motor = int(data[data.find('a')+1 : data.find('>')])
+
+            if str(data[1:4]) == "691": # get_tempo_pos
+                self.tempo_pos = int(data[data.find('t')+1 : data.find('>')])
             
             if str(data[1:3]) == "92": # get_wifi_credentials
                 self.ssid     = str(data[data.find('s')+1 : data.find('p')])
@@ -484,19 +488,55 @@ class robot(object):
         except:
             print("Error connection to the robot")
             return False
+    #-----------------------------------------------------------------------------
+    def correction_command(self, list_course):
+        """
+        Convert a list of 3 elements to a sendable string
+        """
+        if int(list_course[0]) >= 100:
+            list_course[0] = str(list_course[0])
+        elif 100 > int(list_course[0]) >= 10:
+            list_course[0] = str('0') + str(list_course[0])
+        elif 10 > int(list_course[0]) >= 1:
+            list_course[0] = str('00') + str(list_course[0])
+        else:
+            list_course[0] = str('000')
+
+        if int(list_course[1]) >= 100:
+            list_course[1] = str(list_course[1])
+        elif 100 > int(list_course[1]) >= 10:
+            list_course[1] = str('0') + str(list_course[1])
+        elif 10  > int(list_course[1]) >= 1:
+            list_course[1] = str('00') + str(list_course[1])
+        else:
+            list_course[1] = str('000')
+
+        if int(list_course[2]) >= 100:
+            list_course[2] = str(list_course[2])
+        elif 100 > int(list_course[2]) >= 10:
+            list_course[2] = str('0') + str(list_course[2])
+        elif 10  > int(list_course[2]) >= 1:
+            list_course[2] = str('00') + str(list_course[2])
+        else:
+            list_course[2] = str('000')
+
+        new_command = []
+        str_command = str(list_course[0] + list_course[1] + list_course[2])
+        new_command = "<av" + str_command +"pxyr>"
+        return new_command
     #-----------------------------------------------------------------------------    
     def stop(self):
         """
         Stop ilo and free its engines
         """
         self.web_socket_send("<>")   
-    #-----------------------------------------------------------------------------
+    
     def pause(self):
         """
         Stop ilo and block its motors
         """
         self.direct_control(128,128,128)  
-    #-----------------------------------------------------------------------------
+    
     def step(self, direction, step=None):
         """
         Move ilo in the selected direction for 2 seconds
@@ -508,7 +548,7 @@ class robot(object):
         Raises:
             TypeError: If the direction is not a string
             ValueError: If the direction is not one of the following: front, back, left, right, rot_trigo or rot_clock
-            TypeError: If the step is not an integer
+            TypeError: If the step is not an integer or a float
             ValueError: If value is not between 0.1 and 100
 
         Examples:
@@ -519,9 +559,9 @@ class robot(object):
             return None
         
         if step is None:
-            step = 10
+            step = 1
 
-        if not isinstance(step, int):
+        if not isinstance(step, (int, float)):
             print ("[ERROR] 'step' should be an integer")
             return None
         
@@ -529,27 +569,27 @@ class robot(object):
             print ("[ERROR] 'step' should be between 0.1 and 100")
             return None
 
-        val = int(val*10)
+        step = int(step*10)
 
         if direction == 'front':
-            msg = '<avpx1' + str(val) + 'yr>'
+            msg = '<avpx1' + str(step) + 'yr>'
             self.web_socket_send(msg)
         elif direction == 'back':
-            msg = '<avpx0' + str(val) + 'yr>'
+            msg = '<avpx0' + str(step) + 'yr>'
             self.web_socket_send(msg)
         elif direction == 'left':
-            msg = '<avpxy0' + str(val) + 'r>'
+            msg = '<avpxy0' + str(step) + 'r>'
             self.web_socket_send(msg)
         elif direction == 'right':
-            msg = '<avpxy1' + str(val) + 'r>'
+            msg = '<avpxy1' + str(step) + 'r>'
             self.web_socket_send(msg)
         elif direction == 'rot_trigo':
             step = 90
-            msg = '<avpxyr0' + str(val) + '>'
+            msg = '<avpxyr0' + str(step) + '>'
             self.web_socket_send(msg)
         elif direction == 'rot_clock':
             step = 90
-            msg = '<avpxyr1' + str(val) + '>'
+            msg = '<avpxyr1' + str(step) + '>'
             self.web_socket_send(msg)
         else:
             print("[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'") 
@@ -604,7 +644,7 @@ class robot(object):
         distance_y = abs(int(math.sin(radian) * distance)) 
         msg = ("<avpx" + str(indice_x) + str(distance_x) + "y" + str(indice_y) + str(distance_y) + ">") 
         self.web_socket_send(msg)
-    #-----------------------------------------------------------------------------
+
     def list_order(self, ilo_list):
         """
         ilo will execute a list of successive moves defined in ilo_list
@@ -626,43 +666,7 @@ class robot(object):
 
         for i in range(len(ilo_list)):
             self.step(ilo_list[i])     
-    #-----------------------------------------------------------------------------
-    def correction_command(self, list_course):
-        """
-        Convert a list of 3 elements to a sendable string
-        """
-        if int(list_course[0]) >= 100:
-            list_course[0] = str(list_course[0])
-        elif 100 > int(list_course[0]) >= 10:
-            list_course[0] = str('0') + str(list_course[0])
-        elif 10 > int(list_course[0]) >= 1:
-            list_course[0] = str('00') + str(list_course[0])
-        else:
-            list_course[0] = str('000')
 
-        if int(list_course[1]) >= 100:
-            list_course[1] = str(list_course[1])
-        elif 100 > int(list_course[1]) >= 10:
-            list_course[1] = str('0') + str(list_course[1])
-        elif 10  > int(list_course[1]) >= 1:
-            list_course[1] = str('00') + str(list_course[1])
-        else:
-            list_course[1] = str('000')
-
-        if int(list_course[2]) >= 100:
-            list_course[2] = str(list_course[2])
-        elif 100 > int(list_course[2]) >= 10:
-            list_course[2] = str('0') + str(list_course[2])
-        elif 10  > int(list_course[2]) >= 1:
-            list_course[2] = str('00') + str(list_course[2])
-        else:
-            list_course[2] = str('000')
-
-        new_command = []
-        str_command = str(list_course[0] + list_course[1] + list_course[2])
-        new_command = "<av" + str_command +"pxyr>"
-        return new_command
-    #-----------------------------------------------------------------------------
     def move(self, direction: str, speed: int):
         """
         Move ilo with selected direction and speed
@@ -714,7 +718,7 @@ class robot(object):
 
         corrected_command = self.correction_command(command)
         self.web_socket_send(corrected_command) 
-    #-----------------------------------------------------------------------------
+
     def direct_control(self, axial: int, radial: int, rotation: int):
         """
         Control ilo with full control \n
@@ -759,7 +763,7 @@ class robot(object):
         command = [axial, radial, rotation]
         corrected_command = self.correction_command(command)
         self.web_socket_send(corrected_command)  
-    #-----------------------------------------------------------------------------
+
     def game(self):
         """
         Control ilo using arrow or numb pad of your keyboard. \n
@@ -833,7 +837,37 @@ class robot(object):
                     self.direct_control(axial_value, radial_value, rotation_value)
                     new_keyboard_instruction = False
         else:
-            print("You have to be connected to ILO before play with it, use ilo.connection()")   
+            print("You have to be connected to ILO before play with it, use ilo.connection()")
+
+    def set_tempo_pos(self, value: int):
+        """
+        Set the tempo of the position control
+
+        Parameters:
+            value (int): new tempo value
+
+        Raises:
+            TypeError: If value is not an integer
+
+        Examples:
+            my_ilo.set_tempo_pos(50)
+        """
+
+        if not isinstance(value, int):
+            print ("[ERROR] 'value' parameter must be a integer")
+            return None
+
+        msg = "<690t"+str(value)+">"
+        self.web_socket_send(msg)        
+
+    def get_tempo_pos(self):
+        """
+        Get the tempo of the position control
+        """
+        self.web_socket_send("<691>")
+        time.sleep(0.1)
+        return (self.tempo_pos)
+
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
         """
@@ -842,6 +876,30 @@ class robot(object):
         self.web_socket_send("<10>")
         time.sleep(0.1)
         return (self.red_color, self.green_color, self.blue_color)
+    
+    def set_led_captor(self,state: bool):
+        """
+        lights up the leds under ilo
+
+        Parameters:
+            state (bool): allows you to turn on or off the leds
+
+        Raises:
+            TypeError: If state is not a bool
+
+        Examples:
+            my_ilo.set_led_captor(True)
+        """
+
+        if not isinstance(state, bool):
+            print ("[ERROR] 'state' parameter must be a bool")
+            return None
+
+        if (state == True):
+            msg = "<54l1>"
+        elif (state == False) :
+            msg = "<54l0>"
+        self.web_socket_send(msg)
     #-----------------------------------------------------------------------------
     def get_color_clear(self):
         """
@@ -1185,36 +1243,12 @@ class robot(object):
             type = "false"
         msg = "<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g"+str(green)+"b"+str(blue)+">"
         self.web_socket_send(msg)
-
-    def set_led_captor(self,state: bool):
-        """
-        lights up the leds under ilo
-
-        Parameters:
-            state (bool): allows you to turn on or off the leds
-
-        Raises:
-            TypeError: If state is not a bool
-
-        Examples:
-            my_ilo.set_led_captor(True)
-        """
-
-        if not isinstance(state, bool):
-            print ("[ERROR] 'state' parameter must be a bool")
-            return None
-
-        if (state == True):
-            msg = "<54l1>"
-        elif (state == False) :
-            msg = "<54l0>"
-        self.web_socket_send(msg)
     #-----------------------------------------------------------------------------
     def get_acc_motor(self):
         """
         Get the acceleration of all motors
         """
-        self.web_socket_send("<69>")
+        self.web_socket_send("<681>")
         time.sleep(0.1)
         return (self.acc_motor)
     
@@ -1242,7 +1276,7 @@ class robot(object):
 
         if value < 10 : value = 10
         elif value > 100 : value = 100
-        msg = "<68a"+str(value)+">"
+        msg = "<680a"+str(value)+">"
         self.web_socket_send(msg) 
     #-----------------------------------------------------------------------------
     # <60i1s1>
@@ -1456,7 +1490,6 @@ class robot(object):
         elif angle > 4096 : angle = 4096
         msg = "<610i"+str(id)+"a"+str(angle)+">"
         self.web_socket_send(msg)
-
     # <621i6a90>
     def get_single_motor_angle(self, id: int):
         """
@@ -1729,15 +1762,25 @@ class robot(object):
         msg = "<94"+str(state)+">"
         self.web_socket_send(msg)
     #-----------------------------------------------------------------------------
-    def get_global_trame(self):
+    def send_trame_s(self, param_list: list):
         """
         Get the global trame of ilo
         """
-        self.web_socket_send("<0/10/11/12/>")
-        time.sleep(0.1)
-        return (self.global_trame)
+
+        msg = "<0/"
+
+        if "color" in param_list:
+            msg = msg + "10/"
+        if "luminosity" in param_list:
+            msg = msg + "11/"
+        if "distance" in param_list:
+            msg = msg + "20/"
+
+        msg = msg + ">"
+
+        self.web_socket_send(msg)
     
-    def del_global_trame(self):
+    def del_stram_s(self):
         """
         Stop the global trame
         """
