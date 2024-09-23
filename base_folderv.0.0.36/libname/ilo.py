@@ -8,7 +8,7 @@ print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 #-----------------------------------------------------------------------------
-import time, keyboard, websocket, threading
+import time, keyboard, websocket, threading, math
 from prettytable import PrettyTable
 
 tab_IP = []
@@ -497,40 +497,113 @@ class robot(object):
         """
         self.direct_control(128,128,128)  
     #-----------------------------------------------------------------------------
-    def step(self, direction: str):
+    def step(self, direction, step=None):
         """
         Move ilo in the selected direction for 2 seconds
 
         Parameters:
             direction (str): The direction in which the robot is moving
+            step (int): The number of steps the robot will do
 
         Raises:
             TypeError: If the direction is not a string
-            ValueError: If the direction is not one of the following: front, back, left, right, rot_trigo, rot_clock or stop
+            ValueError: If the direction is not one of the following: front, back, left, right, rot_trigo or rot_clock
+            TypeError: If the step is not an integer
+            ValueError: If value is not between 0.1 and 100
 
         Examples:
-            my_ilo.step("front")
+            my_ilo.step("front", 10)
         """
         if not isinstance(direction, str):
-            print ('[ERROR] Direction should be a string')
+            print ("[ERROR] 'direction' should be a string")
+            return None
+        
+        if step is None:
+            step = 10
+
+        if not isinstance(step, int):
+            print ("[ERROR] 'step' should be an integer")
+            return None
+        
+        if step > 100 or step < 0.1:
+            print ("[ERROR] 'step' should be between 0.1 and 100")
             return None
 
+        val = int(val*10)
+
         if direction == 'front':
-            self.web_socket_send("<avpx110yr>")
+            msg = '<avpx1' + str(val) + 'yr>'
+            self.web_socket_send(msg)
         elif direction == 'back':
-            self.web_socket_send("<avpx010yr>")
+            msg = '<avpx0' + str(val) + 'yr>'
+            self.web_socket_send(msg)
         elif direction == 'left':
-            self.web_socket_send("<avpxy010r>")
+            msg = '<avpxy0' + str(val) + 'r>'
+            self.web_socket_send(msg)
         elif direction == 'right':
-            self.web_socket_send("<avpxy110r>")
+            msg = '<avpxy1' + str(val) + 'r>'
+            self.web_socket_send(msg)
         elif direction == 'rot_trigo':
-            self.web_socket_send("<avpxyr090>")
+            step = 90
+            msg = '<avpxyr0' + str(val) + '>'
+            self.web_socket_send(msg)
         elif direction == 'rot_clock':
-            self.web_socket_send("<avpxyr190>")
-        elif direction == 'stop':
-            self.stop()
+            step = 90
+            msg = '<avpxyr1' + str(val) + '>'
+            self.web_socket_send(msg)
         else:
-            print('[ERROR] Direction should be "front", "back", "left", "rot_trigo", "rot_clock", "stop"')
+            print("[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'") 
+ 
+    def flat_movement(self, angle, distance):
+        """
+        Move ilo in a with a direction in angle
+
+        Parameters:
+            angle (int): The direction in which the robot is moving
+            distance (int): The distance the robot will travel
+
+        Raises:
+            TypeError: If angle is not an integer
+            ValueError: If angle is not between 0 and 360
+            TypeError: If distance is not an integer
+
+        Examples:
+            my_ilo.flat_movement(90, 10)
+        """
+
+        if not isinstance(angle, int):
+            print ("[ERROR] 'angle' should be an integer")
+            return None
+        
+        if angle > 360 or angle < 0:
+            print ("[ERROR] 'angle' should be between 0 and 360")
+            return None
+        
+        if not isinstance(distance, int):
+            print ("[ERROR] 'distance' should be an integer")
+            return None
+
+        if 0 <= angle < 90:  
+            indice_x = 1 
+            indice_y = 1 
+        elif 90 <= angle < 180:  
+            indice_x = 0 
+            indice_y = 1 
+        elif 180 <= angle < 270:  
+            indice_x = 0 
+            indice_y = 0 
+        elif 270 <= angle <= 360:  
+            indice_x = 1 
+            indice_y = 0 
+        else: 
+            print("Angle should be between 0 to 360 degrees") 
+            return 
+    
+        radian = angle * math.pi / 180 
+        distance_x = abs(int(math.cos(radian) * distance)) 
+        distance_y = abs(int(math.sin(radian) * distance)) 
+        msg = ("<avpx" + str(indice_x) + str(distance_x) + "y" + str(indice_y) + str(distance_y) + ">") 
+        self.web_socket_send(msg)
     #-----------------------------------------------------------------------------
     def list_order(self, ilo_list):
         """
@@ -1556,7 +1629,6 @@ class robot(object):
     def set_mode_motor():
         #between position or wheel mode
         pass
-
     #-----------------------------------------------------------------------------
     def set_autonomous_mode(self, value: str):
         """
