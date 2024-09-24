@@ -268,6 +268,9 @@ class robot(object):
         self.motor_is_moving = 0
         self.acc_motor       = 0
         self.tempo_pos       = 0
+        self.kp               = 0
+        self.ki               = 0
+        self.kd               = 0
         
         self.ssid     = ""
         self.password = ""
@@ -383,8 +386,6 @@ class robot(object):
                 self.distance_right = int(data[data.find('r')+1 : data.find('b')])
                 self.distance_back  = int(data[data.find('b')+1 : data.find('l')])
                 self.distance_left  = int(data[data.find('l')+1 : data.find('>')])
-            
-            #--marin add self to every parmaeter and add inside the init methof 
 
             if str(data[1:3]) == "30": # get_angle - données traités en degrés
                 self.roll  = float(data[data.find('r')+1 : data.find('p')])
@@ -446,6 +447,11 @@ class robot(object):
 
             if str(data[1:4]) == "691": # get_tempo_pos
                 self.tempo_pos = int(data[data.find('t')+1 : data.find('>')])
+
+            if str(data[1:3]) == "71": # get_pid
+                self.kp = float(data[data.find('p')+1 : data.find('i')])
+                self.ki = float(data[data.find('i')+1 : data.find('d')])
+                self.kd = float(data[data.find('d')+1 : data.find('>')])
             
             if str(data[1:3]) == "92": # get_wifi_credentials
                 self.ssid     = str(data[data.find('s')+1 : data.find('p')])
@@ -867,6 +873,97 @@ class robot(object):
         self.web_socket_send("<691>")
         time.sleep(0.1)
         return (self.tempo_pos)
+
+    def rotation(self, angle: int):
+        """
+        Rotate ilo in a direction
+
+        Parameters:
+            angle (int): The direction in which the robot is moving
+
+        Raises:
+            TypeError: If angle is not an integer
+            ValueError: If angle is not between 0 and 360
+
+        Examples:
+            ilo_micro.rotation(90)
+        """
+
+        if not isinstance(angle, int):
+            print ("[ERROR] 'angle' should be an integer")
+            return None
+        
+        if angle > 360 or angle < 0:
+            print ("[ERROR] 'angle' should be between 0 and 360")
+            return None
+
+        if 0 <= angle < 90:  
+            indice = 1 
+        elif 90 <= angle < 180:  
+            indice = 0 
+        elif 180 <= angle < 270:  
+            indice = 0 
+        elif 270 <= angle <= 360:  
+            indice = 1 
+        else: 
+            print("Angle should be between 0 to 360 degrees") 
+            return 
+    
+        command = ("<avpxyr" + str(indice) + str(angle) + ">")
+        self.web_socket_send(command)
+
+    def set_pid(self, kp, ki, kd):
+        """
+        Set the new value of the proportional gain, the integral gain and the derivative gain
+
+        Parameters:
+            p (int): new value of the proportional gain
+            i (int): new value of the integral gain
+            d (int): new value of the derivative gain
+
+        Raises:
+            TypeError: If 'p' is not an integer or a float
+            ValueError: If 'p' is not between 0.1 and 10
+            TypeError: If 'i' is not an integer or a float
+            ValueError: If 'i' is not between 0.1 and 10
+            TypeError: If 'd' is not an integer or a float
+            ValueError: If 'd' is not between 0.1 and 10
+
+        Examples:
+            my_ilo.set_pid(5, 5, 5)
+        """
+
+        if not isinstance(kp, (int, float)):
+            print ("[ERROR] 'kp' parameter must be a integer or a float")
+            return None
+        if kp>10 or kp<0:
+            print ("[ERROR] 'kp' parameter must be include between 0 and 10")
+            return None
+
+        if not isinstance(ki, (int, float)):
+            print ("[ERROR] 'ki' parameter must be a integer or a float")
+            return None
+        if ki>10 or ki<0:
+            print ("[ERROR] 'ki' parameter must be include between 0 and 10")
+            return None
+
+        if not isinstance(kd, (int, float)):
+            print ("[ERROR] 'kd' parameter must be a integer or a float")
+            return None
+        if kd>10 or kd<0:
+            print ("[ERROR] 'kd' parameter must be include between 0 and 10")
+            return None
+
+        msg = "<70p"+str(kp)+"i"+ str(ki) + "d" + str(kd) + ">"
+        self.web_socket_send(msg)
+    
+    def get_pid(self):
+        """
+        Get the value of the proportional gain
+        """
+        self.web_socket_send("<71>")
+        time.sleep(0.1)
+        return (self.kp, self.ki, self.kd)
 
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
@@ -1405,7 +1502,7 @@ class robot(object):
         
         self.drive_single_motor_speed(4, value)
 
-    def drive_single_motor_motor_back_right(self, value: int):
+    def drive_single_motor_speed_back_right(self, value: int):
         """
         Control the back right motor
 
