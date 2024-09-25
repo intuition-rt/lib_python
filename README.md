@@ -2,13 +2,58 @@
 
 ## Liste des évolutions souhaitées:
 
-- Contrôle singulier d’un unique moteur
-  - ‘im(ID)to’ exemple pour retour d’info de température
 - Gérer l’accès aux capteurs I2C de la carte accessoire
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
 - Mettre à jour list_function
-- Mettre commentaire de chaque méthode
 - Check si la méthod set_led_single est ok
+
+## Version 40:
+
+Date de publication: 25/09/2024
+
+Ajout par rapport à la version précédente:
+```
+• Fix rotation()
+```
+
+## Version 39:
+
+Date de publication: 24/09/2024
+
+Ajout par rapport à la version précédente:
+```
+• Add set_pid, get_pid, rotation
+```
+
+## Version 38:
+
+Date de publication: 23/09/2024
+
+Ajout par rapport à la version précédente:
+```
+• Fix step()
+```
+
+## Version 37:
+
+Date de publication: 23/09/2024
+
+Ajout par rapport à la version précédente:
+```
+• Fix step() error
+```
+
+## Version 36:
+
+Date de publication: 23/09/2024
+
+Ajout par rapport à la version précédente:
+```
+• Add name feature to ping
+• Add parcing for the trame_s
+• Add get_single_motor_angle, get_temp_single_motor, get_volt_single_motor, get_torque_single_motor, get_current_single_motor, get_motor_is_moving, get_acc_motor, get_tempo_pos
+• Add dosctring
+```
 
 ## Version 35:
 
@@ -35,7 +80,7 @@ Date de publication: 06/08/2024
 
 Ajout par rapport à la version précédente:
 ```
-• passage des trames de 'io' à '<<>>'
+• Passage des trames de 'io' à '<<>>'
 ```
 
 ## Version 32:
@@ -44,7 +89,7 @@ Date de publication: 19/06/2024
 
 Ajout par rapport à la version précédente:
 ```
-• fix
+• Fix
 ```
 
 ## Version 31:
@@ -53,7 +98,7 @@ Date de publication: 07/06/2024
 
 Ajout par rapport à la version précédente:
 ```
-• passage du param de drive_single_motor en pourcentage
+• Passage du param de drive_single_motor en pourcentage
 ```
 
 ## Version 30:
