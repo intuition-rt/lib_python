@@ -1,15 +1,15 @@
 # This python script is the library for using the robot ilo with python command on WiFi
 # INTUITION ROBOTIQUE ET TECHNOLOGIES ALL RIGHT RESERVED
-# 16/09/2024
+# 25/09/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.41"
+version = "0.42"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 #-----------------------------------------------------------------------------
 import time, keyboard, websocket, threading, math
-from prettytable import PrettyTable
+from prettytable import PrettyTable 
 
 tab_IP = []
 #-----------------------------------------------------------------------------
@@ -25,99 +25,175 @@ def list_function():
     '''
     Print the list of all the functions available in the library
     '''
-    print("info()                                        -> print info about ilorobot")
-    print(" ")
-    print("check_robot_on_network()                      -> scan the network for robots")
-    print(" ")
-    print("stop()                                        -> stop the robots and free the engines")
-    print("")
-    print("pause()                                       -> stop the robot and block engines")
-    print("")
-    print("step(direction)                               -> move by step ilorobot with selected direction during 2 seconds")
-    print("                                                 direction is a string and should be (front, back, left, right, rot_trigo or rot_clock)")
-    print(" ")
-    print("list_order(ilo_list)                          -> ilo will execute a list of successive displacment define in ilo_list")
-    print("                                                 example of list ['front', 'left', 'front', 'rot_trigo', 'back'] ")
-    print("                                                 value of ilo_list are string")
-    print(" ")
-    print("move(direction, speed)                        -> move ilorobot with selected direction speed and time control")
-    print("                                                 direction is a string and should be (front, back, left, right, rot_trigo or rot_clock)")
-    print("                                                 speed is an integer from 0 to 100 as a pourcentage ")
-    print(" ")
-    print("direct_contol(axial, radial, rotation)        -> control ilorobot with full control ")
-    print("                                                 axial, radial and rotation are 3 integer from 0 to 255")
-    print("                                                 value from 0 to 128 are negative, value from 128 to 255 are positve")
-    print(" ")
-    print("game()                                        -> control ilo using arrow or numb pad of your keyboard")
-    print("                                                 available keyboard touch: 8,2,4,6,1,3 | space = stop | esc = quit")
-    print("")
-    print("set_name()                                    -> change the name of your robot")
-    print("")
-    print("get_name()                                    -> take a look at your robot's name")
-    print("")
-    print("get_color_rgb()                               -> return RGB color under the robot with list form as [color_left, color_middle, color_right]")
-    print("")
-    print("get_color_clear()                             -> return lightness under the robot with list from as [light_left, light_middle, light_right]")
-    print("")
-    print("get_line()                                    -> detects whether the robot is on a line or not and return a list from as [line_left, line_center, line_right]")
-    print("")
-    print("set_line_threshold_value(value)               -> set the threshold value for the line detector")
-    print("                                                 value is an integer")
-    print("")
-    print("get_line_treshold_value()                     -> return the value of treshold value as an integer")
-    print("")
-    print("get_distance()                                -> return distance around the robot with list from as [front, right, back, left]")
-    print("")
-    print("get_angle()                                   -> return angle of the robot with list from as [roll, pitch, yaw]")
-    print("")
-    print("reset_angle()                                 -> reset the angle of the robot")
-    print("")
-    print("get_raw_imu()                                 -> return info about the imu with list from as [accX, accY, accZ, gyroX, gyroY, gyroZ]")
-    print("")
-    print("get_battery()                                 -> return info about the battery of the robot with list from as [battery status, battery pourcentage]")
-    print("")
-    print("get_led_color()                               -> return info about ilo leds colors")
-    print("")
-    print("set_led_color(red,green,blue)                 -> set ilorobot leds colors")
-    print("                                                 red, green and blue are integers and must be between 0 and 255")
-    print("")
-    print("set_led_shape(value)                          -> set ilorobot leds shape")
-    print("                                                 value is a string and must be selected from this list: [front, back, right, left, rot_clock, rot_trigo, ")
-    print("                                                 stop, play, pause, smiely, 10(number 0), 11 (number 1), up to number 9, ring_1, ring_2, ring_3, ring_4, ")
-    print("                                                 ring_5]")
-    print("                                                 8 = ")
-    print("")
-    print("set_led_anim(value)                           -> set ilorobot leds animations")
-    print("                                                 value is a string and must be selected from this list: [labyrinth, color_displacement, line_tracking, imu_water, ")
-    print("                                                 distance_displacement]")
-    print("")
-    print("set_led_captor(bool)                          -> turns on/off the lights under the robot")
-    print("")
-    print("set_led_single(bool, id, r, g, b)             -> set one ilorobot leds colors")
-    print("                                                 bool must be True or False")
-    print("                                                 id must be a integer")
-    print("                                                 red, green and blue are integers and must be between 0 and 255")
-    print("")
-    print("get_acc_motor()                               -> return info about the acceleration of the robot")
-    print("")
-    print("set_acc_motor(val)                            -> set the acceleration of ilo")
-    print("                                                 val is an integer")
-    print("")
-    print("drive_single_motor_speed(id, value)           -> control only one motor at a time")
-    print("                                                 id is a integer and must be between 0 and 255")
-    print("                                                 value is a integer and must be between -100 and 100")
-    print("")
-    print("set_autonomous_mode(number)                   -> launches the robot in autonomous mode")
-    print("                                                 number is an integer and must be between 0 and 5")
-    print("                                                 1 = labyrinth          2 = color with displacement      3 = line tracking")
-    print("                                                 4 = IMU water mode     5 = distance sensor led")
-    print("")
-    print("set_wifi_credentials(ssid, password)          -> save your wifi credentials")
-    print("                                                 ssid and password must be strings")
-    print("")
-    print("get_wifi_credentials()                        -> obtain the wifi credentials registered on the robot")
-    print("")
-    print("test_connection()                             -> stop the robot if it is properly connected")
+
+    #add the name info <93>
+    function_table = PrettyTable()
+    function_table.field_names = ["info()", "print info about ilorobot"]
+    function_table.align["info()"] = "l"
+    function_table.align["print info about ilorobot"] = "l"
+    function_table.add_row(["check_robot_on_network()", "Scan the network for robots"], divider=True)
+    function_table.add_row(["test_connection()", "Test the connection to the robot via a try of stop method"], divider=True)
+    function_table.add_row(["stop()", "Stop the robots and free the engines"], divider=True)
+    function_table.add_row(["pause()", "Stop the robot and block engines"], divider=True)
+    function_table.add_row(["step(direction, step)", "Move by step ilorobot with selected direction during 2 seconds"], divider=True)
+    function_table.add_row(["flat_movement(angle, distance)", "Move ilo in the selected direction in angle for a selected distance"], divider=True)
+    function_table.add_row(["list_order(ilo_list)", "ilo will execute a list of successive displacment define in ilo_list"], divider=True)
+    function_table.add_row(["move(direction, speed)", "Move ilo with selected direction and speed"], divider=True)
+    function_table.add_row(["direct_control(axial, radial, rotation)", "Control ilorobot with full control"], divider=True)
+    function_table.add_row(["game()", "Control ilo using arrow or numb pad of your keyboard"], divider=True)
+    function_table.add_row(["set_tempo_pos(value)", "Set the tempo of the position control"], divider=True)
+    function_table.add_row(["get_tempo_pos()", "Get the tempo of the position control"], divider=True)
+    function_table.add_row(["rotation(angle)", "Rotate ilo with selected angle"], divider=True)
+    function_table.add_row(["set_pid(kp, ki, kd)", "Set the new value of the proportional gain, the integral gain and the derivative gain"], divider=True)
+    function_table.add_row(["get_pid()", "Get the actual value of the proportional gain, the integral gain and the derivative gain"], divider=True)
+    function_table.add_row(["get_color_rgb()", "Displays the color below ilo"], divider=True)
+    function_table.add_row(["set_led_captor(bool)", "Turns on/off the lights under ilo"], divider=True)
+    function_table.add_row(["get_color_clear()", "Displays the brightness below ilo"], divider=True)
+    function_table.add_row(["get_color_clear_left()", "Displays the brightness below ilo only with left sensor"], divider=True)
+    function_table.add_row(["get_color_clear_center()", "Displays the brightness below ilo only with central sensor"], divider=True)
+    function_table.add_row(["get_color_clear_right()", "Displays the brightness below ilo only with right sensor"], divider=True)
+    function_table.add_row(["get_line()", "Detects whether ilo is on a line or not"], divider=True)
+    function_table.add_row(["get_line_left()", "Detects whether ilo is on a line or not according to the left sensor"], divider=True)
+    function_table.add_row(["get_line_center()", "Detects whether ilo is on a line or not according to the central sensor"], divider=True)
+    function_table.add_row(["get_line_right()", "Detects whether ilo is on a line or not according to the right sensor"], divider=True)
+    function_table.add_row(["set_line_threshold_value(value)", "Set the new threshold value for the line detection"], divider=True)
+    function_table.add_row(["get_line_treshold_value()", "Get the actual value of the threshold value for the line detection"], divider=True)
+    function_table.add_row(["get_distance()", "Get the distance around ilo"], divider=True)
+    function_table.add_row(["get_distance_front()", "Get the distance in front of ilo"], divider=True)
+    function_table.add_row(["get_distance_right()", "Get the distance on the right of ilo"], divider=True)
+    function_table.add_row(["get_distance_back()", "Get the distance behind ilo"], divider=True)
+    function_table.add_row(["get_distance_left()", "Get the distance on the left of ilo"], divider=True)
+    function_table.add_row(["get_angle()", "Get the angle of ilo"], divider=True)
+    function_table.add_row(["get_roll()", "Get the roll angle of ilo"], divider=True)
+    function_table.add_row(["get_pitch()", "Get the pitch angle of ilo"], divider=True)
+    function_table.add_row(["get_yaw()", "Get the yaw angle of ilo"], divider=True)
+    function_table.add_row(["reset_angle()", "Reset the angle of ilo"], divider=True)
+    function_table.add_row(["get_raw_imu()", "Get IMU raw data"], divider=True)
+    function_table.add_row(["get_battery()", "Get battery status (charged or not) and percentage"], divider=True)
+    function_table.add_row(["get_led_color()", "Get ilo LEDS color"], divider=True)
+    function_table.add_row(["set_led_color(red, green, blue)", "Set ilo LEDS color"], divider=True)
+    function_table.add_row(["set_led_shape(value)", "Show designs on LEDS"], divider=True)
+    function_table.add_row(["set_led_anim(value)", "Starting an animation with LEDs"], divider=True)
+    function_table.add_row(["set_led_single(bool, id, r, g, b)", "Lights up an individual led in the led matrix"], divider=True)
+    function_table.add_row(["get_acc_motor()", "Get the acceleration of all motors"], divider=True)
+    function_table.add_row(["set_acc_motor(val)", "Set the acceleration of all motors"], divider=True)
+    function_table.add_row(["ping_single_motor(id)", "Ping a single motor with is id"], divider=True)
+    function_table.add_row(["drive_single_motor_speed(id, value)", "Drive a single motor in speed with is id"], divider=True)
+    function_table.add_row(["drive_single_motor_speed_front_left(value)", "Control the front left motor"], divider=True)
+    function_table.add_row(["drive_single_motor_speed_front_right(value)", "Control the front right motor"], divider=True)
+    function_table.add_row(["drive_single_motor_speed_back_left(value)", "Control the back left motor"], divider=True)
+    function_table.add_row(["drive_single_motor_speed_back_right(value)", "Control the back right motor"], divider=True)
+    function_table.add_row(["get_single_motor_speed(id)", "Get the speed of a single motor with is id"], divider=True)
+    function_table.add_row(["drive_single_motor_angle(id, value)", "Drive a single motor in angle with is id"], divider=True)
+    function_table.add_row(["get_single_motor_angle(id)", "Get the angle of a single motor with is id"], divider=True)
+    function_table.add_row(["get_temp_single_motor(id)", "Get the temperature of a single motor with is id"], divider=True)
+    function_table.add_row(["get_volt_single_motor(id)", "Get the voltage of a single motor with is id"], divider=True)
+    function_table.add_row(["get_torque_single_motor(id)", "Get the torque of a single motor with is id"], divider=True)
+    function_table.add_row(["get_current_single_motor(id)", "Get the current of a single motor with is id"], divider=True)
+    function_table.add_row(["get_motor_is_moving(id)", "Get the state of a single motor with is id"], divider=True)
+    function_table.add_row(["set_autonomous_mode(number)", "Launch ilo in an autonomous mode"], divider=True)
+    function_table.add_row(["set_wifi_credentials(ssid, password)", "Enter your wifi details to enable ilo to connect to your network"], divider=True)
+    function_table.add_row(["get_wifi_credentials()", "Get wifi credentials registered on ilo"], divider=True)
+    function_table.add_row(["set_name()", "Set a new name for your ilo"], divider=True)
+    function_table.add_row(["get_name()", "Get the name you have given to your ilo"], divider=True)
+
+    print(function_table)
+
+    print("If the table doesn't display properly, enlarge your terminal ;)")
+
+    # print("info()                                        -> print info about ilorobot")
+    # print(" ")
+    # print("check_robot_on_network()                      -> scan the network for robots")
+    # print(" ")
+    # print("stop()                                        -> stop the robots and free the engines")
+    # print("")
+    # print("pause()                                       -> stop the robot and block engines")
+    # print("")
+    # print("step(direction)                               -> move by step ilorobot with selected direction during 2 seconds")
+    # print("                                                 direction is a string and should be (front, back, left, right, rot_trigo or rot_clock)")
+    # print(" ")
+    # print("list_order(ilo_list)                          -> ilo will execute a list of successive displacment define in ilo_list")
+    # print("                                                 example of list ['front', 'left', 'front', 'rot_trigo', 'back'] ")
+    # print("                                                 value of ilo_list are string")
+    # print(" ")
+    # print("move(direction, speed)                        -> move ilorobot with selected direction speed and time control")
+    # print("                                                 direction is a string and should be (front, back, left, right, rot_trigo or rot_clock)")
+    # print("                                                 speed is an integer from 0 to 100 as a pourcentage ")
+    # print(" ")
+    # print("direct_contol(axial, radial, rotation)        -> control ilorobot with full control ")
+    # print("                                                 axial, radial and rotation are 3 integer from 0 to 255")
+    # print("                                                 value from 0 to 128 are negative, value from 128 to 255 are positve")
+    # print(" ")
+    # print("game()                                        -> control ilo using arrow or numb pad of your keyboard")
+    # print("                                                 available keyboard touch: 8,2,4,6,1,3 | space = stop | esc = quit")
+    # print("")
+    # print("set_name()                                    -> change the name of your robot")
+    # print("")
+    # print("get_name()                                    -> take a look at your robot's name")
+    # print("")
+    # print("get_color_rgb()                               -> return RGB color under the robot with list form as [color_left, color_middle, color_right]")
+    # print("")
+    # print("get_color_clear()                             -> return lightness under the robot with list from as [light_left, light_middle, light_right]")
+    # print("")
+    # print("get_line()                                    -> detects whether the robot is on a line or not and return a list from as [line_left, line_center, line_right]")
+    # print("")
+    # print("set_line_threshold_value(value)               -> set the threshold value for the line detector")
+    # print("                                                 value is an integer")
+    # print("")
+    # print("get_line_treshold_value()                     -> return the value of treshold value as an integer")
+    # print("")
+    # print("get_distance()                                -> return distance around the robot with list from as [front, right, back, left]")
+    # print("")
+    # print("get_angle()                                   -> return angle of the robot with list from as [roll, pitch, yaw]")
+    # print("")
+    # print("reset_angle()                                 -> reset the angle of the robot")
+    # print("")
+    # print("get_raw_imu()                                 -> return info about the imu with list from as [accX, accY, accZ, gyroX, gyroY, gyroZ]")
+    # print("")
+    # print("get_battery()                                 -> return info about the battery of the robot with list from as [battery status, battery pourcentage]")
+    # print("")
+    # print("get_led_color()                               -> return info about ilo leds colors")
+    # print("")
+    # print("set_led_color(red,green,blue)                 -> set ilorobot leds colors")
+    # print("                                                 red, green and blue are integers and must be between 0 and 255")
+    # print("")
+    # print("set_led_shape(value)                          -> set ilorobot leds shape")
+    # print("                                                 value is a string and must be selected from this list: [front, back, right, left, rot_clock, rot_trigo, ")
+    # print("                                                 stop, play, pause, smiely, 10(number 0), 11 (number 1), up to number 9, ring_1, ring_2, ring_3, ring_4, ")
+    # print("                                                 ring_5]")
+    # print("                                                 8 = ")
+    # print("")
+    # print("set_led_anim(value)                           -> set ilorobot leds animations")
+    # print("                                                 value is a string and must be selected from this list: [labyrinth, color_displacement, line_tracking, imu_water, ")
+    # print("                                                 distance_displacement]")
+    # print("")
+    # print("set_led_captor(bool)                          -> turns on/off the lights under the robot")
+    # print("")
+    # print("set_led_single(bool, id, r, g, b)             -> set one ilorobot leds colors")
+    # print("                                                 bool must be True or False")
+    # print("                                                 id must be a integer")
+    # print("                                                 red, green and blue are integers and must be between 0 and 255")
+    # print("")
+    # print("get_acc_motor()                               -> return info about the acceleration of the robot")
+    # print("")
+    # print("set_acc_motor(val)                            -> set the acceleration of ilo")
+    # print("                                                 val is an integer")
+    # print("")
+    # print("drive_single_motor_speed(id, value)           -> control only one motor at a time")
+    # print("                                                 id is a integer and must be between 0 and 255")
+    # print("                                                 value is a integer and must be between -100 and 100")
+    # print("")
+    # print("set_autonomous_mode(number)                   -> launches the robot in autonomous mode")
+    # print("                                                 number is an integer and must be between 0 and 5")
+    # print("                                                 1 = labyrinth          2 = color with displacement      3 = line tracking")
+    # print("                                                 4 = IMU water mode     5 = distance sensor led")
+    # print("")
+    # print("set_wifi_credentials(ssid, password)          -> save your wifi credentials")
+    # print("                                                 ssid and password must be strings")
+    # print("")
+    # print("get_wifi_credentials()                        -> obtain the wifi credentials registered on the robot")
+    # print("")
+    # print("test_connection()                             -> stop the robot if it is properly connected")
 #-----------------------------------------------------------------------------
 def co_web_socket_send(ws, message):
     '''
@@ -602,7 +678,7 @@ class robot(object):
  
     def flat_movement(self, angle, distance):
         """
-        Move ilo in a with a direction in angle
+        Move ilo in the selected direction in angle for a selected distance
 
         Parameters:
             angle (int): The direction in which the robot is moving
@@ -731,9 +807,9 @@ class robot(object):
         Value from 0 to 128 are negative and value from 128 to 255 are positive
 
         Parameters:
-            axial (int): [...]
-            radial (int): [...]
-            rotation (int): [...]
+            axial (int): axial speed
+            radial (int): radial speed
+            rotation (int): rotation speed
 
         Raises:
             TypeError: If axial is not an integer
@@ -744,7 +820,7 @@ class robot(object):
             ValueError: If rotation is not between 0 and 255
 
         Examples:
-            my_ilo.direct_control(150, 150, 150)
+            my_ilo.direct_control(180, 128, 128)
         """
 
         if not isinstance(axial, int):
@@ -876,7 +952,7 @@ class robot(object):
 
     def rotation(self, angle: int):
         """
-        Rotate ilo in a direction
+        Rotate ilo with selected angle
 
         Parameters:
             angle (int): The rotation angle
@@ -948,7 +1024,7 @@ class robot(object):
     
     def get_pid(self):
         """
-        Get the value of the proportional gain
+        Get the actual value of the proportional gain, the integral gain and the derivative gain
         """
         self.web_socket_send("<71>")
         time.sleep(0.1)
@@ -965,7 +1041,7 @@ class robot(object):
     
     def set_led_captor(self,state: bool):
         """
-        lights up the leds under ilo
+        Turns on/off the lights under ilo
 
         Parameters:
             state (bool): allows you to turn on or off the leds
@@ -981,9 +1057,9 @@ class robot(object):
             print ("[ERROR] 'state' parameter must be a bool")
             return None
 
-        if (state == True):
+        if   (state == True) :
             msg = "<54l1>"
-        elif (state == False) :
+        elif (state == False):
             msg = "<54l0>"
         self.web_socket_send(msg)
     #-----------------------------------------------------------------------------
@@ -1074,7 +1150,7 @@ class robot(object):
      
     def get_line_threshold_value(self):
         """
-        Displays the threshold value for the line detection
+        Get the actual value of the threshold value for the line detection
         """
         self.web_socket_send("<14>")
         time.sleep(0.1)
@@ -1184,7 +1260,7 @@ class robot(object):
             
     def set_led_color(self,red: int, green: int, blue : int):
         """
-        Set the ilo LEDS color
+        Set ilo LEDS color
 
         Parameters:
             red (int): the red value of the color
@@ -1513,7 +1589,7 @@ class robot(object):
     #<611i1s3000>
     def get_single_motor_speed(self, id: int):
         """
-        Get the speed of single motor with is id
+        Get the speed of a single motor with is id
 
         Parameters:
             id (int): the motor whose speed you want to know
@@ -1540,7 +1616,7 @@ class robot(object):
     # <620i6a90>
     def drive_single_motor_angle(self, id: int, angle: int):
         """
-        Drive a single motor in position with is id
+        Drive a single motor in angle with is id
 
         Parameters:
             id (int): the motor id
@@ -1831,7 +1907,7 @@ class robot(object):
         
     def get_name(self):
         """
-        Reads the name you have given to your ilo
+        Get the name you have given to your ilo
         """
         self.web_socket_send("<93>")
         self.marker = False
