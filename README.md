@@ -7,6 +7,15 @@
 - Mettre à jour list_function
 - Check si la méthod set_led_single est ok
 
+## Version 41:
+
+Date de publication: 25/09/2024
+
+Ajout par rapport à la version précédente:
+```
+• Fix set_led_single()
+```
+
 ## Version 40:
 
 Date de publication: 25/09/2024
