@@ -1324,9 +1324,9 @@ class robot(object):
             return None
         
         if type == "center":
-            type = "true"
+            type = "1"
         if type == "circle":
-            type = "false"
+            type = "0"
         msg = "<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g"+str(green)+"b"+str(blue)+">"
         self.web_socket_send(msg)
     #-----------------------------------------------------------------------------
