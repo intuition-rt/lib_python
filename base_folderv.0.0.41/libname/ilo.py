@@ -3,7 +3,7 @@
 # 16/09/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.38"
+version = "0.41"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
@@ -879,37 +879,26 @@ class robot(object):
         Rotate ilo in a direction
 
         Parameters:
-            angle (int): The direction in which the robot is moving
+            angle (int): The rotation angle
 
         Raises:
-            TypeError: If angle is not an integer
-            ValueError: If angle is not between 0 and 360
+            TypeError: If 'angle' is not an integer or a float
 
         Examples:
-            ilo_micro.rotation(90)
+            my_ilo.rotation(90)
+            my_ilo.rotation(-50.3)
         """
 
-        if not isinstance(angle, int):
+        if not isinstance(angle, (int, float)):
             print ("[ERROR] 'angle' should be an integer")
             return None
         
-        if angle > 360 or angle < 0:
-            print ("[ERROR] 'angle' should be between 0 and 360")
-            return None
-
-        if 0 <= angle < 90:  
-            indice = 1 
-        elif 90 <= angle < 180:  
-            indice = 0 
-        elif 180 <= angle < 270:  
-            indice = 0 
-        elif 270 <= angle <= 360:  
-            indice = 1 
-        else: 
-            print("Angle should be between 0 to 360 degrees") 
-            return 
+        if angle > 0:
+            indice = 1
+        else : 
+            indice = 0
     
-        command = ("<avpxyr" + str(indice) + str(angle) + ">")
+        command = ("<avpxyr" + str(indice) + str(abs(angle)) + ">")
         self.web_socket_send(command)
 
     def set_pid(self, kp, ki, kd):
