@@ -304,17 +304,17 @@ class robot(object):
 
         self.hostname = ""
         
-        self.red_color   = 0
-        self.green_color = 0
-        self.blue_color  = 0
+        self.red_color    = 0
+        self.green_color  = 0
+        self.blue_color   = 0
 
         self.clear_left   = 0
         self.clear_center = 0
         self.clear_right  = 0
 
-        self.line_left   = 0
-        self.line_center = 0 
-        self.line_right  = 0
+        self.line_left    = 0
+        self.line_center  = 0 
+        self.line_right   = 0
         
         self.line_threshold_value = 0
         
@@ -352,12 +352,14 @@ class robot(object):
         self.motor_is_moving = 0
         self.acc_motor       = 0
         self.tempo_pos       = 0
-        self.kp               = 0
-        self.ki               = 0
-        self.kd               = 0
+        self.kp              = 0
+        self.ki              = 0
+        self.kd              = 0
         
         self.ssid     = ""
         self.password = ""
+
+        self.accessory = 0
 
         self.global_trame = ""
         
@@ -447,37 +449,37 @@ class robot(object):
         
         try: 
 
-            if str(data[1:3]) == "10": # get_color_rgb
+            if str(data[1:4]) == "10r": # get_color_rgb
                 self.red_color   = int(data[data.find('r')+1 : data.find('g')])
                 self.green_color = int(data[data.find('g')+1 : data.find('b')])
                 self.blue_color  = int(data[data.find('b')+1 : data.find('>')])
 
-            if str(data[1:3]) == "11": # get_color_clear
+            if str(data[1:4]) == "11l": # get_color_clear
                 self.clear_left   = int(data[data.find('l')+1 : data.find('m')])
                 self.clear_center = int(data[data.find('m')+1 : data.find('r')])
                 self.clear_right  = int(data[data.find('r')+1 : data.find('>')])
             
-            if str(data[1:3]) == "12": # get_line
+            if str(data[1:4]) == "12l": # get_line
                 self.line_left   = int(data[data.find('l')+1 : data.find('m')])
                 self.line_center = int(data[data.find('m')+1 : data.find('r')])
                 self.line_right  = int(data[data.find('r')+1 : data.find('>')])
     
-            if str(data[1:3]) == "14" : # get_line_threshold_value
+            if str(data[1:4]) == "14t" : # get_line_threshold_value
                 self.line_threshold_value = int(data[data.find('t')+1 : data.find('>')])
             
-            if str(data[1:3]) == "20": # get_distance
+            if str(data[1:4]) == "20f": # get_distance
                 self.distance_front = int(data[data.find('f')+1 : data.find('r')])
                 self.distance_right = int(data[data.find('r')+1 : data.find('b')])
                 self.distance_back  = int(data[data.find('b')+1 : data.find('l')])
                 self.distance_left  = int(data[data.find('l')+1 : data.find('>')])
 
-            if str(data[1:3]) == "30": # get_angle - données traités en degrés
+            if str(data[1:4]) == "30r": # get_angle - données traités en degrés
                 self.roll  = float(data[data.find('r')+1 : data.find('p')])
                 self.pitch = float(data[data.find('p')+1 : data.find('y')])
                 self.yaw   = float(data[data.find('y')+1 : data.find('>')])
         
     
-            if str(data[1:3]) == "32": #get_raw_imu
+            if str(data[1:4]) == "32x": #get_raw_imu
                 self.accX  = int(data[data.find('x')+1 : data.find('y')])
                 self.accY  = int(data[data.find('y')+1 : data.find('z')])
                 self.accZ  = int(data[data.find('z')+1 : data.find('r')])
@@ -485,16 +487,16 @@ class robot(object):
                 self.gyroY = int(data[data.find('p')+1 : data.find('g')])
                 self.gyroZ = int(data[data.find('g')+1 : data.find('>')])
     
-            if str(data[1:3]) == "40": # get_battery
+            if str(data[1:4]) == "40s": # get_battery
                 self.battery_status      = int(data[data.find('s')+1 : data.find('p')])
                 self.battery_pourcentage = int(data[data.find('p')+1 : data.find('>')]) 
             
-            if str(data[1:3]) == "50": # get_led_color
+            if str(data[1:4]) == "50r": # get_led_color
                 self.red_led   = int(data[data.find('r')+1 : data.find('g')])
                 self.green_led = int(data[data.find('g')+1 : data.find('b')])
                 self.blue_led  = int(data[data.find('b')+1 : data.find('>')])
 
-            if str(data[1:3]) == "60": # ping_single_motor
+            if str(data[1:4]) == "60i": # ping_single_motor
                 self.motor_id   = int(data[data.find('i')+1 : data.find('s')])
                 self.motor_ping = int(data[data.find('s')+1 : data.find('>')])
 
@@ -506,23 +508,23 @@ class robot(object):
                 self.motor_id    = int(data[data.find('i')+1 : data.find('a')])
                 self.motor_angle = int(data[data.find('a')+1 : data.find('>')])
 
-            if str(data[1:3]) == "63": # get_temp_single_motor
+            if str(data[1:4]) == "63i": # get_temp_single_motor
                 self.motor_id   = int(data[data.find('i')+1 : data.find('t')])
                 self.temp_motor = int(data[data.find('t')+1 : data.find('>')])
 
-            if str(data[1:3]) == "64": # get_volt_single_motor
+            if str(data[1:4]) == "64i": # get_volt_single_motor
                 self.motor_id   = int(data[data.find('i')+1 : data.find('v')])
                 self.motor_volt = int(data[data.find('v')+1 : data.find('>')])
 
-            if str(data[1:3]) == "65": # get_torque_single_motor
+            if str(data[1:4]) == "65i": # get_torque_single_motor
                 self.motor_id     = int(data[data.find('i')+1 : data.find('t')])
                 self.motor_torque = int(data[data.find('t')+1 : data.find('>')])
 
-            if str(data[1:3]) == "66":  # get_current_single_motor
+            if str(data[1:4]) == "66i":  # get_current_single_motor
                 self.motor_id = int(data[data.find('i')+1 : data.find('c')])
                 self.motor_current = int(data[data.find('c')+1 : data.find('>')])
 
-            if str(data[1:3]) == "67":  # get_motor_is_moving
+            if str(data[1:4]) == "67i":  # get_motor_is_moving
                 self.motor_id = int(data[data.find('i')+1 : data.find('s')])
                 self.motor_is_moving = int(data[data.find('s')+1 : data.find('>')])
 
@@ -532,20 +534,23 @@ class robot(object):
             if str(data[1:4]) == "691": # get_tempo_pos
                 self.tempo_pos = int(data[data.find('t')+1 : data.find('>')])
 
-            if str(data[1:3]) == "71": # get_pid
+            if str(data[1:4]) == "71p": # get_pid
                 self.kp = float(data[data.find('p')+1 : data.find('i')])
                 self.ki = float(data[data.find('i')+1 : data.find('d')])
                 self.kd = float(data[data.find('d')+1 : data.find('>')])
             
-            if str(data[1:3]) == "92": # get_wifi_credentials
+            if str(data[1:4]) == "92s": # get_wifi_credentials
                 self.ssid     = str(data[data.find('s')+1 : data.find('p')])
                 self.password = str(data[data.find('p')+1 : data.find('>')])
             
-            if str(data[1:3]) == "93": # get_name
+            if str(data[1:4]) == "93n": # get_name
                 self.hostname = str(data[data.find('n')+1 : data.find('>')])
+
+            if str(data[1:4]) == "101": # get_accessory
+                self.accessory = float(data[data.find('t')+1 : data.find('>')])
     
-        except:
-            print('[COMMUNICATION ERROR] data process')  # -- marin add e to check the error
+        except Exception as e:
+            print(f'[COMMUNICATION ERROR] data process: {e}')  # -- marin add e to check the error
             return None  
     #-----------------------------------------------------------------------------
     def stop_reception(self):
@@ -1922,6 +1927,14 @@ class robot(object):
         while not self.marker :
             pass
         return (self.hostname)
+    #-----------------------------------------------------------------------------
+    def get_accessory(self):
+        """
+        Get information about the accessory connected to ilo
+        """
+        self.web_socket_send("<100>")
+        time.sleep(0.25)
+        return (self.accessory)
     #-----------------------------------------------------------------------------
     def set_debug_state(self, state: bool):
 
