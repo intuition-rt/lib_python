@@ -5,7 +5,10 @@
 - Gérer l’accès aux capteurs I2C de la carte accessoire
   - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
 - Mettre à jour list_function
-- Check si la méthod set_led_single est ok
+- Clear tous les débugs : 
+  - check_robot_on_network()
+  - sent / received
+
 
 ## Version 41:
 
