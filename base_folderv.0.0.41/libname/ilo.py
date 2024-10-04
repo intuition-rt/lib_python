@@ -280,22 +280,36 @@ def check_robot_on_network():
 
     except Exception as e:
         print(f"WebSocket error: {e}")    
+
+def check_robot_on_serial():
+    pass
+
+def check_robot_on_bluetooth():
+    pass
 #-----------------------------------------------------------------------------   
 def get_IP_from_ID(ID):
     '''
     Get the IP address of the robot from its ID
     '''
-    print(ID)
+    # print(ID)
     global tab_IP
     for item in tab_IP:
-        print(item[1])
+        # print(item[1])
         if item[1] == ID:
             return item[0]
     return None
 #-----------------------------------------------------------------------------
 class robot(object):
+
+    robots_connected = {} # Variable de classe pour garder une trace des connexions actives
     
     def __init__(self, ID):
+        
+        if ID in robot.robots_connected: # Vérification si un robot avec cet ID est déjà connecté
+            print(f"Un robot avec l'ID {ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
+            old_robot = robot.robots_connected[ID]
+            old_robot.recv_thread_running = False # Arrêter le thread mais sans déconnexion immédiate
+        
         self.ID = ID
         self.Port = 4583
         self.ws = None
@@ -359,49 +373,66 @@ class robot(object):
         self.ssid     = ""
         self.password = ""
 
-        self.accessory = 0
+        self.accessory    = 0
+        self.potard_value = 0
 
         self.global_trame = ""
         
         self.marker = True
  
         # -- marin add all other data of the robot
-        # -- thinking to a solution to get data from additionnal captor connnected on the top of the robot via accesoire PCB
+        # -- thinking to a solution to get data from additional captor connected on the top of the robot via accessory PCB
         
         self.recv_thread = None
         self.recv_thread_running = False
         
+        # Ajouter ce robot à la liste des robots connectés
+        robot.robots_connected[self.ID] = self
+
         if self.ID:
-            print("You are trying to connect to: ", self.IP)
+            # print("You are trying to connect to: ", self.IP)
             self.connection()
         else:
-            print("You have to run before the command line to know the robot present our your network: ilo.check_ilo_on_network()")
+            print("You have to run the command [ilo.check_ilo_on_network()] to know if there are robots present on your network")
+
     #-----------------------------------------------------------------------------
     def connection(self):
         """
         Connection of your machine to robot object 
         """
-        if self.connect:
-            print('Your robot is already connected')
+        if self.hostname != "":
+            self.web_socket_send("<ilo>")
+            print('Your robot is already connected to ' + self.hostname)
             #-- marin check if the websocket is well working (test un envoi de trame ou spécific methode
             
         else:
             try:
+                # Start the WebSocket d'envoie de trame
                 self.ws = websocket.create_connection(f"ws://{self.IP}:{self.Port}")
-                self.web_socket_send("<ilo>")
-                print('Your are connected')
-                self.connect = True
                 
-                # Start the WebSocket reception in a separate thread
+                # Vérifie si un ancien thread de réception est actif et l'arrête avant d'en démarrer un nouveau
+                if self.recv_thread and self.recv_thread.is_alive():
+                    print("Stopping the previous reception thread...")
+                    self.stop_reception()
+
+                # Start the WebSocket de reception in a separate thread
                 self.recv_thread_running = True
                 self.recv_thread = threading.Thread(target=self.web_socket_receive)
                 self.recv_thread.start()
+
+                self.connect = True
+                self.web_socket_send("<ilo>")
+                time.sleep(0.2)
+                self.get_name()
+                print('Your are connected to ' + self.hostname)
             
             except Exception as e:
                     print("Error connection: you have to be connect to the ilo wifi network")
                     print(" --> If the disfonction continu, switch off and switch on ilo")
                     print(f"Error connecting to the robot: {e}")
-                    self.connect = False   
+                    self.connect = False
+    
+    
     #-----------------------------------------------------------------------------
     def web_socket_send(self, message):
         """
@@ -418,31 +449,37 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def web_socket_receive(self):
         """
-        Thread function to continuously receive data from the WebSocket
+        Thread function to continuously receive data from the WebSocket.
+        Stops when recv_thread_running is set to False.
         """
         while self.recv_thread_running:
             try:
+                # Ajout d'un timeout pour que recv() ne bloque pas indéfiniment
+                self.ws.settimeout(1)  # Timeout de 1 seconde pour éviter un blocage sur recv()
                 data = self.ws.recv()
                 if data:
                     if '/' in data:
-                        # parcing
                         sub_trames = data.split('/')[1:-1]
-                        
                         for sub_trame in sub_trames:
                             self.process_received_data(f"<{sub_trame}>")
-                    else :
+                    else:
                         self.process_received_data(data)
                         self.marker = True
+            except websocket.WebSocketTimeoutException:
+                # Timeout atteint, continue à boucler pour vérifier recv_thread_running
+                continue
             except websocket.WebSocketException as e:
+                # Gestion des erreurs de WebSocket, afficher l'erreur pour le débogage
                 print(f"WebSocket error: {e}")
-                #-- marin bonne solution ici pour debugger d'afficher directement le message d'erreur 
                 break
+
+        print("Thread de réception terminé.")
+    
     #-----------------------------------------------------------------------------
     def process_received_data(self, data):
         """
         Process the data received from the WebSocket and update the robot's attributes
         """
-        print("")
         print(f"Received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
@@ -505,27 +542,27 @@ class robot(object):
                 self.motor_speed = int(data[data.find('s')+1 : data.find('>')])
             
             if str(data[1:4]) == "621": # get_single_motor_angle
-                self.motor_id    = int(data[data.find('i')+1 : data.find('a')])
-                self.motor_angle = int(data[data.find('a')+1 : data.find('>')])
+                self.motor_id    = int(data[data.find('i')+1 : data.find('s')])
+                self.motor_angle = int(data[data.find('s')+1 : data.find('>')])
 
             if str(data[1:4]) == "63i": # get_temp_single_motor
-                self.motor_id   = int(data[data.find('i')+1 : data.find('t')])
-                self.temp_motor = int(data[data.find('t')+1 : data.find('>')])
+                self.motor_id   = int(data[data.find('i')+1 : data.find('s')])
+                self.temp_motor = int(data[data.find('s')+1 : data.find('>')])
 
             if str(data[1:4]) == "64i": # get_volt_single_motor
-                self.motor_id   = int(data[data.find('i')+1 : data.find('v')])
-                self.motor_volt = int(data[data.find('v')+1 : data.find('>')])
+                self.motor_id   = int(data[data.find('i')+1 : data.find('s')])
+                self.motor_volt = int(data[data.find('s')+1 : data.find('>')])
 
             if str(data[1:4]) == "65i": # get_torque_single_motor
-                self.motor_id     = int(data[data.find('i')+1 : data.find('t')])
-                self.motor_torque = int(data[data.find('t')+1 : data.find('>')])
+                self.motor_id     = int(data[data.find('i')+1 : data.find('s')])
+                self.motor_torque = int(data[data.find('s')+1 : data.find('>')])
 
             if str(data[1:4]) == "66i":  # get_current_single_motor
-                self.motor_id = int(data[data.find('i')+1 : data.find('c')])
-                self.motor_current = int(data[data.find('c')+1 : data.find('>')])
+                self.motor_id      = int(data[data.find('i')+1 : data.find('s')])
+                self.motor_current = int(data[data.find('s')+1 : data.find('>')])
 
             if str(data[1:4]) == "67i":  # get_motor_is_moving
-                self.motor_id = int(data[data.find('i')+1 : data.find('s')])
+                self.motor_id        = int(data[data.find('i')+1 : data.find('s')])
                 self.motor_is_moving = int(data[data.find('s')+1 : data.find('>')])
 
             if str(data[1:4]) == "681": # get_acc_motor
@@ -548,6 +585,9 @@ class robot(object):
 
             if str(data[1:4]) == "101": # get_accessory
                 self.accessory = float(data[data.find('t')+1 : data.find('>')])
+            
+            if str(data[1:4]) == "102": #get_accessory()
+                self.potard_value = float(data[data.find('a')+1 : data.find('>')])
     
         except Exception as e:
             print(f'[COMMUNICATION ERROR] data process: {e}')  # -- marin add e to check the error
@@ -555,22 +595,40 @@ class robot(object):
     #-----------------------------------------------------------------------------
     def stop_reception(self):
         """
-        Stop the WebSocket reception thread and close the connection
+        Stop the WebSocket reception thread and close the connection.
         """
-        self.recv_thread_running = False
-        if self.recv_thread:
-            self.recv_thread.join()
-        
+        if not self.recv_thread_running:
+            return  # Si le thread est déjà arrêté, ne rien faire
+
+        print("Stopping reception thread...")
+        self.recv_thread_running = False  # Arrêter la boucle dans le thread de réception
+
         if self.ws:
-            self.ws.close()
-            self.connect = False
-            print("WebSocket connection closed.")
+            try:
+                self.ws.close()
+                self.connect = False  # Mettre à jour l'état de connexion après la fermeture de WebSocket
+                print("WebSocket successfully closed")
+            except Exception as e:
+                print(f"Erreur lors de la fermeture de la WebSocket: {e}")
+
+        # if self.recv_thread and self.recv_thread.is_alive():
+        if self.recv_thread:
+            print("Waiting for the reception thread to stop...")
+            self.recv_thread.join(timeout=2)
+
+        if self.ID in robot.robots_connected:
+            del robot.robots_connected[self.ID]
+
+        print(f"WebSocket connection closed for the robot {self.ID}.")
+    
     #-----------------------------------------------------------------------------
     def __del__(self):
         """
         Destructor to ensure the WebSocket connection is closed gracefully
+        and the ID is removed from the list of connected robots
         """
-        self.stop_reception()
+        print(f"Destruction de l'objet robot avec l'ID {self.ID}")
+        self.ws.close()
     #-----------------------------------------------------------------------------
     def test_connection(self):
         """
@@ -1935,6 +1993,7 @@ class robot(object):
         self.web_socket_send("<100>")
         time.sleep(0.25)
         return (self.accessory)
+    
     #-----------------------------------------------------------------------------
     def set_debug_state(self, state: bool):
 
@@ -1959,11 +2018,14 @@ class robot(object):
         if "distance" in param_list:
             msg = msg + "20/"
 
+        if "accessory_angle" in param_list:
+            msg = msg + "100/"
+
         msg = msg + ">"
 
         self.web_socket_send(msg)
     
-    def del_stram_s(self):
+    def del_trame_s(self):
         """
         Stop the global trame
         """
