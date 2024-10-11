@@ -3,7 +3,7 @@
 # 25/09/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.42"
+version = "0.42 review"
 print("ilo robot library version ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
@@ -47,7 +47,7 @@ def list_function():
     my_ilo_table.add_row(["flat_movement(angle, distance)", "Move ilo in the selected direction in angle for a selected distance"], divider=True)
     my_ilo_table.add_row(["list_order(ilo_list)", "ilo will execute a list of successive displacment define in ilo_list"], divider=True)
     my_ilo_table.add_row(["move(direction, speed)", "Move ilo with selected direction and speed"], divider=True)
-    my_ilo_table.add_row(["direct_control(axial, radial, rotation)", "Control ilorobot with full control"], divider=True)
+    my_ilo_table.add_row(["direct_control(acc, axial, radial, rotation)", "Control ilorobot with full control"], divider=True)
     my_ilo_table.add_row(["game()", "Control ilo using arrow or numb pad of your keyboard"], divider=True)
     my_ilo_table.add_row(["set_tempo_pos(value)", "Set the tempo of the position control"], divider=True)
     my_ilo_table.add_row(["get_tempo_pos()", "Get the tempo of the position control"], divider=True)
@@ -216,7 +216,7 @@ def co_web_socket_send(ws, message):
         print(f"Error sending message: {e}")
         return "..."
 
-def check_robot_on_network():
+def check_robot_on_WiFi():
     """
     Check the presence of the ilo(s) on the network
     """
@@ -256,6 +256,7 @@ def check_robot_on_network():
                 try:
                     ws = websocket.create_connection(ws_url, timeout = 1.3)  # Set timeout for each connection
                     if co_web_socket_send(ws, "<ilo>") == "ilo":
+                        co_web_socket_send(ws, "<>")
                         tab_IP.append([IP, ilo_ID, co_web_socket_send(ws, "<930>")])
                         ilo_ID += 1
                         c += 1
@@ -620,7 +621,6 @@ class robot(object):
             del robot.robots_connected[self.ID]
 
         print(f"WebSocket connection closed for the robot {self.ID}.")
-    
     #-----------------------------------------------------------------------------
     def __del__(self):
         """
@@ -642,7 +642,7 @@ class robot(object):
             print("Error connection to the robot")
             return False
     #-----------------------------------------------------------------------------
-    def correction_command(self, list_course):
+    def correction_command(self, acc, list_course):
         """
         Convert a list of 3 elements to a sendable string
         """
@@ -675,7 +675,7 @@ class robot(object):
 
         new_command = []
         str_command = str(list_course[0] + list_course[1] + list_course[2])
-        new_command = "<av" + str_command +"pxyr>"
+        new_command = "<a"+ str(acc) + "v" + str_command +"pxyr>"
         return new_command
     #-----------------------------------------------------------------------------    
     def stop(self):
@@ -688,11 +688,11 @@ class robot(object):
         """
         Stop ilo and block its motors
         """
-        self.direct_control(128,128,128)  
+        self.direct_control(200,128,128,128)  
     
     def step(self, direction, step=None):
         """
-        Move ilo in the selected direction for 2 seconds
+        Move ilo in the selected direction 
 
         Parameters:
             direction (str): The direction in which the robot is moving
@@ -702,10 +702,10 @@ class robot(object):
             TypeError: If the direction is not a string
             ValueError: If the direction is not one of the following: front, back, left, right, rot_trigo or rot_clock
             TypeError: If the step is not an integer or a float
-            ValueError: If value is not between 0.1 and 100
+            ValueError: If value is not between 0.01 and 100
 
         Examples:
-            my_ilo.step("front", 10)
+            my_ilo.step("front", 10.5)
         """
         if not isinstance(direction, str):
             print ("[ERROR] 'direction' should be a string")
@@ -715,34 +715,34 @@ class robot(object):
             step = 1
 
         if not isinstance(step, (int, float)):
-            print ("[ERROR] 'step' should be an integer")
+            print ("[ERROR] 'step' should be an integer or a float")
             return None
         
-        if step > 100 or step < 0.1:
-            print ("[ERROR] 'step' should be between 0.1 and 100")
+        if step > 100 or step < 0.01:
+            print ("[ERROR] 'step' should be between 0.01 and 100")
             return None
 
-        step = int(step*10)
+        step = int(step*100)
 
         if direction == 'front':
-            msg = '<avpx1' + str(step) + 'yr>'
+            msg = '<a60vpx1' + str(step) + 'yr>'
             self.web_socket_send(msg)
         elif direction == 'back':
-            msg = '<avpx0' + str(step) + 'yr>'
+            msg = '<a60vpx0' + str(step) + 'yr>'
             self.web_socket_send(msg)
         elif direction == 'left':
-            msg = '<avpxy0' + str(step) + 'r>'
+            msg = '<a60vpxy0' + str(step) + 'r>'
             self.web_socket_send(msg)
         elif direction == 'right':
-            msg = '<avpxy1' + str(step) + 'r>'
+            msg = '<a60vpxy1' + str(step) + 'r>'
             self.web_socket_send(msg)
         elif direction == 'rot_trigo':
             step = 90
-            msg = '<avpxyr0' + str(step) + '>'
+            msg = '<a60vpxyr0' + str(step) + '>'
             self.web_socket_send(msg)
         elif direction == 'rot_clock':
             step = 90
-            msg = '<avpxyr1' + str(step) + '>'
+            msg = '<a60vpxyr1' + str(step) + '>'
             self.web_socket_send(msg)
         else:
             print("[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'") 
@@ -820,13 +820,14 @@ class robot(object):
         for i in range(len(ilo_list)):
             self.step(ilo_list[i])     
 
-    def move(self, direction: str, speed: int):
+    def move(self, direction: str, speed: int, acc: int):
         """
         Move ilo with selected direction and speed
 
         Parameters:
             direction (str): The direction in which the robot is moving
             speed (int): The speed of the robot, as a percentage
+            acceleration (int): Between 1 to 200
 
         Raises:
             TypeError: If the direction is not a string
@@ -848,31 +849,41 @@ class robot(object):
             return None
         if not isinstance(speed, int):
             print ("[ERROR] 'speed' parameter must be a integer")
-            return None     
-        if speed> 100 or speed<0:
-            print ("[ERROR] 'speed' parameter must be include between 0 and 100")
             return None
+        if not isinstance(acc, int):
+            print ("[ERROR] 'acc' parameter must be a integer")
+            return None
+        
+        if speed > 100 or speed < 0:
+            print ("[ERROR] 'speed' parameter must be include between 0 to 100")
+            return None
+        
+        if acc > 200 or acc < 1:
+            print ("[ERROR] 'acc' parameter must be include between 1 to 200 ")
+            return None
+        
+        self.set_acc_motor(acc)
 
         if direction == 'front':
-            command = [int((speed*1.28)+128),128,128]
+            command = [int((speed*1.27)+128),128,128]
         elif direction == 'back':
-            command = [int(-(speed*1.28))+128,128,128]
-        elif direction == 'left':
-            command = [128,int((speed*1.28)+128),128]
+            command = [int(-(speed*1.27))+128,128,128]
         elif direction == 'right':
-            command = [128,int(-(speed*1.28)+128),128]
+            command = [128,int((speed*1.27)+128),128]
+        elif direction == 'left':
+            command = [128,int(-(speed*1.27)+128),128]
         elif direction == 'rot_trigo':
-            command = [128,128,int(-(speed*1.28)+128)]
+            command = [128,128,int(-(speed*1.27)+128)]
         elif direction == 'rot_clock':
-            command = [128,128,int((speed*1.28)+128)]
+            command = [128,128,int((speed*1.27)+128)]
         else:
             print("[ERROR] 'direction' parameter should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock', 'stop'")
             return None
 
-        corrected_command = self.correction_command(command)
+        corrected_command = self.correction_command(acc, command)
         self.web_socket_send(corrected_command) 
 
-    def direct_control(self, axial: int, radial: int, rotation: int):
+    def direct_control(self, acc: int, axial: int, radial: int, rotation: int):
         """
         Control ilo with full control \n
         Value from 0 to 128 are negative and value from 128 to 255 are positive
@@ -914,7 +925,7 @@ class robot(object):
             return None
 
         command = [axial, radial, rotation]
-        corrected_command = self.correction_command(command)
+        corrected_command = self.correction_command(acc, command)
         self.web_socket_send(corrected_command)  
 
     def game(self):
@@ -930,6 +941,8 @@ class robot(object):
         """
 
         if self.test_connection() == True:
+            #self.set_acc_motor(200)
+            acc = 200
             axial_value = 128
             radial_value = 128
             rotation_value = 128
@@ -987,7 +1000,7 @@ class robot(object):
                     break
 
                 if new_keyboard_instruction == True:
-                    self.direct_control(axial_value, radial_value, rotation_value)
+                    self.direct_control(acc, axial_value, radial_value, rotation_value)
                     new_keyboard_instruction = False
         else:
             print("You have to be connected to ILO before play with it, use ilo.connection()")
@@ -1485,7 +1498,7 @@ class robot(object):
         time.sleep(0.1)
         return (self.acc_motor)
     
-    def set_acc_motor(self, value: int):
+    def set_acc_motor(self, acc: int):
         """
         Set the acceleration of all motors
 
@@ -1494,22 +1507,22 @@ class robot(object):
 
         Raises:
             TypeError: If value is not an integer
-            ValueError: If value is not between 10 and 100
+            ValueError: If value is not between 10 and 200
 
         Examples:
             my_ilo.set_acc_motor(67)
         """
 
-        if not isinstance(value, int):
+        if not isinstance(acc, int):
             print ("[ERROR] 'value' parameter must be a integer")
             return None
-        if value> 100 or value<10:
-            print ("[ERROR] 'value' parameter must be include between 10 and 100")
+        if acc> 200 or acc<1:
+            print ("[ERROR] 'acc' parameter must be include between 1 and 200")
             return None
 
-        if value < 10 : value = 10
-        elif value > 100 : value = 100
-        msg = "<680a"+str(value)+">"
+        if acc < 1 : acc = 1
+        elif acc > 200 : acc = 200
+        msg = "<680a"+str(acc)+">"
         self.web_socket_send(msg) 
     #-----------------------------------------------------------------------------
     # <60i1s1>
@@ -1540,13 +1553,14 @@ class robot(object):
         time.sleep(0.1)
         return (self.motor_id, self.motor_ping)
     # <610i1v3000>
-    def drive_single_motor_speed(self, id: int, value: int):
+    def drive_single_motor_speed(self, id: int, acc: int, vel: int):
         """
         Drive a single motor in speed with is id
 
         Parameters:
             id (int): the motor id
-            value (int): the motor speed in percentage
+            acc(int): motor acc
+            vel (int): the motor speed in percentage
 
         Raises:
             TypeError: If 'id' is not an integer
@@ -1555,7 +1569,7 @@ class robot(object):
             ValueError: If 'value' is not between -100 and 100
 
         Examples:
-            my_ilo.drive_single_motor_speed(1, 50)
+            my_ilo.drive_single_motor_speed(1, 100, 50)
         """
 
         if not isinstance(id, int):
@@ -1565,19 +1579,28 @@ class robot(object):
             print ("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
         
-        if not isinstance(value, int):
+        if not isinstance(vel, int):
             print ("[ERROR] 'value' parameter must be a integer")
             return None
-        if value> 100 or value<-100:
+        if vel> 100 or vel<-100:
             print ("[ERROR] 'value' parameter must be include between -100 and 100")
             return None
         
-        if id < 0 : id = 0
+        if not isinstance(acc, int):
+            print ("[ERROR] 'acc' parameter must be a integer")
+            return None
+        if acc> 200 or acc<0:
+            print ("[ERROR] 'acc' parameter must be include between 1 and 200")
+            return None
+        
+        if id < 0 : id = 0    # make to sens
         elif id > 255 : id = 255
-        if value < -100 : value = -100
-        elif value > 100 : value = 100
-        value = value * 70
-        msg = "<610i"+str(id)+"v"+str(value)+">"
+        
+        if vel < -100 : vel = -100
+        elif vel > 100 : vel = 100        
+        
+        vel = vel * 70
+        msg = "<610i"+str(id)+"a"+str(acc)+"v"+str(vel)+">"
         self.web_socket_send(msg)
 
     def drive_single_motor_speed_front_left(self, value: int):  # de -100 à 100
