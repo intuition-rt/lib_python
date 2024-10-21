@@ -3,8 +3,10 @@
 # 25/09/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.42 review"
-print("ilo robot library version ", version)
+version = "0.42 reviewing 0.41"
+# import clipborad to fast run 
+
+print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 #-----------------------------------------------------------------------------
@@ -711,18 +713,28 @@ class robot(object):
             print ("[ERROR] 'direction' should be a string")
             return None
         
-        if step is None:
-            step = 1
-
         if not isinstance(step, (int, float)):
             print ("[ERROR] 'step' should be an integer or a float")
             return None
         
-        if step > 100 or step < 0.01:
-            print ("[ERROR] 'step' should be between 0.01 and 100")
-            return None
+        if (direction == 'front' or direction == 'back' or direction == 'left' or direction == 'right'):
+            if step is None:
+                step = 1
+            if step > 100 or step < 0.01:
+                print ("[ERROR] 'step' should be between 0.01 and 100 for translation")
+                return None
+            step = int(step*100)
+            
+        elif (direction == 'rot_trigo' or direction == 'rot_clock'):
+            if step is None:
+                step = 90
+            if step < 1:
+                print ("[ERROR] 'step' should be more than 1 for rotation")
+                return None
 
-        step = int(step*100)
+        else:
+            print ("[ERROR] 'step' unknow name")
+            return None
 
         if direction == 'front':
             msg = '<a60vpx1' + str(step) + 'yr>'
@@ -737,11 +749,9 @@ class robot(object):
             msg = '<a60vpxy1' + str(step) + 'r>'
             self.web_socket_send(msg)
         elif direction == 'rot_trigo':
-            step = 90
             msg = '<a60vpxyr0' + str(step) + '>'
             self.web_socket_send(msg)
         elif direction == 'rot_clock':
-            step = 90
             msg = '<a60vpxyr1' + str(step) + '>'
             self.web_socket_send(msg)
         else:
@@ -1102,7 +1112,11 @@ class robot(object):
         if kd>10 or kd<0:
             print ("[ERROR] 'kd' parameter must be include between 0 and 10")
             return None
-
+        
+        kp = int(kp *10)
+        ki = int(ki *10)
+        kd = int(kd *10)
+        
         msg = "<70p"+str(kp)+"i"+ str(ki) + "d" + str(kd) + ">"
         self.web_socket_send(msg)
     
