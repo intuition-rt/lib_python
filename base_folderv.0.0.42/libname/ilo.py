@@ -435,7 +435,6 @@ class robot(object):
                     print(f"Error connecting to the robot: {e}")
                     self.connect = False
     
-    
     #-----------------------------------------------------------------------------
     def web_socket_send(self, message):
         """
@@ -709,25 +708,42 @@ class robot(object):
         Examples:
             my_ilo.step("front", 10.5)
         """
+
+        # if (step == None):
+        #     step = 1
+
         if not isinstance(direction, str):
             print ("[ERROR] 'direction' should be a string")
             return None
         
-        if not isinstance(step, (int, float)):
-            print ("[ERROR] 'step' should be an integer or a float")
-            return None
+        # if not isinstance(step, (int, float)):
+        #     print ("[ERROR] 'step' should be an integer or a float")
+        #     return None
         
         if (direction == 'front' or direction == 'back' or direction == 'left' or direction == 'right'):
+
             if step is None:
                 step = 1
+
+            if not isinstance(step, (int, float)):
+                print ("[ERROR] 'step' should be an integer or a float")
+                return None
+
             if step > 100 or step < 0.01:
                 print ("[ERROR] 'step' should be between 0.01 and 100 for translation")
                 return None
+            
             step = int(step*100)
             
         elif (direction == 'rot_trigo' or direction == 'rot_clock'):
+            
             if step is None:
                 step = 90
+
+            if not isinstance(step, (int, float)):
+                print ("[ERROR] 'step' should be an integer or a float")
+                return None
+
             if step < 1:
                 print ("[ERROR] 'step' should be more than 1 for rotation")
                 return None
