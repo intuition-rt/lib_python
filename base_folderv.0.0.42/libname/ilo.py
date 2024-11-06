@@ -242,7 +242,7 @@ def check_robot_on_WiFi():
             pass
         
         if not ilo_AP:
-            base_ip = "192.168.1."
+            base_ip = "192.168.3."
             ilo_ID = 1
             c = 3                       # Checking 3 more IP addresses after success
 
