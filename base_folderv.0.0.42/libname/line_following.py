@@ -1,3 +1,4 @@
+# Version moi
 '''
 from ilo import *
 from time import sleep
@@ -10,24 +11,37 @@ my_ilo = robot(1)
 # my_ilo.set_led_captor(False)
 
 while True:
+    my_ilo.line_left = 0
+    my_ilo.line_center = 0
+    my_ilo.line_right = 0
+
     my_ilo.get_line()
+    while my_ilo.line_left == 0 and my_ilo.line_center == 0 and my_ilo.line_right == 0:
+        time.sleep(0.01)
+
     if my_ilo.line_left == 0:
         my_ilo.direct_control(50, 128, 128, 106)
         time.sleep(0.5)
         my_ilo.pause()
+
     elif my_ilo.line_right == 0:
         my_ilo.direct_control(50, 128, 128, 150)
         time.sleep(0.5)
         my_ilo.pause()
+
     elif my_ilo.line_center == 0:
         my_ilo.direct_control(50, 150, 128, 128)
         time.sleep(0.5)
         my_ilo.pause()
+
     else :
         my_ilo.stop()
+
     time.sleep(0.01)
 '''
 
+
+# Version chat gpt
 '''  
 import time
 import ilo
