@@ -1439,7 +1439,7 @@ class robot(object):
             return None
 
 
-        msg = "<53v"+str(value)+">"
+        msg = "<53"+str(value)+">"
         self.web_socket_send(msg)
 
     def set_led_single(self, type: str, id: int, red: int, green: int, blue: int):
@@ -1721,23 +1721,30 @@ class robot(object):
         self.web_socket_send(msg)
         time.sleep(0.1)
         return (self.motor_id, self.motor_speed)
-    # <620i6a90>
-    def drive_single_motor_angle(self, id: int, angle: int):
+    
+    # <620i6a100v100p90>
+    def drive_single_motor_angle(self, id: int, acc:int, vel:int, pos: int):
         """
         Drive a single motor in angle with is id
 
         Parameters:
             id (int): the motor id
-            value (int): the motor angle
+            acc (int): accereleration
+            vel (int): velocity
+            pos (int): the motor angle
 
         Raises:
             TypeError: If 'id' is not an integer
             ValueError: If 'id' is not between 0 and 255
-            TypeError: If 'angle' is not an integer
-            ValueError: If 'angle' is not between 0 and 4096
+            TypeError: If 'acc' is not an integer
+            ValueError: If 'acc' is not between 1 and 200
+            TypeError: If 'vel' is not an integer
+            ValueError: If 'vel' is not between -7000 and 7000 
+            TypeError: If 'pos' is not an integer
+            ValueError: If pos' is not between 0 and 4096
 
         Examples:
-            my_ilo.drive_single_motor_speed(1, 50)
+            my_ilo.drive_single_motor_speed(1,20,40,1024)
         """
 
         if not isinstance(id, int):
@@ -1747,19 +1754,30 @@ class robot(object):
             print ("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
         
-        if not isinstance(angle, int):
-            print ("[ERROR] 'value' parameter must be a integer")
+        if not isinstance(acc, int):
+            print ("[ERROR] 'acc' parameter must be a integer")
             return None
-        if angle>4096 or angle<0:
-            print ("[ERROR] 'value' parameter must be include between 0 and 4096")
+        if acc>=200 or acc<0:
+            print ("[ERROR] 'acc' parameter must be include between 0 and 200")
             return None
         
-        if id < 0 : id = 0
-        elif id > 255 : id = 255
-        if angle < 0 : angle = 0
-        elif angle > 4096 : angle = 4096
-        msg = "<610i"+str(id)+"a"+str(angle)+">"
+        if not isinstance(vel, int):
+            print ("[ERROR] 'vel' parameter must be a integer")
+            return None
+        if vel>=7000 or vel<=-7000:
+            print ("[ERROR] 'vel' parameter must be include between -7000 and 7000")
+            return None
+        
+        if not isinstance(pos, int):
+            print ("[ERROR] 'pos' parameter must be a integer")
+            return None
+        if pos>4096 or pos<0:
+            print ("[ERROR] 'pos' parameter must be include between 0 and 4096")
+            return None
+        
+        msg = "<620i"+str(id)+"a"+str(acc)+"v"+str(vel)+"p"+str(pos)+">"
         self.web_socket_send(msg)
+        
     # <621i6a90>
     def get_single_motor_angle(self, id: int):
         """
