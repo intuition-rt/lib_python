@@ -434,8 +434,6 @@ class robot(object):
                     print(" --> If the disfonction continu, switch off and switch on ilo")
                     print(f"Error connecting to the robot: {e}")
                     self.connect = False
-    
-    
     #-----------------------------------------------------------------------------
     def web_socket_send(self, message):
         """
@@ -477,7 +475,6 @@ class robot(object):
                 break
 
         print("Thread de réception terminé.")
-    
     #-----------------------------------------------------------------------------
     def process_received_data(self, data):
         """
@@ -707,27 +704,45 @@ class robot(object):
             ValueError: If value is not between 0.01 and 100
 
         Examples:
-            my_ilo.step("front", 10.5)
+            my_ilo.step("front", 10.5)\n
+            my_ilo.step("back")
         """
+
+        # if (step == None):
+        #     step = 1
+
         if not isinstance(direction, str):
             print ("[ERROR] 'direction' should be a string")
             return None
         
-        if not isinstance(step, (int, float)):
-            print ("[ERROR] 'step' should be an integer or a float")
-            return None
+        # if not isinstance(step, (int, float)):
+        #     print ("[ERROR] 'step' should be an integer or a float")
+        #     return None
         
         if (direction == 'front' or direction == 'back' or direction == 'left' or direction == 'right'):
+
             if step is None:
                 step = 1
+
+            if not isinstance(step, (int, float)):
+                print ("[ERROR] 'step' should be an integer or a float")
+                return None
+
             if step > 100 or step < 0.01:
                 print ("[ERROR] 'step' should be between 0.01 and 100 for translation")
                 return None
+            
             step = int(step*100)
             
         elif (direction == 'rot_trigo' or direction == 'rot_clock'):
+            
             if step is None:
                 step = 90
+
+            if not isinstance(step, (int, float)):
+                print ("[ERROR] 'step' should be an integer or a float")
+                return None
+
             if step < 1:
                 print ("[ERROR] 'step' should be more than 1 for rotation")
                 return None
@@ -846,7 +861,7 @@ class robot(object):
             ValueError: If the speed is not between 0 and 100
 
         Examples:
-            my_ilo.move("front", 50)
+            my_ilo.move("front", 50, 100)
         """
 
         #ilo.move('front', 50)
@@ -1127,7 +1142,6 @@ class robot(object):
         self.web_socket_send("<71>")
         time.sleep(0.1)
         return (self.kp, self.ki, self.kd)
-
     #-----------------------------------------------------------------------------
     def get_color_rgb(self):
         """
@@ -1225,23 +1239,35 @@ class robot(object):
         time.sleep(0.1)
         return (self.line_right)
 
-    def set_line_threshold_value(self, value: int):
+    def set_line_threshold_value(self, value=None):
         """
-        Set the new threshold value for the line detection
+        Set new threshold value for line detection (automatic or manual)
 
         Parameters:
-            value (int): new threshold value
+            value (int, optional): new threshold value
 
         Raises:
             TypeError: If value is not an integer
 
         Examples:
+            my_ilo.set_line_treshold_value()\n
             my_ilo.set_line_treshold_value(40)
         """
 
-        if not isinstance(value, int):
-            print ("[ERROR] 'value' parameter must be a integer")
-            return None
+        if value is not None:
+
+            if not isinstance(value, int):
+                print ("[ERROR] 'value' parameter must be a integer")
+                return None
+
+        else:
+            self.clear_center = 0
+            self.get_color_clear()
+            while self.clear_center == 0:
+                time.sleep(0.1)
+            value = round(self.clear_center*1.2)
+            print(f"La nouvelle valeur de seuil est: {value}")
+
 
         msg = "<13t"+str(value)+">"
         self.web_socket_send(msg)  
@@ -2048,7 +2074,6 @@ class robot(object):
         self.web_socket_send("<100>")
         time.sleep(0.25)
         return (self.accessory)
-    
     #-----------------------------------------------------------------------------
     def set_debug_state(self, state: bool):
 
