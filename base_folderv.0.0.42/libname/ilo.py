@@ -287,24 +287,24 @@ class robot(object):
     def __init__(self, ID):
         self.ID = ID
 
-        if connection_type == 0:
-            if ID in robot.robots_connected: # Vérification si un robot avec cet ID est déjà connecté
-                print(f"Un robot avec l'ID {ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
-                old_robot = robot.robots_connected[ID]
-                old_robot.recv_thread_running = False # Arrêter le thread mais sans déconnexion immédiate
+        # if connection_type == 0:
+        if ID in robot.robots_connected: # Vérification si un robot avec cet ID est déjà connecté
+            print(f"Un robot avec l'ID {ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
+            old_robot = robot.robots_connected[ID]
+            old_robot.recv_thread_running = False # Arrêter le thread mais sans déconnexion immédiate
 
-            self.Port = 4583
-            self.ws = None
-            self.connect = False
-            self.IP = get_IP_from_ID(self.ID)
+        self.Port = 4583
+        self.ws = None
+        self.connect = False
+        self.IP = get_IP_from_ID(self.ID)
 
-            self.recv_thread = None
-            self.recv_thread_running = False
+        self.recv_thread = None
+        self.recv_thread_running = False
 
-        elif connection_type == 1:
-            self.port = get_PORT_from_ID(self.ID)
-            self.ser = None
-            self.connect = False
+        # elif connection_type == 1:
+        self.port = get_PORT_from_ID(self.ID)
+        self.ser = None
+        # self.connect = False
 
         self.hostname = ""
         
@@ -383,7 +383,6 @@ class robot(object):
             print("You have to run the command [ilo.check_ilo_on_network()] to know if there are robots present on your network")
             print("or")
             print("Run the command [ilo.check_ilo_on_serial()] to know if there are robots connected to your computer")
-
     #-----------------------------------------------------------------------------
     def connection(self):
         """
@@ -391,16 +390,14 @@ class robot(object):
         """
         if self.hostname != "":
 
-            if connection_type == 0:
-                self.send_msg("<ilo>")
-            elif connection_type == 1:
-                self.send_msg("<ilo>")
+            self.send_msg("<ilo>")
 
             print('Your robot is already connected to ' + self.hostname)
                 #-- marin check if the websocket is well working (test un envoi de trame ou spécific methode
             
         else:
             if connection_type == 0:
+                print("[connection]: inside connection_type 0")
                 try:
                     # Start the WebSocket d'envoie de trame
                     self.ws = websocket.create_connection(f"ws://{self.IP}:{self.Port}")
@@ -428,6 +425,7 @@ class robot(object):
                         self.connect = False
 
             elif connection_type == 1:
+                print("[connection]: inside connection_type 1")
                 try:
                     # Start the serial connection
                     self.ser = serial.Serial(self.port, 115200)
@@ -443,8 +441,6 @@ class robot(object):
                         print(" --> If the disfonction continu, switch off and switch on ilo")
                         print(f"Error connecting to the robot: {e}")
                         self.connect = False
-
-            
     #-----------------------------------------------------------------------------
     def send_msg(self, message):
         if connection_type == 0:
@@ -462,6 +458,14 @@ class robot(object):
                 try:
                     self.ser.write(message.encode())
                     print(f"Sent:     {message}")
+
+                    if message == "<ilo>":
+                        pass
+                    else:
+                        start_time = time.time()
+                        while time.time() - start_time < 1:
+                            self.serial_read()
+
                 except Exception as e:
                     print(f"Error sending message: {e}")
             else:
@@ -510,6 +514,7 @@ class robot(object):
                     if char == '<':
                         trame += char
                         break
+                    print("[serial_read] in second while true")
 
                 while True:
                     char = self.ser.read().decode()
@@ -517,6 +522,7 @@ class robot(object):
                         trame += char
                         if char == '>':
                             break
+                    print("[serial_read] in third while true")
                 if trame:
                     # if '/' in trame:
                     #     sub_trames = trame.split('/')[1:-1]
@@ -525,7 +531,9 @@ class robot(object):
                     # else:
                     self.process_received_data(trame)
                     self.marker = True
-                break
+                    print("[serial_read] in last if")
+                    return
+                print("[serial_read] in first while true")
                     
         except serial.SerialException as e:
             print(f"Error: {e}")
@@ -635,13 +643,17 @@ class robot(object):
                 self.password = str(data[data.find('p')+1 : data.find('>')])
             
             if str(data[1:4]) == "93n": # get_name
+                print("[process_received_date] before hostname assignation")
                 self.hostname = str(data[data.find('n')+1 : data.find('>')])
+                print("[process_received_date] after hostname assignation")
 
             if str(data[1:4]) == "101": # get_accessory
                 self.accessory = float(data[data.find('t')+1 : data.find('>')])
             
             if str(data[1:4]) == "102": #get_accessory()
                 self.potard_value = float(data[data.find('a')+1 : data.find('>')])
+            
+            print("[process_received_data] in try part")
     
         except Exception as e:
             print(f'[COMMUNICATION ERROR] data process: {e}')  # -- marin add e to check the error
@@ -2109,9 +2121,11 @@ class robot(object):
         Get the name you have given to your ilo
         """
         self.send_msg("<93>")
+        print("[get_name] after sending msg")
         self.marker = False
         time.sleep(0.2)
-        self.serial_read()
+        # if connection_type == 1:
+        #     self.serial_read()
         return (self.hostname)
     #-----------------------------------------------------------------------------
     def get_accessory(self):
