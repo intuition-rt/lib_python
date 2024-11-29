@@ -542,7 +542,7 @@ class robot(object):
         """
         Process the data received from the WebSocket or Serial and update the robot's attributes
         """
-        print(f"Received: {data}")
+        print(f"[process_received_data] Received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
         
@@ -552,6 +552,7 @@ class robot(object):
                 self.red_color   = int(data[data.find('r')+1 : data.find('g')])
                 self.green_color = int(data[data.find('g')+1 : data.find('b')])
                 self.blue_color  = int(data[data.find('b')+1 : data.find('>')])
+                return(self.red_color)
 
             if str(data[1:4]) == "11l": # get_color_clear
                 self.clear_left   = int(data[data.find('l')+1 : data.find('m')])
@@ -1327,7 +1328,7 @@ class robot(object):
             TypeError: If value is not an integer
 
         Examples:
-            my_ilo.set_line_treshold_value()\n
+            my_ilo.set_line_treshold_value()
             my_ilo.set_line_treshold_value(40)
         """
 
@@ -1542,10 +1543,10 @@ class robot(object):
             return None
 
 
-        msg = "<53v"+str(value)+">"
+        msg = "<53"+str(value)+">"
         self.send_msg(msg)
 
-    def set_led_single(self, type: str, id: int, red: int, green: int, blue: int):
+    def set_led_single(self, type: str, id: int, red: int, green: int, blue: int, luminosity=None):
         """
         Lights up an individual led in the led matrix
 
@@ -1604,7 +1605,15 @@ class robot(object):
             type = "1"
         if type == "circle":
             type = "0"
-        msg = "<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g"+str(green)+"b"+str(blue)+">"
+
+        if luminosity is not None:
+            if not isinstance(luminosity, int):
+                print ("[ERROR] 'luminosity' parameter must be a integer")
+                return None
+        else:
+            luminosity = 100
+
+        msg = "<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g"+str(green)+"b"+str(blue)+"l"+str(luminosity)+">"
         self.send_msg(msg)
     #-----------------------------------------------------------------------------
     def get_acc_motor(self):
@@ -2055,7 +2064,7 @@ class robot(object):
             return None
 
         msg = "<80"+str(value)+">"
-        self.send_msg(msg) 
+        self.send_msg(msg)
     #-----------------------------------------------------------------------------
     def set_wifi_credentials(self, ssid: str, password: str):
         """
