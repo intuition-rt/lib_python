@@ -1,0 +1,8 @@
+README.md
+setup.py
+libname/ilo.py
+libname/ilo.egg-info/PKG-INFO
+libname/ilo.egg-info/SOURCES.txt
+libname/ilo.egg-info/dependency_links.txt
+libname/ilo.egg-info/requires.txt
+libname/ilo.egg-info/top_level.txt
