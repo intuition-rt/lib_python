@@ -15,7 +15,6 @@ from prettytable import PrettyTable
 
 commandes ="""
 ilo.check_robot_on_WiFi()
-my_ilo = ilo.robot(1)
 """
 pyperclip.copy(commandes)
 
@@ -135,6 +134,7 @@ def check_robot_on_WiFi():
     """
     Check the presence of the ilo(s) on the network
     """
+    pyperclip.copy("""my_ilo = ilo.robot(1)""")
     try:
         print("Looking for ilo on your network ...")
         global tab_IP
@@ -203,6 +203,7 @@ def check_robot_on_serial():
     """
     Check the connection to ilo in serial
     """
+    pyperclip.copy("""my_ilo = ilo.robot(1)""")
     try:
         global tab_PORT
         tab_PORT = []
@@ -219,7 +220,7 @@ def check_robot_on_serial():
                     ser.reset_output_buffer()
                     time.sleep(1)
 
-                    ser.write(("<93>").encode())
+                    ser.write(("<930>").encode())
                     time.sleep(1)
 
                     response = ser.readline().decode().strip()
@@ -256,6 +257,7 @@ def check_robot_on_serial():
         return None
     
 def check_robot_on_bluetooth():
+    pyperclip.copy("""my_ilo = ilo.robot(1)""")
     pass
 #-----------------------------------------------------------------------------   
 def get_IP_from_ID(ID):
@@ -397,7 +399,6 @@ class robot(object):
             
         else:
             if connection_type == 0:
-                print("[connection]: inside connection_type 0")
                 try:
                     # Start the WebSocket d'envoie de trame
                     self.ws = websocket.create_connection(f"ws://{self.IP}:{self.Port}")
@@ -425,7 +426,6 @@ class robot(object):
                         self.connect = False
 
             elif connection_type == 1:
-                print("[connection]: inside connection_type 1")
                 try:
                     # Start the serial connection
                     self.ser = serial.Serial(self.port, 115200)
@@ -459,12 +459,12 @@ class robot(object):
                     self.ser.write(message.encode())
                     print(f"Sent:     {message}")
 
-                    if message == "<ilo>":
+                    if not (message.startswith("<") and len(message) > 1 and message[1].isdigit()):
                         pass
                     else:
-                        start_time = time.time()
-                        while time.time() - start_time < 1:
-                            self.serial_read()
+                        # start_time = time.time()
+                        # while time.time() - start_time < 1:
+                        self.serial_read()
 
                 except Exception as e:
                     print(f"Error sending message: {e}")
@@ -506,35 +506,34 @@ class robot(object):
         """
         Serial function to read data from serial.
         """
-        try: 
-            while True:
-                trame = ""
-                while True:
-                    char = self.ser.read().decode()
-                    if char == '<':
-                        trame += char
-                        break
-                    print("[serial_read] in second while true")
 
-                while True:
-                    char = self.ser.read().decode()
-                    if char:
-                        trame += char
-                        if char == '>':
-                            break
-                    print("[serial_read] in third while true")
-                if trame:
-                    # if '/' in trame:
-                    #     sub_trames = trame.split('/')[1:-1]
-                    #     for sub_trame in sub_trames:
-                    #         self.process_received_data(f"<{sub_trame}>")
-                    # else:
-                    self.process_received_data(trame)
-                    self.marker = True
-                    print("[serial_read] in last if")
+        timeout = 1
+        start_time = time.time()
+        try: 
+            trame = ""
+            while True:
+                if time.time() - start_time > timeout:
+                    print("[serial_read] Timeout atteint dans la première boucle")
                     return
-                print("[serial_read] in first while true")
-                    
+                
+                char = self.ser.read().decode()
+                if char == '<':
+                    trame += char
+                    break
+
+            while True:
+                if time.time() - start_time > timeout:
+                    print("[serial_read] Timeout atteint dans la première boucle")
+                    return
+
+                char = self.ser.read().decode()
+                if char:
+                    trame += char
+                    if char == '>':
+                        break
+            if trame:
+                self.process_received_data(trame)
+                self.marker = True                 
         except serial.SerialException as e:
             print(f"Error: {e}")
     #-----------------------------------------------------------------------------
@@ -542,7 +541,7 @@ class robot(object):
         """
         Process the data received from the WebSocket or Serial and update the robot's attributes
         """
-        print(f"[process_received_data] Received: {data}")
+        # print(f"[process_received_data] Received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
         
@@ -644,17 +643,13 @@ class robot(object):
                 self.password = str(data[data.find('p')+1 : data.find('>')])
             
             if str(data[1:4]) == "93n": # get_name
-                print("[process_received_date] before hostname assignation")
                 self.hostname = str(data[data.find('n')+1 : data.find('>')])
-                print("[process_received_date] after hostname assignation")
 
             if str(data[1:4]) == "101": # get_accessory
                 self.accessory = float(data[data.find('t')+1 : data.find('>')])
             
             if str(data[1:4]) == "102": #get_accessory()
                 self.potard_value = float(data[data.find('a')+1 : data.find('>')])
-            
-            print("[process_received_data] in try part")
     
         except Exception as e:
             print(f'[COMMUNICATION ERROR] data process: {e}')  # -- marin add e to check the error
@@ -2130,7 +2125,6 @@ class robot(object):
         Get the name you have given to your ilo
         """
         self.send_msg("<93>")
-        print("[get_name] after sending msg")
         self.marker = False
         time.sleep(0.2)
         # if connection_type == 1:
