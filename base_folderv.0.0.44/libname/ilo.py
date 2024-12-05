@@ -488,11 +488,15 @@ class robot(object):
                     self.ser.write(message.encode())
                     print(f"Sent:     {message}")
 
-                    if not (message.startswith("<") and len(message) > 1 and message[1].isdigit()):
+                    invalid_prefixes = ("<a", "<i", "<13", "<31", "<51", "<52", "<53", "<54", "<55", "<610", "<620", "<680", "<690", "<70", "<80", "<91", "<94", "<0")
+
+                    if message.startswith(invalid_prefixes):
+
                         pass
                     else:
                         # start_time = time.time()
                         # while time.time() - start_time < 1:
+                        print(f'[send_msg] message: {message}')
                         self.serial_read()
 
                 except Exception as e:
@@ -2186,7 +2190,7 @@ class robot(object):
         time.sleep(0.25)
         return (self.accessory)
     #-----------------------------------------------------------------------------
-    def set_debug_state(self, state: bool):
+    def set_debug_state(self, state: bool): # pas à jour
 
         if not isinstance(state, bool):
             print ("[ERROR] 'state' parameter must be a bool like True or False")
