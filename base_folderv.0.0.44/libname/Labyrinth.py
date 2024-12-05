@@ -17,7 +17,7 @@ def check_obstacle():
 
 while True :
     
-    if my_ilo.get_distance_front() <= 60:
+    if my_ilo.get_distance_front() < 60:
         my_ilo.stop()
         print("ilo stops")
         

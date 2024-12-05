@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.0.43'
+VERSION = '0.0.44'
 DESCRIPTION = 'Control ilo robot using python command.'
 with open('README.md') as f:
     long_description = f.read()
@@ -19,8 +19,10 @@ setup(
     package_dir={'':'libname'},
     install_requires=[
         "keyboard",
-        "prettytable",
-        "websocket-client"
+        "websocket-client",
+        "pyserial",
+        "pyperclip",
+        "prettytable"
     ],
     keywords=['python', 'education'],
     classifiers=[
