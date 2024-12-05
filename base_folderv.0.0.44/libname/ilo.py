@@ -244,18 +244,17 @@ def check_robot_on_serial(COM=None):
             for port in ports:
                 print(f"Testing port: {port.device}")
                 try:
-                    with serial.Serial(port.device, 115200, timeout=1) as ser:
+                    with serial.Serial(port.device, 115200, timeout=1, write_timeout=1) as ser:
                     # with serial.Serial(port.device, 115200, timeout=1, dsrdtr=False, rtscts=False) as ser:
                         ser.reset_input_buffer()
                         ser.reset_output_buffer()
-                        time.sleep(1)
+                        time.sleep(0.2)
 
                         ser.write(("<930>").encode())
                         time.sleep(1)
 
                         response = ser.readline().decode().strip()
                         ser.close()
-                        print(response)
 
                         if response:
                             print(f"Robot {response} detected on port {port.device}")
@@ -496,7 +495,6 @@ class robot(object):
                     else:
                         # start_time = time.time()
                         # while time.time() - start_time < 1:
-                        print(f'[send_msg] message: {message}')
                         self.serial_read()
 
                 except Exception as e:
