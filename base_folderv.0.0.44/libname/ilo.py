@@ -217,7 +217,6 @@ def check_robot_on_serial(COM=None):
 
                 response = ser.readline().decode().strip()
                 ser.close()
-                print(response)
 
                 if response:
                     print(f"Robot {response} detected on port {COM}")
@@ -232,7 +231,7 @@ def check_robot_on_serial(COM=None):
                 else:
                     print(f"No valid response received on {COM}")
         except (serial.SerialException, OSError) as e:
-            print(f"Error with port {port.device} : {e}")
+            print(f"Error with port {COM} : {e}")
 
     else:
         try:
@@ -487,10 +486,9 @@ class robot(object):
                     self.ser.write(message.encode())
                     print(f"Sent:     {message}")
 
-                    invalid_prefixes = ("<a", "<i", "<13", "<31", "<51", "<52", "<53", "<54", "<55", "<610", "<620", "<680", "<690", "<70", "<80", "<91", "<94", "<0")
+                    invalid_prefixes = ("<a", "<i", "<13", "<31", "<51", "<52", "<53", "<54", "<55", "<610", "<620", "<680", "<690", "<70", "<80", "<91", "<94", "<0", "<>")
 
                     if message.startswith(invalid_prefixes):
-
                         pass
                     else:
                         # start_time = time.time()
@@ -501,7 +499,6 @@ class robot(object):
                     print(f"Error sending message: {e}")
             else:
                 print("Serial is not connected.")
-        
         else:
             print("No connection established (error sending message).")
     #-----------------------------------------------------------------------------
@@ -722,8 +719,8 @@ class robot(object):
         print(f"Destruction de l'objet robot avec l'ID {self.ID}")
         if connection_type == 0:
             self.ws.close()
-        elif connection_type == 1:
-            self.ser.close()
+        else:
+            pass # on ne peut pas paraleléliser les ouverture de pourt comme les websocket
     #-----------------------------------------------------------------------------
     def test_connection(self):
         """
