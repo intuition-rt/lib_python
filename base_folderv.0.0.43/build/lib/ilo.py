@@ -3,24 +3,17 @@
 # 25/09/2024
 # code work with 1.2.7 version of c++
 #-----------------------------------------------------------------------------
-version = "0.42 reviewing 0.41"
+version = "0.43"
 # import clipborad to fast run 
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 #-----------------------------------------------------------------------------
-import time, keyboard, websocket, threading, math, serial, serial.tools.list_ports, pyperclip
+import time, keyboard, websocket, threading, math
 from prettytable import PrettyTable 
 
-commandes ="""
-ilo.check_robot_on_WiFi()
-"""
-pyperclip.copy(commandes)
-
 tab_IP = []
-tab_PORT = []
-connection_type = 0
 #-----------------------------------------------------------------------------
 def info():
     """
@@ -115,9 +108,10 @@ def list_function():
     my_ilo_table.add_row(["get_name()", "Get the name you have given to your ilo"], divider=True)
 
     print(my_ilo_table)
+
     print("If the table does not display correctly, expand your terminal.")
 #-----------------------------------------------------------------------------
-def co_send_msg(ws, message):
+def co_web_socket_send(ws, message):
     '''
     Send a message over the WebSocket connection
     '''
@@ -134,7 +128,6 @@ def check_robot_on_WiFi():
     """
     Check the presence of the ilo(s) on the network
     """
-    pyperclip.copy("""my_ilo = ilo.robot(1)""")
     try:
         print("Looking for ilo on your network ...")
         global tab_IP
@@ -145,8 +138,8 @@ def check_robot_on_WiFi():
             ws_url = "ws://192.168.4.1:4583"
             print(ws_url)
             ws = websocket.create_connection(ws_url, timeout = 1.3)
-            if co_send_msg(ws, "<ilo>") == "ilo":
-                tab_IP.append(["192.168.4.1", 1, co_send_msg(ws, "<930>")])
+            if co_web_socket_send(ws, "<ilo>") == "ilo":
+                tab_IP.append(["192.168.4.1", 1, co_web_socket_send(ws, "<930>")])
                 
                 ilo_AP = True
                 ws.close()
@@ -170,9 +163,9 @@ def check_robot_on_WiFi():
                 
                 try:
                     ws = websocket.create_connection(ws_url, timeout = 1.3)  # Set timeout for each connection
-                    if co_send_msg(ws, "<ilo>") == "ilo":
-                        co_send_msg(ws, "<>")
-                        tab_IP.append([IP, ilo_ID, co_send_msg(ws, "<930>")])
+                    if co_web_socket_send(ws, "<ilo>") == "ilo":
+                        co_web_socket_send(ws, "<>")
+                        tab_IP.append([IP, ilo_ID, co_web_socket_send(ws, "<930>")])
                         ilo_ID += 1
                         c += 1
                         ws.close()
@@ -191,8 +184,6 @@ def check_robot_on_WiFi():
             print(table)
             print("")
             print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-            global connection_type
-            connection_type = 0
         else:
             print("Unfortunately, no ilo is present on your current network. Check your connection.")
 
@@ -200,64 +191,9 @@ def check_robot_on_WiFi():
         print(f"WebSocket error: {e}")    
 
 def check_robot_on_serial():
-    """
-    Check the connection to ilo in serial
-    """
-    pyperclip.copy("""my_ilo = ilo.robot(1)""")
-    try:
-        global tab_PORT
-        tab_PORT = []
-        ilo_ID = 1
+    pass
 
-        print("Check that ilo is properly connected ...")
-        ports = serial.tools.list_ports.comports()
-        for port in ports:
-            print(f"Testing port: {port.device}")
-            try:
-                with serial.Serial(port.device, 115200, timeout=1) as ser:
-                # with serial.Serial(port.device, 115200, timeout=1, dsrdtr=False, rtscts=False) as ser:
-                    ser.reset_input_buffer()
-                    ser.reset_output_buffer()
-                    time.sleep(1)
-
-                    ser.write(("<930>").encode())
-                    time.sleep(1)
-
-                    response = ser.readline().decode().strip()
-                    ser.close()
-                    print(response)
-
-                    if response:
-                        print(f"Robot {response} detected on port {port.device}")
-                        tab_PORT.append([port.device, ilo_ID, response])
-                        ilo_ID += 1
-                    else:
-                        print(f"No valid response received on {port.device}")
-            except (serial.SerialException, OSError) as e:
-                print(f"Error with port {port.device} : {e}")
-                continue
-
-        table = PrettyTable()
-        table.field_names = ["Device port", "ID of ilo", "Name of ilo"]
-
-        for row in tab_PORT:
-            table.add_row(row)
-        
-        if len(tab_PORT) != 0:
-            print(table)
-            print("")
-            print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-            global connection_type
-            connection_type = 1
-        else:
-            print("Unfortunately, no ilo is connected to your computer. Check your connection.") 
-
-    except Exception as e:
-        print(f"Serial error: {e}")
-        return None
-    
 def check_robot_on_bluetooth():
-    pyperclip.copy("""my_ilo = ilo.robot(1)""")
     pass
 #-----------------------------------------------------------------------------   
 def get_IP_from_ID(ID):
@@ -271,42 +207,23 @@ def get_IP_from_ID(ID):
         if item[1] == ID:
             return item[0]
     return None
-
-def get_PORT_from_ID(ID):
-    '''
-    Get the PORT of the robot from its ID
-    '''
-    global tab_PORT
-    for item in tab_PORT:
-        if item[1] == ID:
-            return item[0]
-    return None
 #-----------------------------------------------------------------------------
 class robot(object):
-    global connection_type
+
     robots_connected = {} # Variable de classe pour garder une trace des connexions actives
     
     def __init__(self, ID):
-        self.ID = ID
-
-        # if connection_type == 0:
+        
         if ID in robot.robots_connected: # Vérification si un robot avec cet ID est déjà connecté
             print(f"Un robot avec l'ID {ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
             old_robot = robot.robots_connected[ID]
             old_robot.recv_thread_running = False # Arrêter le thread mais sans déconnexion immédiate
-
+        
+        self.ID = ID
         self.Port = 4583
         self.ws = None
         self.connect = False
         self.IP = get_IP_from_ID(self.ID)
-
-        self.recv_thread = None
-        self.recv_thread_running = False
-
-        # elif connection_type == 1:
-        self.port = get_PORT_from_ID(self.ID)
-        self.ser = None
-        # self.connect = False
 
         self.hostname = ""
         
@@ -374,7 +291,10 @@ class robot(object):
  
         # -- marin add all other data of the robot
         # -- thinking to a solution to get data from additional captor connected on the top of the robot via accessory PCB
-
+        
+        self.recv_thread = None
+        self.recv_thread_running = False
+        
         # Ajouter ce robot à la liste des robots connectés
         robot.robots_connected[self.ID] = self
 
@@ -383,96 +303,56 @@ class robot(object):
             self.connection()
         else:
             print("You have to run the command [ilo.check_ilo_on_network()] to know if there are robots present on your network")
-            print("or")
-            print("Run the command [ilo.check_ilo_on_serial()] to know if there are robots connected to your computer")
+
     #-----------------------------------------------------------------------------
     def connection(self):
         """
         Connection of your machine to robot object 
         """
         if self.hostname != "":
-
-            self.send_msg("<ilo>")
-
+            self.web_socket_send("<ilo>")
             print('Your robot is already connected to ' + self.hostname)
-                #-- marin check if the websocket is well working (test un envoi de trame ou spécific methode
+            #-- marin check if the websocket is well working (test un envoi de trame ou spécific methode
             
         else:
-            if connection_type == 0:
-                try:
-                    # Start the WebSocket d'envoie de trame
-                    self.ws = websocket.create_connection(f"ws://{self.IP}:{self.Port}")
-                    
-                    # Vérifie si un ancien thread de réception est actif et l'arrête avant d'en démarrer un nouveau
-                    if self.recv_thread and self.recv_thread.is_alive():
-                        print("Stopping the previous reception thread...")
-                        self.stop_reception()
-
-                    # Start the WebSocket de reception in a separate thread
-                    self.recv_thread_running = True
-                    self.recv_thread = threading.Thread(target=self.web_socket_receive)
-                    self.recv_thread.start()
-
-                    self.connect = True
-                    self.send_msg("<ilo>")
-                    time.sleep(0.2)
-                    self.get_name()
-                    print('Your are connected to ' + self.hostname)
+            try:
+                # Start the WebSocket d'envoie de trame
+                self.ws = websocket.create_connection(f"ws://{self.IP}:{self.Port}")
                 
-                except Exception as e:
-                        print("Connection error: you have to be connect to the ilo wifi network")
-                        print(" --> If the disfonction continu, switch off and switch on ilo")
-                        print(f"Error connecting to the robot: {e}")
-                        self.connect = False
+                # Vérifie si un ancien thread de réception est actif et l'arrête avant d'en démarrer un nouveau
+                if self.recv_thread and self.recv_thread.is_alive():
+                    print("Stopping the previous reception thread...")
+                    self.stop_reception()
 
-            elif connection_type == 1:
-                try:
-                    # Start the serial connection
-                    self.ser = serial.Serial(self.port, 115200)
+                # Start the WebSocket de reception in a separate thread
+                self.recv_thread_running = True
+                self.recv_thread = threading.Thread(target=self.web_socket_receive)
+                self.recv_thread.start()
 
-                    self.connect = True
-                    self.send_msg("<ilo>")
-                    time.sleep(0.2)
-                    self.get_name()
-                    time.sleep(0.2)
-                    print('Your are connected to ' + self.hostname)
-                except Exception as e:
-                        print("Connection error: you must be connected to the ilo robot")
-                        print(" --> If the disfonction continu, switch off and switch on ilo")
-                        print(f"Error connecting to the robot: {e}")
-                        self.connect = False
+                self.connect = True
+                self.web_socket_send("<ilo>")
+                time.sleep(0.2)
+                self.get_name()
+                print('Your are connected to ' + self.hostname)
+            
+            except Exception as e:
+                    print("Error connection: you have to be connect to the ilo wifi network")
+                    print(" --> If the disfonction continu, switch off and switch on ilo")
+                    print(f"Error connecting to the robot: {e}")
+                    self.connect = False
     #-----------------------------------------------------------------------------
-    def send_msg(self, message):
-        if connection_type == 0:
-            if self.ws and self.connect:
-                try:
-                    self.ws.send(message)
-                    print(f"Sent:     {message}")
-                except websocket.WebSocketException as e:
-                    print(f"Error sending message: {e}")
-            else:
-                print("WebSocket is not connected.")
-
-        elif connection_type == 1:
-            if self.ser and self.connect:
-                try:
-                    self.ser.write(message.encode())
-                    print(f"Sent:     {message}")
-
-                    if not (message.startswith("<") and len(message) > 1 and message[1].isdigit()):
-                        pass
-                    else:
-                        # start_time = time.time()
-                        # while time.time() - start_time < 1:
-                        self.serial_read()
-
-                except Exception as e:
-                    print(f"Error sending message: {e}")
-            else:
-                print("Serial is not connected.")
-        
+    def web_socket_send(self, message):
+        """
+        Send a message over the WebSocket connection.
+        """
+        if self.ws and self.connect:
+            try:
+                self.ws.send(message)
+                print(f"Sent:     {message}")
+            except websocket.WebSocketException as e:
+                print(f"Error sending message: {e}")
         else:
-            print("No connection established (error sending message).")
+            print("WebSocket is not connected.")
     #-----------------------------------------------------------------------------
     def web_socket_receive(self):
         """
@@ -501,47 +381,12 @@ class robot(object):
                 break
 
         print("Thread de réception terminé.")
-
-    def serial_read(self):
-        """
-        Serial function to read data from serial.
-        """
-
-        timeout = 1
-        start_time = time.time()
-        try: 
-            trame = ""
-            while True:
-                if time.time() - start_time > timeout:
-                    print("[serial_read] Timeout atteint dans la première boucle")
-                    return
-                
-                char = self.ser.read().decode()
-                if char == '<':
-                    trame += char
-                    break
-
-            while True:
-                if time.time() - start_time > timeout:
-                    print("[serial_read] Timeout atteint dans la première boucle")
-                    return
-
-                char = self.ser.read().decode()
-                if char:
-                    trame += char
-                    if char == '>':
-                        break
-            if trame:
-                self.process_received_data(trame)
-                self.marker = True                 
-        except serial.SerialException as e:
-            print(f"Error: {e}")
     #-----------------------------------------------------------------------------
     def process_received_data(self, data):
         """
-        Process the data received from the WebSocket or Serial and update the robot's attributes
+        Process the data received from the WebSocket and update the robot's attributes
         """
-        # print(f"[process_received_data] Received: {data}")
+        print(f"Received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
         
@@ -551,7 +396,6 @@ class robot(object):
                 self.red_color   = int(data[data.find('r')+1 : data.find('g')])
                 self.green_color = int(data[data.find('g')+1 : data.find('b')])
                 self.blue_color  = int(data[data.find('b')+1 : data.find('>')])
-                return(self.red_color)
 
             if str(data[1:4]) == "11l": # get_color_clear
                 self.clear_left   = int(data[data.find('l')+1 : data.find('m')])
@@ -689,30 +533,19 @@ class robot(object):
         and the ID is removed from the list of connected robots
         """
         print(f"Destruction de l'objet robot avec l'ID {self.ID}")
-        if connection_type == 0:
-            self.ws.close()
-        elif connection_type == 1:
-            self.ser.close()
+        self.ws.close()
     #-----------------------------------------------------------------------------
     def test_connection(self):
         """
         Test the connection to the robot via a try of stop method
         :return: True or False
         """
-        if connection_type == 0:
-            try:
-                self.send_msg("<ilo>")
-                return True
-            except:
-                print("Error connection to the robot")
-                return False
-        elif connection_type == 1:
-            try:
-                self.send_msg("<ilo>")
-                return True
-            except:
-                print("Error connection to the robot")
-                return False
+        try:
+            self.web_socket_send("<ilo>")
+            return True
+        except:
+            print("Error connection to the robot")
+            return False
     #-----------------------------------------------------------------------------
     def correction_command(self, acc, list_course):
         """
@@ -754,7 +587,7 @@ class robot(object):
         """
         Stop ilo and free its engines
         """
-        self.send_msg("<>")   
+        self.web_socket_send("<>")   
     
     def pause(self):
         """
@@ -826,22 +659,22 @@ class robot(object):
 
         if direction == 'front':
             msg = '<a60vpx1' + str(step) + 'yr>'
-            self.send_msg(msg)
+            self.web_socket_send(msg)
         elif direction == 'back':
             msg = '<a60vpx0' + str(step) + 'yr>'
-            self.send_msg(msg)
+            self.web_socket_send(msg)
         elif direction == 'left':
             msg = '<a60vpxy0' + str(step) + 'r>'
-            self.send_msg(msg)
+            self.web_socket_send(msg)
         elif direction == 'right':
             msg = '<a60vpxy1' + str(step) + 'r>'
-            self.send_msg(msg)
+            self.web_socket_send(msg)
         elif direction == 'rot_trigo':
             msg = '<a60vpxyr0' + str(step) + '>'
-            self.send_msg(msg)
+            self.web_socket_send(msg)
         elif direction == 'rot_clock':
             msg = '<a60vpxyr1' + str(step) + '>'
-            self.send_msg(msg)
+            self.web_socket_send(msg)
         else:
             print("[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'") 
  
@@ -894,7 +727,7 @@ class robot(object):
         distance_x = abs(int(math.cos(radian) * distance)) 
         distance_y = abs(int(math.sin(radian) * distance)) 
         msg = ("<avpx" + str(indice_x) + str(distance_x) + "y" + str(indice_y) + str(distance_y) + ">") 
-        self.send_msg(msg)
+        self.web_socket_send(msg)
 
     def list_order(self, ilo_list):
         """
@@ -979,7 +812,7 @@ class robot(object):
             return None
 
         corrected_command = self.correction_command(acc, command)
-        self.send_msg(corrected_command) 
+        self.web_socket_send(corrected_command) 
 
     def direct_control(self, acc: int, axial: int, radial: int, rotation: int):
         """
@@ -1024,7 +857,7 @@ class robot(object):
 
         command = [axial, radial, rotation]
         corrected_command = self.correction_command(acc, command)
-        self.send_msg(corrected_command)  
+        self.web_socket_send(corrected_command)  
 
     def game(self):
         """
@@ -1122,13 +955,13 @@ class robot(object):
             return None
 
         msg = "<690t"+str(value)+">"
-        self.send_msg(msg)        
+        self.web_socket_send(msg)        
 
     def get_tempo_pos(self):
         """
         Get the tempo of the position control
         """
-        self.send_msg("<691>")
+        self.web_socket_send("<691>")
         time.sleep(0.1)
         return (self.tempo_pos)
 
@@ -1157,7 +990,7 @@ class robot(object):
             indice = 0
     
         command = ("<avpxyr" + str(indice) + str(abs(angle)) + ">")
-        self.send_msg(command)
+        self.web_socket_send(command)
 
     def set_pid(self, kp, ki, kd):
         """
@@ -1206,13 +1039,13 @@ class robot(object):
         kd = int(kd *10)
         
         msg = "<70p"+str(kp)+"i"+ str(ki) + "d" + str(kd) + ">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
     
     def get_pid(self):
         """
         Get the actual value of the proportional gain, the integral gain and the derivative gain
         """
-        self.send_msg("<71>")
+        self.web_socket_send("<71>")
         time.sleep(0.1)
         return (self.kp, self.ki, self.kd)
     #-----------------------------------------------------------------------------
@@ -1220,7 +1053,7 @@ class robot(object):
         """
         Displays the color below ilo
         """
-        self.send_msg("<10>")
+        self.web_socket_send("<10>")
         time.sleep(0.1)
         return (self.red_color, self.green_color, self.blue_color)
     
@@ -1246,13 +1079,13 @@ class robot(object):
             msg = "<54l1>"
         elif (state == False):
             msg = "<54l0>"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
     #-----------------------------------------------------------------------------
     def get_color_clear(self):
         """
         Displays the brightness below ilo
         """
-        self.send_msg("<11>")
+        self.web_socket_send("<11>")
         time.sleep(0.1)
         return (self.clear_left, self.clear_center, self.clear_right)
     
@@ -1260,7 +1093,7 @@ class robot(object):
         """
         Displays the brightness below ilo only with left sensor
         """
-        self.send_msg("<11>")
+        self.web_socket_send("<11>")
         time.sleep(0.1)
         return (self.clear_left)
     
@@ -1268,7 +1101,7 @@ class robot(object):
         """
         Displays the brightness below ilo only with central sensor
         """
-        self.send_msg("<11>")
+        self.web_socket_send("<11>")
         time.sleep(0.1)
         return (self.clear_center)
 
@@ -1276,7 +1109,7 @@ class robot(object):
         """
         Displays the brightness below ilo only with right sensor
         """
-        self.send_msg("<11>")
+        self.web_socket_send("<11>")
         time.sleep(0.1)
         return (self.clear_right)
     #-----------------------------------------------------------------------------
@@ -1284,7 +1117,7 @@ class robot(object):
         """
         Detects whether ilo is on a line or not
         """
-        self.send_msg("<12>")
+        self.web_socket_send("<12>")
         time.sleep(0.1)
         return (self.line_left, self.line_center, self.line_right)
 
@@ -1292,7 +1125,7 @@ class robot(object):
         """
         Detects whether ilo is on a line or not according to the left sensor
         """
-        self.send_msg("<12>")
+        self.web_socket_send("<12>")
         time.sleep(0.1)
         return (self.line_left)
     
@@ -1300,7 +1133,7 @@ class robot(object):
         """
         Detects whether ilo is on a line or not according to the central sensor
         """
-        self.send_msg("<12>")
+        self.web_socket_send("<12>")
         time.sleep(0.1)
         return (self.line_center)
 
@@ -1308,7 +1141,7 @@ class robot(object):
         """
         Detects whether ilo is on a line or not according to the right sensor
         """
-        self.send_msg("<12>")
+        self.web_socket_send("<12>")
         time.sleep(0.1)
         return (self.line_right)
 
@@ -1323,7 +1156,7 @@ class robot(object):
             TypeError: If value is not an integer
 
         Examples:
-            my_ilo.set_line_treshold_value()
+            my_ilo.set_line_treshold_value()\n
             my_ilo.set_line_treshold_value(40)
         """
 
@@ -1343,13 +1176,13 @@ class robot(object):
 
 
         msg = "<13t"+str(value)+">"
-        self.send_msg(msg)  
+        self.web_socket_send(msg)  
      
     def get_line_threshold_value(self):
         """
         Get the actual value of the threshold value for the line detection
         """
-        self.send_msg("<14>")
+        self.web_socket_send("<14>")
         time.sleep(0.1)
         return (self.line_threshold_value)
     #-----------------------------------------------------------------------------
@@ -1357,7 +1190,7 @@ class robot(object):
         """
         Get the distance around ilo
         """
-        self.send_msg("<20>")
+        self.web_socket_send("<20>")
         time.sleep(0.15)
         return (self.distance_front, self.distance_right, self.distance_back, self.distance_left)
     
@@ -1365,7 +1198,7 @@ class robot(object):
         """
         Get the distance in front of ilo
         """
-        self.send_msg("<20>")
+        self.web_socket_send("<20>")
         time.sleep(0.1)
         return (self.distance_front)
    
@@ -1373,7 +1206,7 @@ class robot(object):
         """
         Get the distance on the right of ilo
         """
-        self.send_msg("<20>")
+        self.web_socket_send("<20>")
         time.sleep(0.1)
         return (self.distance_right)
     
@@ -1381,7 +1214,7 @@ class robot(object):
         """
         Get the distance behind ilo
         """
-        self.send_msg("<20>")
+        self.web_socket_send("<20>")
         time.sleep(0.1)
         return (self.distance_back)
     
@@ -1389,7 +1222,7 @@ class robot(object):
         """
         Get the distance on the left of ilo
         """
-        self.send_msg("<20>")
+        self.web_socket_send("<20>")
         time.sleep(0.1)
         return (self.distance_left)
     #-----------------------------------------------------------------------------
@@ -1397,7 +1230,7 @@ class robot(object):
         """
         Get the angle of ilo
         """
-        self.send_msg("<30>")
+        self.web_socket_send("<30>")
         time.sleep(0.1)
         return (self.roll, self.pitch, self.yaw)
     
@@ -1405,7 +1238,7 @@ class robot(object):
         """
         Get the roll angle of ilo
         """
-        self.send_msg("<30>")
+        self.web_socket_send("<30>")
         time.sleep(0.1)
         return (self.roll)
 
@@ -1413,7 +1246,7 @@ class robot(object):
         """
         Get the pitch angle of ilo
         """
-        self.send_msg("<30>")
+        self.web_socket_send("<30>")
         time.sleep(0.1)
         return (self.pitch)
     
@@ -1421,7 +1254,7 @@ class robot(object):
         """
         Get the yaw angle of ilo
         """
-        self.send_msg("<30>")
+        self.web_socket_send("<30>")
         time.sleep(0.1)
         return (self.yaw)
 
@@ -1429,13 +1262,13 @@ class robot(object):
         """
         Reset the angle of ilo
         """
-        self.send_msg("<31>")
+        self.web_socket_send("<31>")
 
     def get_raw_imu(self):
         """
         Get IMU raw data
         """
-        self.send_msg("<32>")
+        self.web_socket_send("<32>")
         time.sleep(0.1)
         return (self.accX, self.accY, self.accZ, self.gyroX, self.gyroY, self.gyroZ)
     #-----------------------------------------------------------------------------
@@ -1443,7 +1276,7 @@ class robot(object):
         """
         Get battery status (charged or not) and percentage
         """
-        self.send_msg("<40>")
+        self.web_socket_send("<40>")
         time.sleep(0.1)
         return (self.battery_status, self.battery_pourcentage) 
     #-----------------------------------------------------------------------------
@@ -1451,7 +1284,7 @@ class robot(object):
         """
         Get ilo LEDS color
         """
-        self.send_msg("<50>")
+        self.web_socket_send("<50>")
         time.sleep(0.1)
         return (self.red_led, self.green_led, self.blue_led)
             
@@ -1496,7 +1329,7 @@ class robot(object):
             return None
         
         msg = "<51r"+str(red)+"g"+str(green)+"b"+str(blue)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
 
     def set_led_shape(self, value: str):
         """
@@ -1517,7 +1350,7 @@ class robot(object):
             return None
 
         msg = "<52v"+str(value)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
         
     def set_led_anim(self,value: str):
         """
@@ -1539,9 +1372,9 @@ class robot(object):
 
 
         msg = "<53"+str(value)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
 
-    def set_led_single(self, type: str, id: int, red: int, green: int, blue: int, luminosity=None):
+    def set_led_single(self, type: str, id: int, red: int, green: int, blue: int):
         """
         Lights up an individual led in the led matrix
 
@@ -1600,22 +1433,14 @@ class robot(object):
             type = "1"
         if type == "circle":
             type = "0"
-
-        if luminosity is not None:
-            if not isinstance(luminosity, int):
-                print ("[ERROR] 'luminosity' parameter must be a integer")
-                return None
-        else:
-            luminosity = 100
-
-        msg = "<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g"+str(green)+"b"+str(blue)+"l"+str(luminosity)+">"
-        self.send_msg(msg)
+        msg = "<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g"+str(green)+"b"+str(blue)+">"
+        self.web_socket_send(msg)
     #-----------------------------------------------------------------------------
     def get_acc_motor(self):
         """
         Get the acceleration of all motors
         """
-        self.send_msg("<681>")
+        self.web_socket_send("<681>")
         time.sleep(0.1)
         return (self.acc_motor)
     
@@ -1644,7 +1469,7 @@ class robot(object):
         if acc < 1 : acc = 1
         elif acc > 200 : acc = 200
         msg = "<680a"+str(acc)+">"
-        self.send_msg(msg) 
+        self.web_socket_send(msg) 
     #-----------------------------------------------------------------------------
     # <60i1s1>
     def ping_single_motor(self, id: int):
@@ -1670,7 +1495,7 @@ class robot(object):
             return None
 
         msg = "<60i"+str(id)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
         time.sleep(0.1)
         return (self.motor_id, self.motor_ping)
     # <610i1v3000>
@@ -1722,7 +1547,7 @@ class robot(object):
         
         vel = vel * 70
         msg = "<610i"+str(id)+"a"+str(acc)+"v"+str(vel)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
 
     def drive_single_motor_speed_front_left(self, value: int):  # de -100 à 100
         """
@@ -1825,26 +1650,33 @@ class robot(object):
             return None
         
         msg = "<611i"+str(id)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
         time.sleep(0.1)
         return (self.motor_id, self.motor_speed)
-    # <620i6a90>
-    def drive_single_motor_angle(self, id: int, angle: int):
+    
+    # <620i6a100v100p90>
+    def drive_single_motor_angle(self, id: int, acc:int, vel:int, pos: int):
         """
         Drive a single motor in angle with is id
 
         Parameters:
             id (int): the motor id
-            value (int): the motor angle
+            acc (int): accereleration
+            vel (int): velocity
+            pos (int): the motor angle
 
         Raises:
             TypeError: If 'id' is not an integer
             ValueError: If 'id' is not between 0 and 255
-            TypeError: If 'angle' is not an integer
-            ValueError: If 'angle' is not between 0 and 4096
+            TypeError: If 'acc' is not an integer
+            ValueError: If 'acc' is not between 1 and 200
+            TypeError: If 'vel' is not an integer
+            ValueError: If 'vel' is not between -7000 and 7000 
+            TypeError: If 'pos' is not an integer
+            ValueError: If pos' is not between 0 and 4096
 
         Examples:
-            my_ilo.drive_single_motor_speed(1, 50)
+            my_ilo.drive_single_motor_speed(1,20,40,1024)
         """
 
         if not isinstance(id, int):
@@ -1854,19 +1686,30 @@ class robot(object):
             print ("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
         
-        if not isinstance(angle, int):
-            print ("[ERROR] 'value' parameter must be a integer")
+        if not isinstance(acc, int):
+            print ("[ERROR] 'acc' parameter must be a integer")
             return None
-        if angle>4096 or angle<0:
-            print ("[ERROR] 'value' parameter must be include between 0 and 4096")
+        if acc>=200 or acc<0:
+            print ("[ERROR] 'acc' parameter must be include between 0 and 200")
             return None
         
-        if id < 0 : id = 0
-        elif id > 255 : id = 255
-        if angle < 0 : angle = 0
-        elif angle > 4096 : angle = 4096
-        msg = "<610i"+str(id)+"a"+str(angle)+">"
-        self.send_msg(msg)
+        if not isinstance(vel, int):
+            print ("[ERROR] 'vel' parameter must be a integer")
+            return None
+        if vel>=7000 or vel<=-7000:
+            print ("[ERROR] 'vel' parameter must be include between -7000 and 7000")
+            return None
+        
+        if not isinstance(pos, int):
+            print ("[ERROR] 'pos' parameter must be a integer")
+            return None
+        if pos>4096 or pos<0:
+            print ("[ERROR] 'pos' parameter must be include between 0 and 4096")
+            return None
+        
+        msg = "<620i"+str(id)+"a"+str(acc)+"v"+str(vel)+"p"+str(pos)+">"
+        self.web_socket_send(msg)
+        
     # <621i6a90>
     def get_single_motor_angle(self, id: int):
         """
@@ -1891,7 +1734,7 @@ class robot(object):
             return None
 
         msg = "<621i"+str(id)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
         time.sleep(0.1)
         return (self.motor_id, self.motor_angle)
     # <63i1t45>
@@ -1918,7 +1761,7 @@ class robot(object):
             return None
 
         msg = "<63i"+str(id)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
         time.sleep(0.1)
         return (self.motor_id, self.temp_motor)
     # <64i1v6.7>
@@ -1945,7 +1788,7 @@ class robot(object):
             return None
 
         msg = "<64i"+str(id)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
         time.sleep(0.1)
         return (self.motor_id, self.volt_motor)
     # <65i1t20>
@@ -1972,7 +1815,7 @@ class robot(object):
             return None
 
         msg = "<65i"+str(id)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
         time.sleep(0.1)
         return (self.motor_id, self.torque_motor)
     # <66i1c20>
@@ -1999,7 +1842,7 @@ class robot(object):
             return None
 
         msg = "<66i"+str(id)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
         time.sleep(0.1)
         return (self.motor_id, self.current_motor)
     # <67i1s20>
@@ -2026,7 +1869,7 @@ class robot(object):
             return None
 
         msg = "<67i"+str(id)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
         time.sleep(0.1)
         return (self.motor_id, self.motor_moving)
 
@@ -2059,7 +1902,7 @@ class robot(object):
             return None
 
         msg = "<80"+str(value)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg) 
     #-----------------------------------------------------------------------------
     def set_wifi_credentials(self, ssid: str, password: str):
         """
@@ -2086,16 +1929,16 @@ class robot(object):
             return None
         
         msg = "<90s"+str(ssid)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
 
         msg = "<91p"+str(password)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
 
     def get_wifi_credentials(self):
         """
         Get wifi credentials registered on ilo
         """
-        self.send_msg("<92>")
+        self.web_socket_send("<92>")
         time.sleep(0.1)
         return (self.ssid, self.password)
     #-----------------------------------------------------------------------------
@@ -2118,24 +1961,23 @@ class robot(object):
             return None
         
         msg = "<94n"+str(name)+">"
-        self.send_msg(msg) 
+        self.web_socket_send(msg) 
         
     def get_name(self):
         """
         Get the name you have given to your ilo
         """
-        self.send_msg("<93>")
+        self.web_socket_send("<93>")
         self.marker = False
-        time.sleep(0.2)
-        # if connection_type == 1:
-        #     self.serial_read()
+        while not self.marker :
+            pass
         return (self.hostname)
     #-----------------------------------------------------------------------------
     def get_accessory(self):
         """
         Get information about the accessory connected to ilo
         """
-        self.send_msg("<100>")
+        self.web_socket_send("<100>")
         time.sleep(0.25)
         return (self.accessory)
     #-----------------------------------------------------------------------------
@@ -2146,7 +1988,7 @@ class robot(object):
             return None
 
         msg = "<94"+str(state)+">"
-        self.send_msg(msg)
+        self.web_socket_send(msg)
     #-----------------------------------------------------------------------------
     def send_trame_s(self, param_list: list):
         """
@@ -2167,11 +2009,11 @@ class robot(object):
 
         msg = msg + ">"
 
-        self.send_msg(msg)
+        self.web_socket_send(msg)
     
     def del_trame_s(self):
         """
         Stop the global trame
         """
-        self.send_msg("<00>")
+        self.web_socket_send("<00>")
     #-----------------------------------------------------------------------------
