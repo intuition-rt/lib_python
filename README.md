@@ -9,6 +9,16 @@
   - check_robot_on_network()
   - sent / received
 
+## Version 44:
+
+Date de publication: 05/12/2024
+
+Ajout par rapport à la version précédente:
+```
+• Add serial
+• Add pyperclip (for ctrl + v)
+```
+
 
 ## Version 41:
 

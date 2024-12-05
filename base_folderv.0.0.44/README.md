@@ -35,6 +35,10 @@ pip install ilo --upgrade
 
 - [WebSocket-Client - websocket-client is a WebSocket client for Python. It provides access to low level APIs for WebSockets.](https://pypi.org/project/websocket-client/)
 
+- [Python Serial Port Extension for Win32, OSX, Linux, BSD, Jython, IronPython.](https://pypi.org/project/pyserial/)
+
+- [Pyperclip is a cross-platform Python module for copy and paste clipboard functions.](https://pypi.org/project/pyperclip/)
+
 Don't worry, these dependencies are automatically installed with the ilo library.
 
 ## Example
