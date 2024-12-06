@@ -10,13 +10,22 @@ print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 #-----------------------------------------------------------------------------
 import time, keyboard, websocket, threading, math, serial, serial.tools.list_ports, pyperclip
-from prettytable import PrettyTable 
+from prettytable import PrettyTable
+from bleak import BleakScanner, BleakClient
+import asyncio
+import nest_asyncio
 
 pyperclip.copy("""ilo.check_robot_on_WiFi()""")
 
-tab_IP = []
-tab_PORT = []
 connection_type = 0
+#WiFi
+tab_IP = []
+#Serial
+tab_PORT = []
+#BLE
+CHARACTERISTIC_UUID_NOTIF = "1A2B"  # Notify characteristic
+CHARACTERISTIC_UUID_RXTX  = "DEAD"  # Read/Write characteristic
+client = None
 #-----------------------------------------------------------------------------
 def info():
     """
@@ -36,7 +45,7 @@ def list_function():
     ilo_table.align["Methods"] = "l"
     ilo_table.align["Description"] = "l"
     ilo_table.add_row(["ilo.info()", "Print info about ilorobot"], divider=True)
-    ilo_table.add_row(["ilo.check_robot_on_network()                      ", "Scan the network for robots                                                             "], divider=True)
+    ilo_table.add_row(["ilo.check_robot_on_network()", "Scan the network for robots"], divider=True)
     ilo_table.add_row(["ilo.list_function", "Print the list of all the functions available in the library"], divider=True)
     print(ilo_table)
     print("")
@@ -283,9 +292,59 @@ def check_robot_on_serial(COM=None):
             print(f"Serial error: {e}")
             return None
     
-def check_robot_on_bluetooth():
+async def check_robot_on_bluetooth(device_name="NimBLE-Arduino"):
+    """
+    Scan and connect to the BLE device
+    """
     pyperclip.copy("""my_ilo = ilo.robot(1)""")
-    pass
+
+    global client
+    print("Scanning for BLE devices...")
+    devices = await BleakScanner.discover()
+
+    for device in devices:
+        try:
+            print(f'Found device: {device.name} ({device.address})')
+            client = BleakClient(device.address)
+
+            try:
+                await asyncio.wait_for(client.connect(), timeout=1)
+            except asyncio.TimeoutError:
+                print("Failed to connect to the ESP32 BLE server.")
+                continue  # Continue to the next BLE device
+
+            if client.is_connected:
+                print("Connected to the ESP32 BLE server.")
+                try:
+                    await asyncio.wait_for(client.write_gatt_char(CHARACTERISTIC_UUID_RXTX,"<ilo>"), timeout=1)
+                    await asyncio.wait_for(client.write_gatt_char(CHARACTERISTIC_UUID_RXTX,"<93>"), timeout=1)
+                except asyncio.TimeoutError:
+                    print("Failed to write to the ESP32 BLE server.")
+                    continue  # Continue to the next BLE device
+
+                name = await client.read_gatt_char(CHARACTERISTIC_UUID_RXTX)
+                if name.startswith("<93"):
+                    name = name[3:-1]
+                    tab_IP.append([device.adresse, 1, name])
+                    return True
+        except:
+            continue  # Continue to the next BLE device
+
+    # Display the IP and ID
+    table = PrettyTable()
+    table.field_names = ["BLE Address", "ID of ilo", "Name of ilo"] #add the name info <93>
+    for row in tab_IP:
+        table.add_row(row)
+    
+    if len(tab_IP) != 0:
+        print(table)
+        print("")
+        print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
+        global connection_type
+        connection_type = 0
+    else:
+        print("Unfortunately, no ilo is present on your current network. Check your connection.")
+
 #-----------------------------------------------------------------------------   
 def get_IP_from_ID(ID):
     '''
@@ -448,7 +507,7 @@ class robot(object):
                 
                 except Exception as e:
                         print("Connection error: you have to be connect to the ilo wifi network")
-                        print(" --> If the disfonction continu, switch off and switch on ilo")
+                        print(" --> If the malfunction persists, switch off and switch on ilo")
                         print(f"Error connecting to the robot: {e}")
                         self.connect = False
 
@@ -465,7 +524,16 @@ class robot(object):
                     print('Your are connected to ' + self.hostname)
                 except Exception as e:
                         print("Connection error: you must be connected to the ilo robot")
-                        print(" --> If the disfonction continu, switch off and switch on ilo")
+                        print(" --> If the malfunction persists, switch off and switch on ilo, or try using another cable")
+                        print(f"Error connecting to the robot: {e}")
+                        self.connect = False
+
+            elif connection_type == 2:
+                try:
+
+                except Exception as e:
+                        print("Connection error: you must be connected to the ilo robot")
+                        print(" --> If the malfunction persists, switch off and switch on ilo")
                         print(f"Error connecting to the robot: {e}")
                         self.connect = False
     #-----------------------------------------------------------------------------
