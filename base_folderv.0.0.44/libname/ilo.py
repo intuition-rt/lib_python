@@ -292,7 +292,20 @@ def check_robot_on_serial(COM=None):
             print(f"Serial error: {e}")
             return None
     
-async def check_robot_on_bluetooth(device_name="NimBLE-Arduino"):
+def check_robot_on_bluetooth():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        # Une boucle asyncio est déjà active
+        return asyncio.run_coroutine_threadsafe(check_robot_on_ble(), loop).result()
+    else:
+        # Pas de boucle active
+        asyncio.run(check_robot_on_ble())
+
+async def check_robot_on_ble():
     """
     Scan and connect to the BLE device
     """
@@ -316,8 +329,8 @@ async def check_robot_on_bluetooth(device_name="NimBLE-Arduino"):
             if client.is_connected:
                 print("Connected to the ESP32 BLE server.")
                 try:
-                    await asyncio.wait_for(client.write_gatt_char(CHARACTERISTIC_UUID_RXTX,"<ilo>"), timeout=1)
-                    await asyncio.wait_for(client.write_gatt_char(CHARACTERISTIC_UUID_RXTX,"<93>"), timeout=1)
+                    await asyncio.wait_for(client.write_gatt_char(CHARACTERISTIC_UUID_RXTX, "<ilo>"), timeout=1)
+                    await asyncio.wait_for(client.write_gatt_char(CHARACTERISTIC_UUID_RXTX, "<93>"), timeout=1)
                 except asyncio.TimeoutError:
                     print("Failed to write to the ESP32 BLE server.")
                     continue  # Continue to the next BLE device
@@ -325,20 +338,19 @@ async def check_robot_on_bluetooth(device_name="NimBLE-Arduino"):
                 name = await client.read_gatt_char(CHARACTERISTIC_UUID_RXTX)
                 if name.startswith("<93"):
                     name = name[3:-1]
-                    tab_IP.append([device.adresse, 1, name])
-                    return True
-        except:
+                    tab_IP.append([device.address, 1, name])
+        except Exception as e:
+            print(f"Error with device {device.address}: {e}")
             continue  # Continue to the next BLE device
 
     # Display the IP and ID
     table = PrettyTable()
-    table.field_names = ["BLE Address", "ID of ilo", "Name of ilo"] #add the name info <93>
+    table.field_names = ["BLE Address", "ID of ilo", "Name of ilo"]  # Add the name info <93>
     for row in tab_IP:
         table.add_row(row)
     
     if len(tab_IP) != 0:
         print(table)
-        print("")
         print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
         global connection_type
         connection_type = 0
@@ -528,14 +540,14 @@ class robot(object):
                         print(f"Error connecting to the robot: {e}")
                         self.connect = False
 
-            elif connection_type == 2:
-                try:
+            # elif connection_type == 2:
+            #     try:
 
-                except Exception as e:
-                        print("Connection error: you must be connected to the ilo robot")
-                        print(" --> If the malfunction persists, switch off and switch on ilo")
-                        print(f"Error connecting to the robot: {e}")
-                        self.connect = False
+            #     except Exception as e:
+            #             print("Connection error: you must be connected to the ilo robot")
+            #             print(" --> If the malfunction persists, switch off and switch on ilo")
+            #             print(f"Error connecting to the robot: {e}")
+            #             self.connect = False
     #-----------------------------------------------------------------------------
     def send_msg(self, message):
         if connection_type == 0:
@@ -619,7 +631,7 @@ class robot(object):
 
             while True:
                 if time.time() - start_time > timeout:
-                    print("[serial_read] Timeout atteint dans la première boucle")
+                    print("[serial_read] Timeout atteint dans la seconde boucle")
                     return
 
                 char = self.ser.read().decode()
@@ -667,6 +679,18 @@ class robot(object):
                 self.distance_right = int(data[data.find('r')+1 : data.find('b')])
                 self.distance_back  = int(data[data.find('b')+1 : data.find('l')])
                 self.distance_left  = int(data[data.find('l')+1 : data.find('>')])
+
+            if str(data[1:4]) == "21f": # get_distance_front
+                self.distance_front = int(data[data.find('f')+1 : data.find('>')])
+
+            if str(data[1:4]) == "22r": # get_distance_right
+                self.distance_right = int(data[data.find('r')+1 : data.find('>')])
+
+            if str(data[1:4]) == "23b": #get_distance_back
+                self.distance_back = int(data[data.find('b')+1 : data.find('>')])
+
+            if str(data[1:4]) == "24l": # get_distance_left
+                self.distance_left = int(data[data.find('l')+1 : data.find('>')])
 
             if str(data[1:4]) == "30r": # get_angle - données traités en degrés
                 self.roll  = float(data[data.find('r')+1 : data.find('p')])
@@ -1461,7 +1485,7 @@ class robot(object):
         """
         Get the distance in front of ilo
         """
-        self.send_msg("<20>")
+        self.send_msg("<21>")
         time.sleep(0.1)
         return (self.distance_front)
    
@@ -1469,7 +1493,7 @@ class robot(object):
         """
         Get the distance on the right of ilo
         """
-        self.send_msg("<20>")
+        self.send_msg("<22>")
         time.sleep(0.1)
         return (self.distance_right)
     
@@ -1477,7 +1501,7 @@ class robot(object):
         """
         Get the distance behind ilo
         """
-        self.send_msg("<20>")
+        self.send_msg("<23>")
         time.sleep(0.1)
         return (self.distance_back)
     
@@ -1485,7 +1509,7 @@ class robot(object):
         """
         Get the distance on the left of ilo
         """
-        self.send_msg("<20>")
+        self.send_msg("<24>")
         time.sleep(0.1)
         return (self.distance_left)
     #-----------------------------------------------------------------------------
