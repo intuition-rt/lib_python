@@ -1,6 +1,6 @@
 # This python script is the library for using the robot ilo with python command on WiFi
 # INTUITION ROBOTIQUE ET TECHNOLOGIES ALL RIGHT RESERVED
-# 25/09/2024
+# 18/12/2024
 # code work with 1.2.7 version of c++
 # -----------------------------------------------------------------------------
 import pyperclip
@@ -16,7 +16,7 @@ import asyncio
 from bleak import BleakScanner, BleakClient
 from prettytable import PrettyTable
 
-version = "0.44"
+version = "0.46"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
