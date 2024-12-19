@@ -11,6 +11,7 @@ import threading
 import websocket
 import keyboard
 import time
+import re
 import nest_asyncio
 import asyncio
 from bleak import BleakScanner, BleakClient
@@ -46,7 +47,6 @@ def info():
     print("To know every fonction available with ilo,  use ilo.list_function() command line")
     print("You are using the version ", version)
 # -----------------------------------------------------------------------------
-
 
 def list_function():
     '''
@@ -203,7 +203,6 @@ def list_function():
     print("If the table does not display correctly, expand your terminal.")
 # -----------------------------------------------------------------------------
 
-
 def co_send_msg(ws, message):
     '''
     Send a message over the WebSocket connection
@@ -217,8 +216,7 @@ def co_send_msg(ws, message):
         print(f"Error sending message: {e}")
         return "..."
 
-
-def check_robot_on_WiFi():
+def check_robot_on_wifi():
     """
     Check the presence of the ilo(s) on the network
     """
@@ -289,7 +287,6 @@ def check_robot_on_WiFi():
 
     except Exception as e:
         print(f"WebSocket error: {e}")
-
 
 def check_robot_on_serial(COM=None):
     """
@@ -380,7 +377,6 @@ def check_robot_on_serial(COM=None):
         except Exception as e:
             print(f"Serial error: {e}")
             return None
-
 
 """
 BLUETOOTH
@@ -493,7 +489,6 @@ async def check_robot_on_ble():
 """
 # -----------------------------------------------------------------------------
 
-
 def get_IP_from_ID(ID):
     '''
     Get the IP address of the robot from its ID
@@ -505,7 +500,6 @@ def get_IP_from_ID(ID):
         if item[1] == ID:
             return item[0]
     return None
-
 
 def get_PORT_from_ID(ID):
     '''
@@ -528,13 +522,14 @@ def get_PORT_from_ID(ID):
 #     return None
 # -----------------------------------------------------------------------------
 
-
 class robot(object):
     global connection_type
     robots_connected = {}  # Variable de classe pour garder une trace des connexions actives
 
     def __init__(self, ID):
         self.ID = ID
+
+        pyperclip.copy('''my_ilo.step('front')''')
 
         # if connection_type == 0:
         if ID in robot.robots_connected:  # Vérification si un robot avec cet ID est déjà connecté
@@ -2543,12 +2538,16 @@ class robot(object):
             TypeError: If name is not a string
 
         Examples:
-            my_ilo.set_name("Marin's ilo")
+            my_ilo.set_name("Marin_ilo")
         """
 
         if not isinstance(name, str):
             print("[ERROR] 'name' parameter must be a string")
             return None
+
+        name = name.lower()
+        name = name.replace(" ", "_")
+        name = re.sub(r"[^a-z0-9_]", "", name)
 
         msg = "<94n"+str(name)+">"
         self.send_msg(msg)
