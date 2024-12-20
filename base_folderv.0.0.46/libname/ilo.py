@@ -1982,13 +1982,14 @@ class robot(object):
             str(green)+"b"+str(blue)+"l"+str(luminosity)+">"
         self.send_msg(msg)
     
-    def set_led_word(self, type: str, word: str):
+    def set_led_word(self, type: str, word: str, delay=None):
         """
         Show your word with the robot leds.
 
         Parameters:
             type (str): allows you to choose whether to display your word letter by letter or with the letters sliding in a continuous flow.
             word (str): the word you want to display.
+            delay (int): not required, allows you to choose the delay for the appearance or slide of your word (in milliseconds)
 
         Raises:
             TypeError: If type is not a string
@@ -1997,7 +1998,7 @@ class robot(object):
 
         Examples:
             my_ilo.set_led_word("reveal", "Hello")
-            my_ilo.set_led_word("slide", "robot")
+            my_ilo.set_led_word("slide", "robot", 300)
         """
 
         if not isinstance(type, str):
@@ -2006,15 +2007,31 @@ class robot(object):
         if type != "reveal" and type != "slide":
             print("[ERROR] 'type' parameter must be reveal or slide")
             return None
-
         if not isinstance(word, str):
             print("[ERROR] 'word' parameter must be a string")
             return None
+        if not isinstance(delay, int):
+            print("[ERROR] 'type' parameter must be a int")
+            return None
+
+        
+        if type == "reveal" and delay == None:
+            delay = 1000
+        if type == "slide" and delay == None:
+            delay == 300
+
+        if not isinstance(delay, int):
+            print("[ERROR] 'delay' parameter must be a integer")
+            return None
+
+        if delay > 2000 or delay < 10:
+            print("[ERROR] 'delay' parameter must be include between 10 and 2000")
+            return None
 
         if type == "reveal":
-            msg = "<56w"+str(word)+">"
+            msg = "<56w"+str(word)+"d"+ str(delay)+">"
         else:
-            msg = "<57w"+str(word)+">"
+            msg = "<57w"+str(word)+"d"+ str(delay)+">"
         self.send_msg(msg)
     # -----------------------------------------------------------------------------
     def get_acc_motor(self):
