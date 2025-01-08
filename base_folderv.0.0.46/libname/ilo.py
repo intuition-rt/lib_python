@@ -1,6 +1,6 @@
 # This python script is the library for using the robot ilo with python command on WiFi
 # INTUITION ROBOTIQUE ET TECHNOLOGIES ALL RIGHT RESERVED
-# 18/12/2024
+# 20/12/2024
 # code work with 1.2.7 version of c++
 # -----------------------------------------------------------------------------
 import pyperclip
