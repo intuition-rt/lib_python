@@ -18,11 +18,14 @@ setup(
     py_modules=["ilo"],
     package_dir={'':'libname'},
     install_requires=[
-        "keyboard",
-        "websocket-client",
-        "pyserial",
         "pyperclip",
-        "prettytable"
+        "pyserial",
+        "websocket-client",
+        "nest_asyncio",
+        "bleak",
+        "prettytable",
+        "keyboard"
+
     ],
     keywords=['python', 'education'],
     classifiers=[
