@@ -33,8 +33,8 @@ tab_IP = []
 tab_PORT = []
 # BLE
 tab_ADDRESS = []
-CHARACTERISTIC_UUID_NOTIF = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"  # Notify characteristic
-CHARACTERISTIC_UUID_RXTX = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"   # Read/Write characteristic
+CHARACTERISTIC_UUID_NOTIF = "1A2B"  # Notify characteristic
+CHARACTERISTIC_UUID_RXTX = "DEAD"   # Read/Write characteristic
 client = None
 # -----------------------------------------------------------------------------
 
@@ -536,7 +536,38 @@ class robot(object):
             print(f"Un robot avec l'ID {ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
             old_robot = robot.robots_connected[ID]
             # Arrêter le thread mais sans déconnexion immédiate
-            old_robot.recv_thread_running = False
+            if connection_type == 0:
+                old_robot.recv_thread_running = False
+            if connection_type == 2:
+                print("test ou chez pas")
+                async def disconnect_ble():
+                    try:
+                        print("inside 1 try")
+                        if old_robot.ble_device:
+                            print("inside if")
+                            if old_robot.ble_device.is_connected:
+                                print("inside if 2")
+                                print("Attempting to disconnect from the BLE device...")
+                                await old_robot.ble_device.disconnect()
+                                print("Disconnected from the BLE device.")
+                            else:
+                                print("No BLE device to disconnect from.")
+                        else:
+                            print("No BLE device to disconnect from.")
+                    except Exception as e:
+                        print(f"Error disconnecting from the BLE device: {e}")
+
+                try:
+                    # Assurez-vous d'appeler la coroutine correctement
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        loop.create_task(disconnect_ble())
+                    else:
+                        loop.run_until_complete(disconnect_ble())
+                except Exception as e:
+                    print(f"Error running disconnect_ble coroutine: {e}")
+            else:
+                pass
 
         self.Port = 4583
         self.ws = None
@@ -633,11 +664,9 @@ class robot(object):
             # print("You are trying to connect to: ", self.IP)
             self.connection()
         else:
-            print(
-                "You have to run the command [ilo.check_ilo_on_network()] to know if there are robots present on your network")
+            print("You have to run the command [ilo.check_ilo_on_network()] to know if there are robots present on your network")
             print("or")
-            print(
-                "Run the command [ilo.check_ilo_on_serial()] to know if there are robots connected to your computer")
+            print("Run the command [ilo.check_ilo_on_serial()] to know if there are robots connected to your computer")
     # -----------------------------------------------------------------------------
     def connection(self):
         """
@@ -701,6 +730,7 @@ class robot(object):
                     self.connect = False
 
             elif connection_type == 2:
+                # Start the ble connection
                 async def notification_handler(sender, data):
                     """Handles notifications from the server."""
                     print(f"Notification from {sender}: {data.decode('utf-8')}")
@@ -709,6 +739,7 @@ class robot(object):
 
                 async def connection_ble():
                     try:
+                        # Start the ble connection
                         print("Connecting to the BLE device...")
                         self.ble_device = BleakClient(tab_ADDRESS[self.ID - 1].address)
                         await self.ble_device.connect()
@@ -722,14 +753,11 @@ class robot(object):
                         print(f"Error connecting to the BLE device: {e}")
                         self.connect = False
                 try:
-                    try:
-                        loop = asyncio.get_running_loop()
-                    except RuntimeError:
-                        loop = None
-                    if loop and loop.is_running():
-                        asyncio.create_task(connection_ble()) # An asyncio loop is already running
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        loop.create_task(connection_ble())
                     else:
-                        asyncio.run(connection_ble())
+                        loop.run_until_complete(connection_ble())
 
                 except Exception as e:
                     print(f"Error connecting to the BLE device: {e}")
@@ -1031,15 +1059,18 @@ class robot(object):
         print(f"Destruction de l'objet robot avec l'ID {self.ID}")
         if connection_type == 0:
             self.ws.close()
-
+        
         elif connection_type == 1:
             pass
         elif connection_type == 2:
             async def disconnect_ble():
                 try:
                     if self.ble_device:
-                        await self.ble_device.disconnect()
-                        print("Disconnected from the BLE device.")
+                        if self.ble_device.is_connected:
+                            await self.ble_device.disconnect()
+                            print("Disconnected from the BLE device.")
+                        else:
+                            print("No BLE device to disconnect from.")
                 except Exception as e:
                     print(f"Error disconnecting from the BLE device: {e}")
             try:
@@ -2010,15 +2041,11 @@ class robot(object):
         if not isinstance(word, str):
             print("[ERROR] 'word' parameter must be a string")
             return None
-        if not isinstance(delay, int):
-            print("[ERROR] 'type' parameter must be a int")
-            return None
-
-        
+    
         if type == "reveal" and delay == None:
             delay = 1000
         if type == "slide" and delay == None:
-            delay == 300
+            delay = 300
 
         if not isinstance(delay, int):
             print("[ERROR] 'delay' parameter must be a integer")
@@ -2029,10 +2056,17 @@ class robot(object):
             return None
 
         if type == "reveal":
-            msg = "<56w"+str(word)+"d"+ str(delay)+">"
+            msg = "<56w"+str(word.upper())+"d"+ str(delay)+">"
         else:
-            msg = "<57w"+str(word)+"d"+ str(delay)+">"
+            msg = "<57w"+str(word.upper())+"d"+ str(delay)+">"
         self.send_msg(msg)
+    
+    def stop_led_word(self):
+        """
+        Stop the led word
+        """
+        self.send_msg("<58>")
+
     # -----------------------------------------------------------------------------
     def get_acc_motor(self):
         """
@@ -2481,9 +2515,45 @@ class robot(object):
     def set_vmax(vmax):
         pass
 
-    def set_mode_motor():
-        # between position or wheel mode
-        pass
+    def set_motor_mode(self, motor_id:int, mode:str):
+        """
+        Set the mode of a single motor with is id
+
+        Parameters:
+            motor_id (int): the motor id
+            mode (str): the mode you want to set
+
+        Raises:
+            TypeError: If 'motor_id' is not an integer
+            ValueError: If 'motor_id' is not between 5 and 255
+            TypeError: If 'mode' is not a string
+            ValueError: If 'mode' is not "position" or "speed"
+
+        Examples:
+            my_ilo.set_motor_mode(5, "position")
+            my_ilo.set_motor_mode(6, "speed")
+        """
+
+        if not isinstance(motor_id, int):
+            print("[ERROR] 'motor_id' parameter must be a integer")
+            return None
+        if motor_id > 255 or motor_id < 5:
+            print("[ERROR] 'motor_id' parameter must be include between 5 and 255")
+            return None
+        
+        if not isinstance(mode, str):
+            print("[ERROR] 'mode' parameter must be a string")
+            return None
+        if mode != "position" and mode != "speed":
+            print("[ERROR] 'mode' parameter must be 'position' or 'speed'")
+            return None
+        
+        if mode == "position":
+            msg = "<72"+str(motor_id)+"m0>"
+        if mode == "speed":
+            msg = "<72"+str(motor_id)+"m1>"
+        self.send_msg(msg)
+        
     # -----------------------------------------------------------------------------
     def set_autonomous_mode(self, value: str):
         """
@@ -2624,3 +2694,5 @@ class robot(object):
         """
         self.send_msg("<00>")
     # -----------------------------------------------------------------------------
+
+
