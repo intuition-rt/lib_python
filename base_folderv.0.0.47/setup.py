@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.0.46'
+VERSION = '0.0.47'
 DESCRIPTION = 'Control ilo robot using python command.'
 with open('README.md') as f:
     long_description = f.read()
