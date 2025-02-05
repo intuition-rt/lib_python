@@ -381,9 +381,7 @@ def check_robot_on_serial(COM=None):
 
 """
 BLUETOOTH
-
 """
-
 async def scan_ble_devices(base="ilo_BLE_"):  #ilo_BLE_(name)  #ilo_BLE_default
     """Scan and connect to the BLE device."""
     global client, connection_type, tab_ADDRESS
@@ -760,6 +758,12 @@ class robot(object):
                     else:
                         loop.run_until_complete(connection_ble())
 
+                except RuntimeError:
+                    # Create a new event loop if there is no current event loop
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    new_loop.run_until_complete(connection_ble())
+            
                 except Exception as e:
                     print(f"Error connecting to the BLE device: {e}")
                     self.connect = False
@@ -1101,6 +1105,13 @@ class robot(object):
                 print("Error connection to the robot")
                 return False
         elif connection_type == 1:
+            try:
+                self.send_msg("<ilo>")
+                return True
+            except:
+                print("Error connection to the robot")
+                return False
+        elif connection_type == 2:
             try:
                 self.send_msg("<ilo>")
                 return True
