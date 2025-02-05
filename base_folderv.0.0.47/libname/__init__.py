@@ -66,7 +66,7 @@ from ilo import get_current_single_motor
 from ilo import get_motor_is_moving
 from ilo import get_vmax
 from ilo import set_vmax
-from ilo import set_mode_motor
+from ilo import set_motor_mode
 from ilo import set_autonomous_mode
 from ilo import set_wifi_credentials
 from ilo import get_wifi_credentials

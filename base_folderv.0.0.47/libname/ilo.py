@@ -12,19 +12,20 @@ import websocket
 import keyboard
 import time
 import re
+import unicodedata
 import nest_asyncio
 import asyncio
 from bleak import BleakScanner, BleakClient
 from prettytable import PrettyTable
 
-version = "0.46"
+version = "0.47"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 # -----------------------------------------------------------------------------
 
-pyperclip.copy("""ilo.check_robot_on_WiFi()""")
+pyperclip.copy("""ilo.check_robot_on_wifi()""")
 
 connection_type = 0
 # WiFi
@@ -2345,7 +2346,7 @@ class robot(object):
             return None
 
         msg = "<620i"+str(id)+"a"+str(acc)+"v"+str(vel)+"p"+str(pos)+">"
-        self.web_socket_send(msg)
+        self.send_msg(msg)
     # <621i6a90>
     def get_single_motor_angle(self, id: int):
         """
@@ -2631,6 +2632,9 @@ class robot(object):
         if not isinstance(name, str):
             print("[ERROR] 'name' parameter must be a string")
             return None
+
+        name = unicodedata.normalize("NFD", name)
+        name = "".join(c for c in name if unicodedata.category(c) != "Mn") # remove accents
 
         name = name.lower()
         name = name.replace(" ", "_")
