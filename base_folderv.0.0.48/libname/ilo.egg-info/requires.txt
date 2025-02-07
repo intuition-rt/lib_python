@@ -1,7 +1,0 @@
-pyperclip
-pyserial
-websocket-client
-nest_asyncio
-bleak
-prettytable
-keyboard
