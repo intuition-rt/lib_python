@@ -270,7 +270,7 @@ def check_robot_on_wifi():
         # Display the IP and ID
         table = PrettyTable()
         table.field_names = ["IP Address", "ID of ilo",
-                             "Name of ilo"]  # ♥add the name info <93>
+                             "Name of ilo"]  # add the name info <93>
         for row in tab_IP:
             table.add_row(row)
 
@@ -305,6 +305,7 @@ def check_robot_on_serial(COM=None):
                 ser.reset_output_buffer()
                 time.sleep(1)
 
+                ser.write(("<ilo>").encode())
                 ser.write(("<930>").encode())
                 time.sleep(1)
 
@@ -342,6 +343,7 @@ def check_robot_on_serial(COM=None):
                         ser.reset_output_buffer()
                         time.sleep(0.2)
 
+                        ser.write(("<ilo>").encode())
                         ser.write(("<930>").encode())
                         time.sleep(1)
 
@@ -398,6 +400,7 @@ async def scan_ble_devices(base="ilo_BLE_"):  #ilo_BLE_(name)  #ilo_BLE_default
                 continue
             if device.name.startswith(base):
                 print(f"Found device: {device.name} ({device.address})")
+                
                 table.add_row([device.address, i, device.name])
                 tab_ADDRESS.append(device)
                 i += 1
@@ -670,102 +673,105 @@ class robot(object):
         """
         Connection of your machine to robot object 
         """
-        if self.hostname != "":
 
-            self.send_msg("<ilo>")
+        self.send_msg("<ilo>")
 
-            print('Your robot is already connected to ' + self.hostname)
+        #if self.hostname != "":
+
+            #self.send_msg("<ilo>")
+
+            #print('Your robot is already connected to ' + self.hostname)
             # -- marin check if the websocket is well working (test un envoi de trame ou spécific methode
 
-        else:
-            if connection_type == 0: 
+        #else:
+        if connection_type == 0: 
+            try:
+                # Start the WebSocket d'envoie de trame
+                self.ws = websocket.create_connection(
+                    f"ws://{self.IP}:{self.Port}")
+
+                # Vérifie si un ancien thread de réception est actif et l'arrête avant d'en démarrer un nouveau
+                if self.recv_thread and self.recv_thread.is_alive():
+                    print("Stopping the previous reception thread...")
+                    self.stop_reception()
+
+                # Start the WebSocket de reception in a separate thread
+                self.recv_thread_running = True
+                self.recv_thread = threading.Thread(
+                    target=self.web_socket_receive)
+                self.recv_thread.start()
+
+                self.connect = True
+                self.send_msg("<ilo>")
+                time.sleep(0.2)
+                self.get_name()
+                print('Your are connected to ' + self.hostname)
+
+            except Exception as e:
+                print(
+                    "Connection error: you have to be connect to the ilo wifi network")
+                print(
+                    " --> If the malfunction persists, switch off and switch on ilo")
+                print(f"Error connecting to the robot: {e}")
+                self.connect = False
+
+        elif connection_type == 1:
+            try:
+                # Start the serial connection
+                self.ser = serial.Serial(self.port, 115200)
+
+                self.connect = True
+                self.send_msg("<ilo>")
+                time.sleep(0.2)
+                self.get_name()
+                time.sleep(0.2)
+                print('Your are connected to ' + self.hostname)
+            except Exception as e:
+                print("Connection error: you must be connected to the ilo robot")
+                print(
+                    " --> If the malfunction persists, switch off and switch on ilo, or try using another cable")
+                print(f"Error connecting to the robot: {e}")
+                self.connect = False
+
+        elif connection_type == 2:
+            # Start the ble connection
+            async def notification_handler(sender, data):
+                """Handles notifications from the server."""
+                print(f"Notification from {sender}: {data.decode('utf-8')}")
+                self.process_received_data(data.decode('utf-8'))
+                
+
+            async def connection_ble():
                 try:
-                    # Start the WebSocket d'envoie de trame
-                    self.ws = websocket.create_connection(
-                        f"ws://{self.IP}:{self.Port}")
-
-                    # Vérifie si un ancien thread de réception est actif et l'arrête avant d'en démarrer un nouveau
-                    if self.recv_thread and self.recv_thread.is_alive():
-                        print("Stopping the previous reception thread...")
-                        self.stop_reception()
-
-                    # Start the WebSocket de reception in a separate thread
-                    self.recv_thread_running = True
-                    self.recv_thread = threading.Thread(
-                        target=self.web_socket_receive)
-                    self.recv_thread.start()
-
+                    # Start the ble connection
+                    print("Connecting to the BLE device...")
+                    self.ble_device = BleakClient(tab_ADDRESS[self.ID - 1].address)
+                    await self.ble_device.connect()
                     self.connect = True
-                    self.send_msg("<ilo>")
-                    time.sleep(0.2)
-                    self.get_name()
-                    print('Your are connected to ' + self.hostname)
+                    print("Connected to the BLE device.")
+                    # Autoriser les notifications:
+                    await self.ble_device.start_notify(CHARACTERISTIC_UUID_NOTIF, notification_handler)
+                    print("Notifications enabled.")
 
-                except Exception as e:
-                    print(
-                        "Connection error: you have to be connect to the ilo wifi network")
-                    print(
-                        " --> If the malfunction persists, switch off and switch on ilo")
-                    print(f"Error connecting to the robot: {e}")
-                    self.connect = False
-
-            elif connection_type == 1:
-                try:
-                    # Start the serial connection
-                    self.ser = serial.Serial(self.port, 115200)
-
-                    self.connect = True
-                    self.send_msg("<ilo>")
-                    time.sleep(0.2)
-                    self.get_name()
-                    time.sleep(0.2)
-                    print('Your are connected to ' + self.hostname)
-                except Exception as e:
-                    print("Connection error: you must be connected to the ilo robot")
-                    print(
-                        " --> If the malfunction persists, switch off and switch on ilo, or try using another cable")
-                    print(f"Error connecting to the robot: {e}")
-                    self.connect = False
-
-            elif connection_type == 2:
-                # Start the ble connection
-                async def notification_handler(sender, data):
-                    """Handles notifications from the server."""
-                    print(f"Notification from {sender}: {data.decode('utf-8')}")
-                    self.process_received_data(data.decode('utf-8'))
-                    
-
-                async def connection_ble():
-                    try:
-                        # Start the ble connection
-                        print("Connecting to the BLE device...")
-                        self.ble_device = BleakClient(tab_ADDRESS[self.ID - 1].address)
-                        await self.ble_device.connect()
-                        self.connect = True
-                        print("Connected to the BLE device.")
-                        # Autoriser les notifications:
-                        await self.ble_device.start_notify(CHARACTERISTIC_UUID_NOTIF, notification_handler)
-                        print("Notifications enabled.")
-
-                    except Exception as e:
-                        print(f"Error connecting to the BLE device: {e}")
-                        self.connect = False
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        loop.create_task(connection_ble())
-                    else:
-                        loop.run_until_complete(connection_ble())
-
-                except RuntimeError:
-                    # Create a new event loop if there is no current event loop
-                    new_loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(new_loop)
-                    new_loop.run_until_complete(connection_ble())
-            
                 except Exception as e:
                     print(f"Error connecting to the BLE device: {e}")
                     self.connect = False
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(connection_ble())
+                else:
+                    loop.run_until_complete(connection_ble())
+
+            except RuntimeError:
+                # Create a new event loop if there is no current event loop
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                new_loop.run_until_complete(connection_ble())
+        
+            except Exception as e:
+                print(f"Error connecting to the BLE device: {e}")
+                self.connect = False
     # -----------------------------------------------------------------------------
     def send_msg(self, message):
         if connection_type == 0:
