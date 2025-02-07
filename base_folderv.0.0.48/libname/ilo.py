@@ -17,7 +17,7 @@ import asyncio
 from bleak import BleakScanner, BleakClient
 from prettytable import PrettyTable
 
-version = "0.48"
+version = "0.49"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
@@ -2162,8 +2162,10 @@ class robot(object):
         Raises:
             TypeError: If 'id' is not an integer
             ValueError: If 'id' is not between 0 and 255
-            TypeError: If 'value' is not an integer
-            ValueError: If 'value' is not between -100 and 100
+            TypeError: If 'acc' is not an integer
+            ValueError: If 'acc' is not between 0 and 200
+            TypeError: If 'vel' is not an integer
+            ValueError: If 'vel' is not between -100 and 100
 
         Examples:
             my_ilo.drive_single_motor_speed(1, 100, 50)
@@ -2177,9 +2179,9 @@ class robot(object):
             return None
 
         if not isinstance(vel, int):
-            print("[ERROR] 'value' parameter must be a integer")
+            print("[ERROR] 'vel' parameter must be a integer")
             return None
-        if vel > 100 or vel < -100:
+        if vel > 7000 or vel < -7000:
             print("[ERROR] 'value' parameter must be include between -100 and 100")
             return None
 
@@ -2195,12 +2197,6 @@ class robot(object):
         elif id > 255:
             id = 255
 
-        if vel < -100:
-            vel = -100
-        elif vel > 100:
-            vel = 100
-
-        vel = vel * 70
         msg = "<610i"+str(id)+"a"+str(acc)+"v"+str(vel)+">"
         self.send_msg(msg)
 
@@ -2470,7 +2466,7 @@ class robot(object):
         msg = "<65i"+str(id)+">"
         self.send_msg(msg)
         time.sleep(0.1)
-        return (self.motor_id, self.torque_motor)
+        return (self.motor_id, self.motor_torque)
     # <66i1c20>
     def get_current_single_motor(self, id: int):
         """
