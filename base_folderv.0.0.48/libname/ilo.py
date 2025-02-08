@@ -2192,11 +2192,6 @@ class robot(object):
             print("[ERROR] 'acc' parameter must be include between 1 and 200")
             return None
 
-        if id < 0:
-            id = 0    # make to sens
-        elif id > 255:
-            id = 255
-
         msg = "<610i"+str(id)+"a"+str(acc)+"v"+str(vel)+">"
         self.send_msg(msg)
 
