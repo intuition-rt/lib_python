@@ -1562,7 +1562,7 @@ class robot(object):
             my_ilo.rotation(-50.3)
         """
 
-        if not isinstance(angle, (int, float)):
+        if not isinstance(angle, int):
             print("[ERROR] 'angle' should be an integer")
             return None
 
