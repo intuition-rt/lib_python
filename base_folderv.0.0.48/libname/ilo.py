@@ -2058,6 +2058,10 @@ class robot(object):
         if not isinstance(word, str):
             print("[ERROR] 'word' parameter must be a string")
             return None
+        
+        if len(word) > 10:
+            print("[ERROR] 'word' parameter must not exceed 10 characters")
+            return None
     
         if type == "reveal" and delay == None:
             delay = 1000
