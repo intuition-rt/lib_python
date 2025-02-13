@@ -12,10 +12,75 @@ import keyboard
 import time
 import re
 import unicodedata
-import nest_asyncio
 import asyncio
 from bleak import BleakScanner, BleakClient
 from prettytable import PrettyTable
+
+class SyncBleak:
+    """
+    Encapsule les fonctions de Bleak pour les rendre synchrone.
+    """
+    def __init__(self):
+        try:
+            self.loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
+
+        self.client = None
+
+    def scan_devices(self, timeout=5):
+        """Scan BLE devices de manière synchrone."""
+        return self.loop.run_until_complete(self._scan_devices(timeout))
+
+    async def _scan_devices(self, timeout):
+        devices = await BleakScanner.discover(timeout)
+        return [(dev.name, dev.address) for dev in devices]
+
+    def connect(self, address):
+        """Connecte à un périphérique BLE."""
+        return self.loop.run_until_complete(self._connect(address))
+
+    async def _connect(self, address):
+        self.client = BleakClient(address)
+        connected = await self.client.connect()
+        if connected:
+            return self.client
+        return None
+
+    def write_characteristic(self, client, char_uuid, data):
+        """Écrit dans une caractéristique BLE."""
+        return self.loop.run_until_complete(client.write_gatt_char(char_uuid, data))
+    
+    def subscribe_to_notifications(self, char_uuid, callback):
+        """S'abonne aux notifications d'une caractéristique BLE."""
+        self.loop.run_until_complete(self._subscribe(char_uuid, callback))
+
+    async def _subscribe(self, char_uuid, callback):
+        if self.client and self.client.is_connected:
+            await self.client.start_notify(char_uuid, callback)
+            print(f"🔔 Abonné aux notifications sur {char_uuid}")
+
+    def unsubscribe_from_notifications(self, char_uuid):
+        """Se désabonne des notifications."""
+        self.loop.run_until_complete(self._unsubscribe(char_uuid))
+
+    async def _unsubscribe(self, char_uuid):
+        if self.client and self.client.is_connected:
+            await self.client.stop_notify(char_uuid)
+            print(f"🚫 Désabonné des notifications sur {char_uuid}")
+
+    def disconnect(self, client):
+        """Déconnecte le client BLE."""
+        return self.loop.run_until_complete(client.disconnect())
+    
+
+    def is_connected(self):
+        """Vérifie si le client est connecté."""
+        return self.client.is_connected
+    
+ble_lib = SyncBleak()
+
 
 version = "0.49"
 
@@ -380,28 +445,20 @@ def check_robot_on_serial(COM=None):
             print(f"Serial error: {e}")
             return None
 
-"""
-BLUETOOTH
-"""
-async def scan_ble_devices(base="ilo_BLE_"):  #ilo_BLE_(name)  #ilo_BLE_default
-    """Scan and connect to the BLE device."""
-    global client, connection_type, tab_ADDRESS
-    table = PrettyTable()
+def check_robot_on_bluetooth():
+    pyperclip.copy('''my_ilo = ilo.robot(1)''')
+    global tab_ADDRESS
+    global connection_type
 
-    tab_ADDRESS = []
-
-    try:
-        print("Scan des périphériques BLE...")
-        devices = await BleakScanner.discover()
+    print("Scanning for BLE devices...")
+    try:    
+        devices = ble_lib.scan_devices()
+        table = PrettyTable()
         table.field_names = ["Device adress", "ID of ilo", "Name of ilo"]
         i = 1
         for device in devices:
-            if device.name is None:
-                continue
-            if device.name.startswith(base):
-                print(f"Found device: {device.name} ({device.address})")
-                
-                table.add_row([device.address, i, device.name])
+            if str(device[0]).startswith("ilo_BLE_"):
+                table.add_row([device[1], i, device[0]])
                 tab_ADDRESS.append(device)
                 i += 1
         if len(tab_ADDRESS) == 0:
@@ -410,84 +467,13 @@ async def scan_ble_devices(base="ilo_BLE_"):  #ilo_BLE_(name)  #ilo_BLE_default
         else:
             print(table)
             connection_type = 2
+            print("Connection type: BLE")
+            return True
         
-        return False
     except Exception as e:
-        print(f"Error connecting to the BLE device: {e}")
+        print(f"Error check robot on Bluetooth: {e}")
         return False
 
-def check_robot_on_bluetooth():
-    pyperclip.copy('''my_ilo = ilo.robot(1)''')
-
-    async def check_robot_on_ble():
-        global client
-        # Connect to the BLE device
-        await scan_ble_devices()
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-        # An asyncio loop is already running
-        asyncio.create_task(check_robot_on_ble())
-    else:
-        asyncio.run(check_robot_on_ble())
-
-"""
-async def check_robot_on_ble():
-    '''
-    Scan and connect to the BLE device
-    '''
-    pyperclip.copy('''my_ilo = ilo.robot(1)''')
-
-    global client
-    print("Scanning for BLE devices...")
-    devices = await BleakScanner.discover()
-    print("print ...")
-    for device in devices:
-        try:
-            print(f'Found device: {device.name} ({device.address})')
-            client = BleakClient(device.address)
-
-            try:
-                await asyncio.wait_for(client.connect(), timeout=1)
-            except asyncio.TimeoutError:
-                print("Failed to connect to the ESP32 BLE server.")
-                continue  # Continue to the next BLE device
-
-            if client.is_connected:
-                print("Connected to the ESP32 BLE server.")
-                try:
-                    await asyncio.wait_for(client.write_gatt_char(CHARACTERISTIC_UUID_RXTX, "<ilo>"), timeout=1)
-                    await asyncio.wait_for(client.write_gatt_char(CHARACTERISTIC_UUID_RXTX, "<93>"), timeout=1)
-                except asyncio.TimeoutError:
-                    print("Failed to write to the ESP32 BLE server.")
-                    continue  # Continue to the next BLE device
-
-                name = await client.read_gatt_char(CHARACTERISTIC_UUID_RXTX)
-                if name.startswith("<93"):
-                    name = name[3:-1]
-                    tab_IP.append([device.address, 1, name])
-        except Exception as e:
-            print(f"Error with device {device.address}: {e}")
-            continue  # Continue to the next BLE device
-
-    # Display the IP and ID
-    table = PrettyTable()
-    table.field_names = ["BLE Address", "ID of ilo",
-                         "Name of ilo"]  # Add the name info <93>
-    for row in tab_IP:
-        table.add_row(row)
-
-    if len(tab_IP) != 0:
-        print(table)
-        print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-        global connection_type
-        connection_type = 0
-    else:
-        print("Unfortunately, no ilo is present on your current network. Check your connection.")
-"""
 # -----------------------------------------------------------------------------
 
 def get_IP_from_ID(ID):
@@ -539,34 +525,6 @@ class robot(object):
             # Arrêter le thread mais sans déconnexion immédiate
             if connection_type == 0:
                 old_robot.recv_thread_running = False
-            if connection_type == 2:
-                print("test ou chez pas")
-                async def disconnect_ble():
-                    try:
-                        print("inside 1 try")
-                        if old_robot.ble_device:
-                            print("inside if")
-                            if old_robot.ble_device.is_connected:
-                                print("inside if 2")
-                                print("Attempting to disconnect from the BLE device...")
-                                await old_robot.ble_device.disconnect()
-                                print("Disconnected from the BLE device.")
-                            else:
-                                print("No BLE device to disconnect from.")
-                        else:
-                            print("No BLE device to disconnect from.")
-                    except Exception as e:
-                        print(f"Error disconnecting from the BLE device: {e}")
-
-                try:
-                    # Assurez-vous d'appeler la coroutine correctement
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        loop.create_task(disconnect_ble())
-                    else:
-                        loop.run_until_complete(disconnect_ble())
-                except Exception as e:
-                    print(f"Error running disconnect_ble coroutine: {e}")
             else:
                 pass
 
@@ -684,6 +642,7 @@ class robot(object):
             # -- marin check if the websocket is well working (test un envoi de trame ou spécific methode
 
         #else:
+        print("Trying to connect to the robot with ID: ", self.ID, " and connection type: ", connection_type)
         if connection_type == 0: 
             try:
                 # Start the WebSocket d'envoie de trame
@@ -734,44 +693,24 @@ class robot(object):
                 self.connect = False
 
         elif connection_type == 2:
-            # Start the ble connection
-            async def notification_handler(sender, data):
-                """Handles notifications from the server."""
-                print(f"Notification from {sender}: {data.decode('utf-8')}")
+            def notification_handler(sender, data):
+                #print(f"Notification from {sender}: {data.decode('utf-8')}")
                 self.process_received_data(data.decode('utf-8'))
-                
-
-            async def connection_ble():
-                try:
-                    # Start the ble connection
-                    print("Connecting to the BLE device...")
-                    self.ble_device = BleakClient(tab_ADDRESS[self.ID - 1].address)
-                    await self.ble_device.connect()
-                    self.connect = True
-                    print("Connected to the BLE device.")
-                    # Autoriser les notifications:
-                    await self.ble_device.start_notify(CHARACTERISTIC_UUID_NOTIF, notification_handler)
-                    print("Notifications enabled.")
-
-                except Exception as e:
-                    print(f"Error connecting to the BLE device: {e}")
-                    self.connect = False
+            print("Connecting to the BLE device...")
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    loop.create_task(connection_ble())
-                else:
-                    loop.run_until_complete(connection_ble())
-
-            except RuntimeError:
-                # Create a new event loop if there is no current event loop
-                new_loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(new_loop)
-                new_loop.run_until_complete(connection_ble())
-        
+                self.ble_device = ble_lib.connect(tab_ADDRESS[self.ID - 1][1])
+                ble_lib.subscribe_to_notifications(CHARACTERISTIC_UUID_NOTIF, notification_handler)
+                self.connect = True
+                print("Connected to the BLE device.")
+                self.send_msg("<ilo>")
+                time.sleep(0.2)
+                self.get_name()
+                time.sleep(0.2)
+                print('Your are connected to ' + self.hostname)
             except Exception as e:
                 print(f"Error connecting to the BLE device: {e}")
                 self.connect = False
+
     # -----------------------------------------------------------------------------
     def send_msg(self, message):
         if connection_type == 0:
@@ -806,21 +745,9 @@ class robot(object):
                 print("Serial is not connected.")
         elif connection_type == 2:
             if self.ble_device and self.connect:
-                async def send_message():
-                    try:
-                        await self.ble_device.write_gatt_char(CHARACTERISTIC_UUID_RXTX, message.encode())
-                        print(f"Sent: {message}")
-                    except Exception as e:
-                        print(f"Error sending message: {e}")
                 try:
-                    try:
-                        loop = asyncio.get_running_loop()
-                    except RuntimeError:
-                        loop = None
-                    if loop and loop.is_running():
-                        asyncio.create_task(send_message()) # An asyncio loop is already running
-                    else:
-                        asyncio.run(send_message())
+                    ble_lib.write_characteristic(self.ble_device, CHARACTERISTIC_UUID_RXTX, message.encode())
+                    print(f"Sent:     {message}")
                 except Exception as e:
                     print(f"Error sending message: {e}")
         else:
@@ -1071,31 +998,11 @@ class robot(object):
             self.ws.close()
         
         elif connection_type == 1:
-            pass
+            pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
         elif connection_type == 2:
-            async def disconnect_ble():
-                try:
-                    if self.ble_device:
-                        if self.ble_device.is_connected:
-                            await self.ble_device.disconnect()
-                            print("Disconnected from the BLE device.")
-                        else:
-                            print("No BLE device to disconnect from.")
-                except Exception as e:
-                    print(f"Error disconnecting from the BLE device: {e}")
-            try:
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = None
-                if loop and loop.is_running():
-                    asyncio.create_task(disconnect_ble()) # An asyncio loop is already running
-                else:
-                    asyncio.run(disconnect_ble())
-            except Exception as e:
-                print(f"Error disconnecting from the BLE device: {e}")
+            ble_lib.disconnect(self.ble_device)
         else:
-            pass  # on ne peut pas paraleléliser les ouverture de port comme les websocket
+            pass  
     # -----------------------------------------------------------------------------
     def test_connection(self):
         """
