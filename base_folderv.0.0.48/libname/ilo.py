@@ -1616,9 +1616,9 @@ class robot(object):
             print("[ERROR] 'kd' parameter must be include between 0 and 10")
             return None
 
-        kp = int(kp * 10)
-        ki = int(ki * 10)
-        kd = int(kd * 10)
+        kp = int(kp * 100)
+        ki = int(ki * 100)
+        kd = int(kd * 100)
 
         msg = "<70p"+str(kp)+"i" + str(ki) + "d" + str(kd) + ">"
         self.send_msg(msg)
