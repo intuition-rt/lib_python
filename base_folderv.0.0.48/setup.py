@@ -24,7 +24,7 @@ setup(
         "nest_asyncio",
         "bleak",
         "prettytable",
-        "keyboard"
+        "keyboard_crossplatform"
 
     ],
     keywords=['python', 'education'],
