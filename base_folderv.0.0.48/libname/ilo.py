@@ -8,7 +8,7 @@ import serial
 import math
 import threading
 import websocket
-import keyboard
+# import keyboard_crossplatform
 import time
 import re
 import unicodedata
@@ -82,7 +82,7 @@ class SyncBleak:
 ble_lib = SyncBleak()
 
 
-version = "0.49"
+version = "0.50"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
@@ -607,6 +607,8 @@ class robot(object):
 
         self.global_trame = ""
 
+        self.version = ""
+
         self.marker = True
 
         self._response_event = threading.Event()
@@ -713,6 +715,7 @@ class robot(object):
 
     # -----------------------------------------------------------------------------
     def send_msg(self, message):
+        self._response_event.clear()
         if connection_type == 0:
             if self.ws and self.connect:
                 try:
@@ -949,9 +952,11 @@ class robot(object):
             if str(data[1:4]) == "101":  # get_accessory
                 self.accessory = float(data[data.find('t')+1: data.find('>')])
 
-            if str(data[1:4]) == "102":  # get_accessory()
-                self.potard_value = float(
-                    data[data.find('a')+1: data.find('>')])
+            if str(data[1:4]) == "102":  # get_accessory
+                self.potard_value = float(data[data.find('a')+1: data.find('>')])
+            
+            if str(data[1:5]) == "500y": #get_version
+                self.version = str(data[data.find('y')+1: data.find('>')])
 
             self._response_event.set()
 
@@ -1346,84 +1351,83 @@ class robot(object):
         corrected_command = self.correction_command(acc, command)
         self.send_msg(corrected_command)
 
-    def game(self):
-        """
-        Control ilo using arrow or numb pad of your keyboard. \n
-        Available keyboard touch: 8,2,4,6,1,3 | space = stop | esc = quit
+    # def game(self):
+    #     """
+    #     Control ilo using arrow or numb pad of your keyboard. \n
+    #     Available keyboard touch: 8,2,4,6,1,3 | space = stop | esc = quit
 
-        Raises:
-            ConnectionError: If you are not connected to ilo
+    #     Raises:
+    #         ConnectionError: If you are not connected to ilo
 
-        Examples:
-            my_ilo.game()
-        """
+    #     Examples:
+    #         my_ilo.game()
+    #     """
 
-        if self.test_connection() == True:
-            # self.set_acc_motor(200)
-            acc = 200
-            axial_value = 128
-            radial_value = 128
-            rotation_value = 128
-            self.stop()
-            new_keyboard_instruction = False
+    #     if self.test_connection() == True:
+    #         # self.set_acc_motor(200)
+    #         acc = 200
+    #         axial_value = 128
+    #         radial_value = 128
+    #         rotation_value = 128
+    #         self.stop()
+    #         new_keyboard_instruction = False
 
-            print('Game mode start, use keyboard arrow to control ilo')
-            print("Press echap to leave the game mode")
+    #         print('Game mode start, use keyboard arrow to control ilo')
+    #         print("Press echap to leave the game mode")
 
-            while (True):
-                if keyboard.is_pressed("8"):
-                    new_keyboard_instruction = True
-                    time.sleep(0.05)
-                    axial_value = axial_value + 5
-                    if axial_value > 255:
-                        axial_value = 255
-                elif keyboard.is_pressed("2"):
-                    new_keyboard_instruction = True
-                    time.sleep(0.05)
-                    axial_value = axial_value - 5
-                    if axial_value < 1:
-                        axial_value = 0
-                elif keyboard.is_pressed("6"):
-                    new_keyboard_instruction = True
-                    time.sleep(0.05)
-                    radial_value = radial_value + 5
-                    if radial_value > 255:
-                        radial_value = 255
-                elif keyboard.is_pressed("4"):
-                    new_keyboard_instruction = True
-                    time.sleep(0.05)
-                    radial_value = radial_value - 5
-                    if radial_value < 1:
-                        radial_value = 0
-                elif keyboard.is_pressed("3"):
-                    new_keyboard_instruction = True
-                    time.sleep(0.05)
-                    rotation_value = rotation_value + 5
-                    if rotation_value > 255:
-                        rotation_value = 255
-                elif keyboard.is_pressed("1"):
-                    new_keyboard_instruction = True
-                    time.sleep(0.05)
-                    rotation_value = rotation_value - 5
-                    if rotation_value < 1:
-                        rotation_value = 0
-                elif keyboard.is_pressed("5"):
-                    new_keyboard_instruction = True
-                    time.sleep(0.05)
-                    axial_value = 128
-                    radial_value = 128
-                    rotation_value = 128
-                elif keyboard.is_pressed("esc"):
-                    self.stop()
-                    break
+    #         while (True):
+    #             if keyboard_crossplatform.getKey("8"):
+    #                 new_keyboard_instruction = True
+    #                 time.sleep(0.05)
+    #                 axial_value = axial_value + 5
+    #                 if axial_value > 255:
+    #                     axial_value = 255
+    #             elif keyboard_crossplatform.getKey("2"):
+    #                 new_keyboard_instruction = True
+    #                 time.sleep(0.05)
+    #                 axial_value = axial_value - 5
+    #                 if axial_value < 1:
+    #                     axial_value = 0
+    #             elif keyboard_crossplatform.getKey("6"):
+    #                 new_keyboard_instruction = True
+    #                 time.sleep(0.05)
+    #                 radial_value = radial_value + 5
+    #                 if radial_value > 255:
+    #                     radial_value = 255
+    #             elif keyboard_crossplatform.getKey("4"):
+    #                 new_keyboard_instruction = True
+    #                 time.sleep(0.05)
+    #                 radial_value = radial_value - 5
+    #                 if radial_value < 1:
+    #                     radial_value = 0
+    #             elif keyboard_crossplatform.getKey("3"):
+    #                 new_keyboard_instruction = True
+    #                 time.sleep(0.05)
+    #                 rotation_value = rotation_value + 5
+    #                 if rotation_value > 255:
+    #                     rotation_value = 255
+    #             elif keyboard_crossplatform.getKey("1"):
+    #                 new_keyboard_instruction = True
+    #                 time.sleep(0.05)
+    #                 rotation_value = rotation_value - 5
+    #                 if rotation_value < 1:
+    #                     rotation_value = 0
+    #             elif keyboard_crossplatform.getKey("5"):
+    #                 new_keyboard_instruction = True
+    #                 time.sleep(0.05)
+    #                 axial_value = 128
+    #                 radial_value = 128
+    #                 rotation_value = 128
+    #             elif keyboard_crossplatform.getKey("esc"):
+    #                 self.stop()
+    #                 break
 
-                if new_keyboard_instruction == True:
-                    self.direct_control(
-                        acc, axial_value, radial_value, rotation_value)
-                    new_keyboard_instruction = False
-        else:
-            print(
-                "You have to be connected to ILO before play with it, use ilo.connection()")
+    #             if new_keyboard_instruction == True:
+    #                 self.direct_control(acc, axial_value, radial_value, rotation_value)
+    #                 new_keyboard_instruction = False
+    #     else:
+    #         print("You have to be connected to ILO before play with it, use ilo.connection()")
+
 
     def set_tempo_pos(self, value: int):
         """
@@ -1451,7 +1455,7 @@ class robot(object):
         Get the tempo of the position control
         """
         self.send_msg("<691>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.tempo_pos)
 
     def rotation(self, angle: int):
@@ -1535,19 +1539,15 @@ class robot(object):
         Get the actual value of the proportional gain, the integral gain and the derivative gain
         """
         self.send_msg("<71>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.kp, self.ki, self.kd)
     # -----------------------------------------------------------------------------
     def get_color_rgb(self):
         """
         Displays the color below ilo
         """
-
-        print("get_color_rgb")
         self.send_msg("<10>")
-        time.sleep(0.1)
-        # self._response_event.wait()
-        # self._response_event.clear()
+        self._response_event.wait(timeout=5)
 
         return (self.red_color, self.green_color, self.blue_color)
 
@@ -1580,7 +1580,7 @@ class robot(object):
         Displays the brightness below ilo
         """
         self.send_msg("<11>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.clear_left, self.clear_center, self.clear_right)
 
     def get_color_clear_left(self):
@@ -1588,7 +1588,7 @@ class robot(object):
         Displays the brightness below ilo only with left sensor
         """
         self.send_msg("<11>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.clear_left)
 
     def get_color_clear_center(self):
@@ -1596,7 +1596,7 @@ class robot(object):
         Displays the brightness below ilo only with central sensor
         """
         self.send_msg("<11>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.clear_center)
 
     def get_color_clear_right(self):
@@ -1604,7 +1604,7 @@ class robot(object):
         Displays the brightness below ilo only with right sensor
         """
         self.send_msg("<11>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.clear_right)
     # -----------------------------------------------------------------------------
     def get_line(self):
@@ -1612,7 +1612,7 @@ class robot(object):
         Detects whether ilo is on a line or not
         """
         self.send_msg("<12>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.line_left, self.line_center, self.line_right)
 
     def get_line_left(self):
@@ -1620,7 +1620,7 @@ class robot(object):
         Detects whether ilo is on a line or not according to the left sensor
         """
         self.send_msg("<12>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.line_left)
 
     def get_line_center(self):
@@ -1628,7 +1628,7 @@ class robot(object):
         Detects whether ilo is on a line or not according to the central sensor
         """
         self.send_msg("<12>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.line_center)
 
     def get_line_right(self):
@@ -1636,7 +1636,7 @@ class robot(object):
         Detects whether ilo is on a line or not according to the right sensor
         """
         self.send_msg("<12>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.line_right)
 
     def set_line_threshold_value(self, value=None):
@@ -1676,15 +1676,17 @@ class robot(object):
         Get the actual value of the threshold value for the line detection
         """
         self.send_msg("<14>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.line_threshold_value)
     # -----------------------------------------------------------------------------
     def get_distance(self):
         """
         Get the distance around ilo
         """
+        # self._response_event.clear()
         self.send_msg("<20>")
-        time.sleep(0.15)
+        # time.sleep(0.15)
+        self._response_event.wait(timeout=5)
         return (self.distance_front, self.distance_right, self.distance_back, self.distance_left)
 
     def get_distance_front(self):
@@ -1692,7 +1694,7 @@ class robot(object):
         Get the distance in front of ilo
         """
         self.send_msg("<21>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.distance_front)
 
     def get_distance_right(self):
@@ -1700,7 +1702,7 @@ class robot(object):
         Get the distance on the right of ilo
         """
         self.send_msg("<22>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.distance_right)
 
     def get_distance_back(self):
@@ -1708,7 +1710,7 @@ class robot(object):
         Get the distance behind ilo
         """
         self.send_msg("<23>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.distance_back)
 
     def get_distance_left(self):
@@ -1716,7 +1718,7 @@ class robot(object):
         Get the distance on the left of ilo
         """
         self.send_msg("<24>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.distance_left)
     # -----------------------------------------------------------------------------
     def get_angle(self):
@@ -1724,7 +1726,7 @@ class robot(object):
         Get the angle of ilo
         """
         self.send_msg("<30>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.roll, self.pitch, self.yaw)
 
     def get_roll(self):
@@ -1732,7 +1734,7 @@ class robot(object):
         Get the roll angle of ilo
         """
         self.send_msg("<30>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.roll)
 
     def get_pitch(self):
@@ -1740,7 +1742,7 @@ class robot(object):
         Get the pitch angle of ilo
         """
         self.send_msg("<30>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.pitch)
 
     def get_yaw(self):
@@ -1748,7 +1750,7 @@ class robot(object):
         Get the yaw angle of ilo
         """
         self.send_msg("<30>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.yaw)
 
     def reset_angle(self):
@@ -1762,7 +1764,7 @@ class robot(object):
         Get IMU raw data
         """
         self.send_msg("<32>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.accX, self.accY, self.accZ, self.gyroX, self.gyroY, self.gyroZ)
     # -----------------------------------------------------------------------------
     def get_battery(self):
@@ -1770,7 +1772,7 @@ class robot(object):
         Get battery status (charged or not) and percentage
         """
         self.send_msg("<40>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.battery_status, self.battery_pourcentage)
     # -----------------------------------------------------------------------------
     def get_led_color(self):
@@ -1778,7 +1780,7 @@ class robot(object):
         Get ilo LEDS color
         """
         self.send_msg("<50>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.red_led, self.green_led, self.blue_led)
 
     def set_led_color(self, red: int, green: int, blue: int):
@@ -2001,7 +2003,7 @@ class robot(object):
         Get the acceleration of all motors
         """
         self.send_msg("<681>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.acc_motor)
 
     def set_acc_motor(self, acc: int):
@@ -2058,7 +2060,7 @@ class robot(object):
 
         msg = "<60i"+str(id)+">"
         self.send_msg(msg)
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.motor_id, self.motor_ping)
     # <610i1v3000>
     def drive_single_motor_speed(self, id: int, acc: int, vel: int):
@@ -2208,7 +2210,7 @@ class robot(object):
 
         msg = "<611i"+str(id)+">"
         self.send_msg(msg)
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.motor_id, self.motor_speed)
     # <620i6a100v100p90>
     def drive_single_motor_angle(self, id: int, acc: int, vel: int, pos: int):
@@ -2290,7 +2292,7 @@ class robot(object):
 
         msg = "<621i"+str(id)+">"
         self.send_msg(msg)
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.motor_id, self.motor_angle)
     # <63i1t45>
     def get_temp_single_motor(self, id: int):
@@ -2317,7 +2319,7 @@ class robot(object):
 
         msg = "<63i"+str(id)+">"
         self.send_msg(msg)
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.motor_id, self.temp_motor)
     # <64i1v6.7>
     def get_volt_single_motor(self, id: int):
@@ -2344,7 +2346,7 @@ class robot(object):
 
         msg = "<64i"+str(id)+">"
         self.send_msg(msg)
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.motor_id, self.volt_motor)
     # <65i1t20>
     def get_torque_single_motor(self, id: int):
@@ -2371,7 +2373,7 @@ class robot(object):
 
         msg = "<65i"+str(id)+">"
         self.send_msg(msg)
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.motor_id, self.motor_torque)
     # <66i1c20>
     def get_current_single_motor(self, id: int):
@@ -2398,7 +2400,7 @@ class robot(object):
 
         msg = "<66i"+str(id)+">"
         self.send_msg(msg)
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.motor_id, self.current_motor)
     # <67i1s20>
     def get_motor_is_moving(self, id: int):
@@ -2425,7 +2427,7 @@ class robot(object):
 
         msg = "<67i"+str(id)+">"
         self.send_msg(msg)
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.motor_id, self.motor_moving)
 
     def get_vmax():
@@ -2530,7 +2532,7 @@ class robot(object):
         Get wifi credentials registered on ilo
         """
         self.send_msg("<92>")
-        time.sleep(0.1)
+        self._response_event.wait(timeout=5)
         return (self.ssid, self.password)
     # -----------------------------------------------------------------------------
     def set_name(self, name: str):  # going to be change by <93n>
@@ -2567,9 +2569,7 @@ class robot(object):
         """
         self.send_msg("<93>")
         self.marker = False
-        time.sleep(0.2)
-        # if connection_type == 1:
-        #     self.serial_read()
+        self._response_event.wait(timeout=5)
         return (self.hostname)
     # -----------------------------------------------------------------------------
     def get_accessory(self):
@@ -2577,7 +2577,7 @@ class robot(object):
         Get information about the accessory connected to ilo
         """
         self.send_msg("<100>")
-        time.sleep(0.25)
+        self._response_event.wait(timeout=5)
         return (self.accessory)
     # -----------------------------------------------------------------------------
     def set_debug_state(self, state: bool):  # pas à jour
@@ -2616,5 +2616,11 @@ class robot(object):
         """
         self.send_msg("<00>")
     # -----------------------------------------------------------------------------
-
+    def get_robot_version(self):
+        """
+        Get the version number of the code present on the robot
+        """
+        self.send_msg("<500y>")
+        self._response_event.wait(timeout=5)
+        return (self.version)
 
