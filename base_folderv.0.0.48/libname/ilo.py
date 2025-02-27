@@ -2586,7 +2586,11 @@ class robot(object):
             print("[ERROR] 'state' parameter must be a bool like True or False")
             return None
 
-        msg = "<94"+str(state)+">"
+        if state == True:
+            msg = "<103s1>"
+        else:
+            msg = "<103s2>"
+
         self.send_msg(msg)
     # -----------------------------------------------------------------------------
     def send_trame_s(self, param_list: list):
