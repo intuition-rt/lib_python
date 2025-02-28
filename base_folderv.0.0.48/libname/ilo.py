@@ -8,7 +8,7 @@ import serial
 import math
 import threading
 import websocket
-# import keyboard_crossplatform
+from keyboard_crossplatform import KeyBordCrossPlatform
 import time
 import re
 import unicodedata
@@ -1525,82 +1525,88 @@ class robot(object):
         corrected_command = self.correction_command(acc, command)
         self.send_msg(corrected_command)
 
-    # def game(self):
-    #     """
-    #     Control ilo using arrow or numb pad of your keyboard. \n
-    #     Available keyboard touch: 8,2,4,6,1,3 | space = stop | esc = quit
+    def game(self):
+        """
+        Control ilo using arrow or numb pad of your keyboard. \n
+        Available keyboard touch: 8,2,4,6,1,3 | space = stop | esc = quit
 
-    #     Raises:
-    #         ConnectionError: If you are not connected to ilo
+        Raises:
+            ConnectionError: If you are not connected to ilo
 
-    #     Examples:
-    #         my_ilo.game()
-    #     """
+        Examples:
+            my_ilo.game()
+        """
 
-    #     if self.test_connection() == True:
-    #         # self.set_acc_motor(200)
-    #         acc = 200
-    #         axial_value = 128
-    #         radial_value = 128
-    #         rotation_value = 128
-    #         self.stop()
-    #         new_keyboard_instruction = False
+        print("Game mode start, use keyboard arrow to control ilo")
+        if self.test_connection() == True:
+            # self.set_acc_motor(200)
+            acc = 200
+            axial_value = 128
+            radial_value = 128
+            rotation_value = 128
+            self.stop()
+            new_keyboard_instruction = False
 
-    #         print('Game mode start, use keyboard arrow to control ilo')
-    #         print("Press echap to leave the game mode")
+            keylogger = KeyBordCrossPlatform()
+            print('Game mode start, use keyboard arrow to control ilo')
+            print("Press echap to leave the game mode")
 
-    #         while (True):
-    #             if keyboard_crossplatform.getKey("8"):
-    #                 new_keyboard_instruction = True
-    #                 time.sleep(0.05)
-    #                 axial_value = axial_value + 5
-    #                 if axial_value > 255:
-    #                     axial_value = 255
-    #             elif keyboard_crossplatform.getKey("2"):
-    #                 new_keyboard_instruction = True
-    #                 time.sleep(0.05)
-    #                 axial_value = axial_value - 5
-    #                 if axial_value < 1:
-    #                     axial_value = 0
-    #             elif keyboard_crossplatform.getKey("6"):
-    #                 new_keyboard_instruction = True
-    #                 time.sleep(0.05)
-    #                 radial_value = radial_value + 5
-    #                 if radial_value > 255:
-    #                     radial_value = 255
-    #             elif keyboard_crossplatform.getKey("4"):
-    #                 new_keyboard_instruction = True
-    #                 time.sleep(0.05)
-    #                 radial_value = radial_value - 5
-    #                 if radial_value < 1:
-    #                     radial_value = 0
-    #             elif keyboard_crossplatform.getKey("3"):
-    #                 new_keyboard_instruction = True
-    #                 time.sleep(0.05)
-    #                 rotation_value = rotation_value + 5
-    #                 if rotation_value > 255:
-    #                     rotation_value = 255
-    #             elif keyboard_crossplatform.getKey("1"):
-    #                 new_keyboard_instruction = True
-    #                 time.sleep(0.05)
-    #                 rotation_value = rotation_value - 5
-    #                 if rotation_value < 1:
-    #                     rotation_value = 0
-    #             elif keyboard_crossplatform.getKey("5"):
-    #                 new_keyboard_instruction = True
-    #                 time.sleep(0.05)
-    #                 axial_value = 128
-    #                 radial_value = 128
-    #                 rotation_value = 128
-    #             elif keyboard_crossplatform.getKey("esc"):
-    #                 self.stop()
-    #                 break
+            while (True):
+                key = keylogger.getKey()
+                if key == "8" or key == "f7":
+                    new_keyboard_instruction = True
+                    time.sleep(0.05)
+                    axial_value = axial_value + 5
+                    if axial_value > 255:
+                        axial_value = 255
+                elif key == "2" or key == "f20":
+                    new_keyboard_instruction = True
+                    time.sleep(0.05)
+                    axial_value = axial_value - 5
+                    if axial_value < 1:
+                        axial_value = 0
+                elif key == "6" or key == "kp_add":
+                    new_keyboard_instruction = True
+                    time.sleep(0.05)
+                    radial_value = radial_value + 5
+                    if radial_value > 255:
+                         radial_value = 255
+                elif key == "4" or key == "kp_multiply":
+                    new_keyboard_instruction = True
+                    time.sleep(0.05)
+                    radial_value = radial_value - 5
+                    if radial_value < 1:
+                        radial_value = 0
+                elif key == "3" or key == "kp_divide":
+                    new_keyboard_instruction = True
+                    time.sleep(0.05)
+                    rotation_value = rotation_value + 5
+                    if rotation_value > 255:
+                        rotation_value = 255
+                elif key == "1" or key == "f19":
+                    new_keyboard_instruction = True
+                    time.sleep(0.05)
+                    rotation_value = rotation_value - 5
+                    if rotation_value < 1:
+                        rotation_value = 0
+                elif key == "5" or key == "kp_subtract":
+                    new_keyboard_instruction = True
+                    time.sleep(0.05)
+                    axial_value = 128
+                    radial_value = 128
+                    rotation_value = 128
+                elif key == "esc":
+                    print("Game mode stop")
+                    self.stop()
+                    break
+                else:
+                    print("Invalid key", key)
 
-    #             if new_keyboard_instruction == True:
-    #                 self.direct_control(acc, axial_value, radial_value, rotation_value)
-    #                 new_keyboard_instruction = False
-    #     else:
-    #         print("You have to be connected to ILO before play with it, use ilo.connection()")
+                if new_keyboard_instruction == True:
+                    self.direct_control(acc, axial_value, radial_value, rotation_value)
+                    new_keyboard_instruction = False
+        else:
+            print("You have to be connected to ILO before play with it, use ilo.connection()")
 
 
     def set_tempo_pos(self, value: int):
