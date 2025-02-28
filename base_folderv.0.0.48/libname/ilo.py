@@ -15,6 +15,12 @@ import unicodedata
 import asyncio
 from bleak import BleakScanner, BleakClient
 from prettytable import PrettyTable
+import requests
+import os
+import psutil
+import platform
+import binascii
+# -----------------------------------------------------------------------------
 
 class SyncBleak:
     """
@@ -28,6 +34,10 @@ class SyncBleak:
             asyncio.set_event_loop(self.loop)
 
         self.client = None
+
+    def get_loop(self):
+        """Retourne la boucle asyncio utilisée par SyncBleak."""
+        return self.loop
 
     def scan_devices(self, timeout=5):
         """Scan BLE devices de manière synchrone."""
@@ -80,6 +90,142 @@ class SyncBleak:
         return self.client.is_connected
     
 ble_lib = SyncBleak()
+
+class IloUpdater():
+    def __init__(self, client, version, use_ble=True, ws=None):
+        self.client = client
+        self.version = version
+        self.service_uuid = "5f6d"
+        self.data_char_uuid = "c0de"
+        self.size_char_uuid = "dead"
+        self.notify_char_uuid = "1A2B"
+        self.use_ble = use_ble
+        if use_ble:
+            self.CHUNK_SIZE = 509  # Taille maximale d'un paquet BLE
+        else:
+            self.CHUNK_SIZE = 1024
+            self.ws = ws
+        self.update_complete = False
+
+        self.loop = ble_lib.get_loop()  # Utilisation de la même boucle que SyncBleak
+
+    async def send_firmware(self):
+        """Envoie un firmware en OTA via BLE au ESP32 et attend une notification de fin."""
+        try:
+            with open("firmware.bin", "rb") as f:
+                firmware_data = f.read()
+            firmware_size = len(firmware_data)
+            print(f"Firmware chargé: {firmware_size} octets")
+            if self.use_ble:
+                if not self.client.is_connected:
+                    print("Client BLE non connecté.")
+                    return
+            else:
+                if self.ws is None:
+                    print("WebSocket non connecté.")
+                    return
+            print("\nConnecté.")
+            size_bytes = f"<500x{firmware_size}>".encode() # Envoyer la taille du firmware
+            if (self.use_ble):
+                await self.client.write_gatt_char(self.size_char_uuid, size_bytes, response=False)
+            else:
+                self.ws.send(size_bytes)
+            print("\nTaille du firmware envoyée.")
+            await asyncio.sleep(0.1)
+            for i in range(0, firmware_size, self.CHUNK_SIZE):  # Envoi du firmware par morceaux
+                chunk = firmware_data[i:i+self.CHUNK_SIZE]
+                if (self.use_ble):
+                    await self.client.write_gatt_char(self.data_char_uuid, chunk, response=False)
+                else:
+                    self.ws.send(bytes(chunk), opcode=websocket.ABNF.OPCODE_BINARY)
+                print(f"\rEnvoyé {i + len(chunk)} / {firmware_size} octets", end="", flush=True)
+                await asyncio.sleep(0.01) 
+            print("\n[UPDATE] Firmware envoyé, en attente de confirmation du robot...")
+            timeout = 60
+            elapsed_time = 0
+            while not self.update_complete and elapsed_time < timeout:
+                await asyncio.sleep(1)
+                elapsed_time += 1
+
+            if not self.update_complete:
+                print("[ERROR] Aucune confirmation reçue, la mise à jour pourrait avoir échoué.")
+            else:
+                print("[SUCCESS] Mise à jour terminée avec succès.")
+
+        except Exception as e:
+            print(f"Erreur: {e}")
+
+    def _run_update(self):
+        """Exécute `send_firmware` dans la boucle asyncio existante."""
+        self.loop.run_until_complete(self.send_firmware())
+
+    def updateWithBT(self):
+        """Lance l'update dans un thread avec une priorité CPU élevée en fonction de l'OS."""
+        def run_with_priority():
+            try:
+                p = psutil.Process(os.getpid())
+                system_name = platform.system()
+
+                if system_name == "Windows":
+                    p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)  # Windows: priorité modérée
+                    print("🟢 Priorité du thread ajustée (Windows, Below Normal).")
+                elif system_name in ["Linux", "Darwin"]:  # Darwin = macOS
+                    p.nice(0)  # Linux/macOS: valeur normale (sans sudo)
+                    print("🟢 Priorité du thread ajustée (Linux/macOS, Normal).")
+                else:
+                    print(f"⚠️ Système inconnu ({system_name}), priorité non modifiée.")
+
+                self._run_update()  # Exécute la boucle asyncio dans le thread
+            except Exception as e:
+                print(f"⚠️ Erreur en changeant la priorité: {e}")
+
+        # Lancer le processus dans un thread dédié
+        thread = threading.Thread(target=run_with_priority, daemon=True)
+        thread.start()
+
+    def updateWithWS(self):
+        """Lance l'update via WebSocket."""
+        print("🟢 Envoi du firmware via WebSocket.")
+        self._run_update()
+    
+    def download_firmware(self, firmware_id):
+        url = f"http://82.29.172.101:8000/api/firmwares/download/{firmware_id}/"
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                with open("firmware.bin", "wb") as f:
+                    f.write(response.content)
+                print("Firmware downloaded successfully.")
+                return True
+            else:
+                print(f"Failed to download firmware: {response.status_code}")
+                return False
+        except Exception as e:
+            print(f"Error downloading firmware: {e}")
+            return False
+
+    def check_update(self):
+        print("Checking for updates...")
+        req = requests.get("http://82.29.172.101:8000/api/firmwares/latest/")
+        if req.status_code == 200:
+            data = req.json()
+            latest_version = data["version"]
+            print(f"Latest version: {latest_version}")
+            if latest_version != self.version:
+                print("New update available.")
+                update = input("Do you want to update? (y/n): ").strip().lower()
+                if update == "y":
+                    if self.download_firmware(data["id"]):
+                        if self.use_ble:
+                            self.updateWithBT()
+                        else:
+                            self.updateWithWS()
+            else:
+                print("No updates available.")
+        else:
+            print("Failed to check for updates.")
+        pass
+
 
 
 version = "0.49"
@@ -541,6 +687,9 @@ class robot(object):
         self.ser = None
         # self.connect = False
 
+
+        self.version = ""
+
         #BLE:
         # self.adress = get_ADDRESS_from_ID(self.ID)
         self.ble_device = None
@@ -662,9 +811,13 @@ class robot(object):
 
                 self.connect = True
                 self.send_msg("<ilo>")
+                self.send_msg("<500y>")
                 time.sleep(0.2)
                 self.get_name()
+                time.sleep(0.2)
                 print('Your are connected to ' + self.hostname)
+                updater = IloUpdater(self.ser, self.version, False, self.ws)
+                updater.check_update()
 
             except Exception as e:
                 print(
@@ -681,10 +834,12 @@ class robot(object):
 
                 self.connect = True
                 self.send_msg("<ilo>")
+                
                 time.sleep(0.2)
                 self.get_name()
                 time.sleep(0.2)
                 print('Your are connected to ' + self.hostname)
+                
             except Exception as e:
                 print("Connection error: you must be connected to the ilo robot")
                 print(
@@ -695,6 +850,7 @@ class robot(object):
         elif connection_type == 2:
             def notification_handler(sender, data):
                 #print(f"Notification from {sender}: {data.decode('utf-8')}")
+                print(f"Received: {data.decode('utf-8')}")
                 self.process_received_data(data.decode('utf-8'))
             print("Connecting to the BLE device...")
             try:
@@ -703,10 +859,13 @@ class robot(object):
                 self.connect = True
                 print("Connected to the BLE device.")
                 self.send_msg("<ilo>")
+                self.send_msg("<500y>")
                 time.sleep(0.2)
                 self.get_name()
                 time.sleep(0.2)
                 print('Your are connected to ' + self.hostname)
+                updater = IloUpdater(self.ble_device, self.version)
+                updater.check_update()
             except Exception as e:
                 print(f"Error connecting to the BLE device: {e}")
                 self.connect = False
@@ -952,6 +1111,11 @@ class robot(object):
             if str(data[1:4]) == "102":  # get_accessory()
                 self.potard_value = float(
                     data[data.find('a')+1: data.find('>')])
+
+            if str(data[1:4]) == "500":  # get_global_trame
+                
+                self.version = str(data[data.find('y')+1: data.find('>')])
+                print(f"Version: {self.version}")
 
             self._response_event.set()
 
@@ -2586,7 +2750,11 @@ class robot(object):
             print("[ERROR] 'state' parameter must be a bool like True or False")
             return None
 
-        msg = "<94"+str(state)+">"
+        if state == True:
+            msg = "<103s1>"
+        else:
+            msg = "<103s2>"
+
         self.send_msg(msg)
     # -----------------------------------------------------------------------------
     def send_trame_s(self, param_list: list):
