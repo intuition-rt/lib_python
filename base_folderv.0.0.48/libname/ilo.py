@@ -2620,6 +2620,13 @@ class robot(object):
         """
         self.send_msg("<00>")
     # -----------------------------------------------------------------------------
+    def get_diagnostic(self):
+        """
+        Get a diagnosis of robot status
+        """
+        self.send("<110>")
+        
+    
     def get_robot_version(self):
         """
         Get the version number of the code present on the robot
