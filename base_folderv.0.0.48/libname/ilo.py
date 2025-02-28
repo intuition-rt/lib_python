@@ -1173,6 +1173,9 @@ class robot(object):
             
         if finish_state == True:
             print("Finish state is True")
+            # self._response_event.wait(timeout=5)
+            # return (self.version)
+
 
 
     def flat_movement(self, angle, distance):
@@ -2631,7 +2634,7 @@ class robot(object):
         """
         Get a diagnosis of robot status
         """
-        self.send("<110>")
+        self.send_msg("<110>")
 
     
     def get_robot_version(self):
