@@ -1084,7 +1084,7 @@ class robot(object):
         """
         self.direct_control(200, 128, 128, 128)
 
-    def step(self, direction, step=None):
+    def step(self, direction, step=None, finish_state=None):
         """
         Move ilo in the selected direction 
 
@@ -1103,16 +1103,13 @@ class robot(object):
             my_ilo.step("back")
         """
 
-        # if (step == None):
-        #     step = 1
-
         if not isinstance(direction, str):
             print("[ERROR] 'direction' should be a string")
             return None
-
-        # if not isinstance(step, (int, float)):
-        #     print ("[ERROR] 'step' should be an integer or a float")
-        #     return None
+        
+        if isinstance(step, bool):
+            finish_state = step
+            step = None
 
         if (direction == 'front' or direction == 'back' or direction == 'left' or direction == 'right'):
 
@@ -1145,6 +1142,12 @@ class robot(object):
         else:
             print("[ERROR] 'step' unknow name")
             return None
+        
+        if finish_state != None:
+
+            if not isinstance(finish_state, bool):
+                print ("[ERROR] 'finish_state' should be a boolean")
+                return None
 
         if direction == 'front':
             msg = '<a60vpx1' + str(step) + 'yr>'
@@ -1167,6 +1170,10 @@ class robot(object):
         else:
             print(
                 "[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'")
+            
+        if finish_state == True:
+            print("Finish state is True")
+
 
     def flat_movement(self, angle, distance):
         """
@@ -2625,7 +2632,7 @@ class robot(object):
         Get a diagnosis of robot status
         """
         self.send("<110>")
-        
+
     
     def get_robot_version(self):
         """
