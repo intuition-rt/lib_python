@@ -891,8 +891,8 @@ class robot(object):
                     self.ser.write(message.encode())
                     print(f"Sent:     {message}")
 
-                    invalid_prefixes = ("<a", "<i", "<13", "<31", "<51", "<52", "<53", "<54", "<55",
-                                        "<610", "<620", "<680", "<690", "<70", "<80", "<91", "<94", "<0", "<>")
+                    invalid_prefixes = ("<a", "<i", "<13", "<31", "<51", "<52", "<53", "<54", "<55", "<56", "<57", "<58",
+                                        "<610", "<620", "<680", "<690", "<70", "<72", "<80", "<90", "<91", "<94", "<103", "<0", "<>")
 
                     if message.startswith(invalid_prefixes):
                         pass
@@ -1340,8 +1340,6 @@ class robot(object):
             # self._response_event.wait(timeout=5)
             # return (self.version)
 
-
-
     def flat_movement(self, angle, distance):
         """
         Move ilo in the selected direction in angle for a selected distance
@@ -1486,11 +1484,14 @@ class robot(object):
         Value from 0 to 128 are negative and value from 128 to 255 are positive
 
         Parameters:
+            acc (int): acceleration
             axial (int): axial speed
             radial (int): radial speed
             rotation (int): rotation speed
 
         Raises:
+            TypeError: If acc is not an integer
+            ValueError: If acc is not between 1 and 200
             TypeError: If axial is not an integer
             ValueError: If axial is not between 0 and 255
             TypeError: If radial is not an integer
@@ -1499,9 +1500,15 @@ class robot(object):
             ValueError: If rotation is not between 0 and 255
 
         Examples:
-            my_ilo.direct_control(180, 128, 128)
+            my_ilo.direct_control(100, 180, 128, 128)
         """
 
+        if not isinstance(acc, int):
+            print("[ERROR] 'acc' parameter must be a integer")
+            return None
+        if acc > 200 or acc < 1:
+            print("[ERROR] 'acc' parameter must be include between 1 to 200 ")
+            return None
         if not isinstance(axial, int):
             print("[ERROR] 'axial' parameter must be a integer")
             return None
