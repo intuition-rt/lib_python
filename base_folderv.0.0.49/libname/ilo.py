@@ -1,6 +1,6 @@
 # This python script is the library for using the robot ilo with python command on WiFi
 # INTUITION ROBOTIQUE ET TECHNOLOGIES ALL RIGHT RESERVED
-# 05/02/2025
+# 21/03/2025
 # -----------------------------------------------------------------------------
 import pyperclip
 import serial.tools.list_ports
@@ -228,7 +228,7 @@ class IloUpdater():
 
 
 
-version = "0.50"
+version = "0.49"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
