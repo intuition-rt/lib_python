@@ -207,25 +207,33 @@ class IloUpdater():
 
     def check_update(self):
         print("Checking for updates...")
-        req = requests.get("http://51.210.150.191:8001/api/firmwares/latest/")
-        if req.status_code == 200:
-            data = req.json()
-            latest_version = data["version"]
-            print(f"Latest version: {latest_version}")
-            if latest_version != self.version:
-                print("New update available.")
-                update = input("Do you want to update? (y/n): ").strip().lower()
-                if update == "y":
-                    if self.download_firmware(data["id"]):
-                        if self.use_ble:
-                            self.updateWithBT()
-                        else:
-                            self.updateWithWS()
+
+        try:
+            requests.get("https://ilorobot.com", timeout=3)
+        except requests.ConnectionError:
+            print("No network connection. Skipping update check.")
+            return
+        try:
+            req = requests.get("http://51.210.150.191:8001/api/firmwares/latest/")
+            if req.status_code == 200:
+                data = req.json()
+                latest_version = data["version"]
+                print(f"Latest version: {latest_version}")
+                if latest_version != self.version:
+                    print("New update available.")
+                    update = input("Do you want to update? (y/n): ").strip().lower()
+                    if update == "y":
+                        if self.download_firmware(data["id"]):
+                            if self.use_ble:
+                                self.updateWithBT()
+                            else:
+                                self.updateWithWS()
+                else:
+                    print("No updates available.")
             else:
-                print("No updates available.")
-        else:
-            print("Failed to check for updates.")
-        pass
+                print("Failed to check for updates.")
+        except Exception as e:
+            print(f"Error during update check: {e}")
 
 
 
