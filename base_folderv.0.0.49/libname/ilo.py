@@ -90,6 +90,7 @@ class SyncBleak:
         return self.client.is_connected
     
 ble_lib = SyncBleak()
+CHARACTERISTIC_UUID = "DEAD"  # Notify  and read/write characteristic
 
 class IloUpdater():
     def __init__(self, client, version, use_ble=True, ws=None):
@@ -189,7 +190,7 @@ class IloUpdater():
         self._run_update()
     
     def download_firmware(self, firmware_id):
-        url = f"http://82.29.172.101:8000/api/firmwares/download/{firmware_id}/"
+        url = f"http://51.210.150.191:8001/api/firmwares/download/{firmware_id}/"
         try:
             response = requests.get(url)
             if response.status_code == 200:
@@ -206,7 +207,7 @@ class IloUpdater():
 
     def check_update(self):
         print("Checking for updates...")
-        req = requests.get("http://82.29.172.101:8000/api/firmwares/latest/")
+        req = requests.get("http://51.210.150.191:8001/api/firmwares/latest/")
         if req.status_code == 200:
             data = req.json()
             latest_version = data["version"]
@@ -244,8 +245,7 @@ tab_IP = []
 tab_PORT = []
 # BLE
 tab_ADDRESS = []
-CHARACTERISTIC_UUID_NOTIF = "1A2B"  # Notify characteristic
-CHARACTERISTIC_UUID_RXTX = "DEAD"   # Read/Write characteristic
+
 client = None
 # -----------------------------------------------------------------------------
 
@@ -454,7 +454,7 @@ def check_robot_on_wifi():
         if not ilo_AP:
             base_ip = "192.168.1."
             ilo_ID = 1
-            c = 3                       # Checking 3 more IP addresses after success
+            c = 3     # Checking 3 more IP addresses after success
 
             for i in range(100, 200):  # Between 192.168.1.100 and 192.168.1.200
                 ip_check = f"{base_ip}{i}"
@@ -466,8 +466,7 @@ def check_robot_on_wifi():
                     break
 
                 try:
-                    # Set timeout for each connection
-                    ws = websocket.create_connection(ws_url, timeout=1.3)
+                    ws = websocket.create_connection(ws_url, timeout=1.3) # Set timeout for each connection
                     if co_send_msg(ws, "<ilo>") == "ilo":
                         co_send_msg(ws, "<>")
                         tab_IP.append([IP, ilo_ID, co_send_msg(ws, "<930>")])
@@ -478,10 +477,8 @@ def check_robot_on_wifi():
                 except:
                     continue  # Continue to the next IP
 
-        # Display the IP and ID
-        table = PrettyTable()
-        table.field_names = ["IP Address", "ID of ilo",
-                             "Name of ilo"]  # add the name info <93>
+        table = PrettyTable() # Display the IP and ID
+        table.field_names = ["IP Address", "ID of ilo", "Name of ilo"]  # add the name info <93>
         for row in tab_IP:
             table.add_row(row)
 
@@ -596,7 +593,7 @@ def check_robot_on_bluetooth():
     global tab_ADDRESS
     global connection_type
 
-    print("Scanning for BLE devices...")
+    print("[ILO] Scanning for BLE devices...")
     try:    
         devices = ble_lib.scan_devices()
         table = PrettyTable()
@@ -851,13 +848,16 @@ class robot(object):
 
         elif connection_type == 2:
             def notification_handler(sender, data):
-                #print(f"Notification from {sender}: {data.decode('utf-8')}")
-                print(f"Received: {data.decode('utf-8')}")
-                self.process_received_data(data.decode('utf-8'))
+                try:
+                    decoded_data = data.decode('utf-8')
+                    print(f"Received: {decoded_data}")
+                    self.process_received_data(decoded_data)
+                except UnicodeDecodeError:
+                    print(f"Received non-UTF-8 data: {data}")
             print("Connecting to the BLE device...")
             try:
                 self.ble_device = ble_lib.connect(tab_ADDRESS[self.ID - 1][1])
-                ble_lib.subscribe_to_notifications(CHARACTERISTIC_UUID_NOTIF, notification_handler)
+                ble_lib.subscribe_to_notifications(CHARACTERISTIC_UUID, notification_handler)
                 self.connect = True
                 print("Connected to the BLE device.")
                 self.send_msg("<ilo>")
@@ -908,7 +908,7 @@ class robot(object):
         elif connection_type == 2:
             if self.ble_device and self.connect:
                 try:
-                    ble_lib.write_characteristic(self.ble_device, CHARACTERISTIC_UUID_RXTX, message.encode())
+                    ble_lib.write_characteristic(self.ble_device, CHARACTERISTIC_UUID, message.encode())
                     print(f"Sent:     {message}")
                 except Exception as e:
                     print(f"Error sending message: {e}")
@@ -923,7 +923,7 @@ class robot(object):
         while self.recv_thread_running:
             try:
                 self.ws.settimeout(1) # Ajout d'un timeout pour que recv() ne bloque pas indéfiniment
-                data = self.ws.recv()                      # Timeout de 1 seconde pour éviter un blocage sur recv()
+                data = self.ws.recv() # Timeout de 1 seconde pour éviter un blocage sur recv()
                 if data:
                     if '/' in data:
                         sub_trames = data.split('/')[1:-1]
@@ -1606,8 +1606,8 @@ class robot(object):
                     print("Game mode stop")
                     self.stop()
                     break
-                else:
-                    print("Invalid key", key)
+                #else:
+                    #print("Invalid key", key)
 
                 if new_keyboard_instruction == True:
                     self.direct_control(acc, axial_value, radial_value, rotation_value)
