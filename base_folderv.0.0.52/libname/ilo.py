@@ -20,20 +20,28 @@ import os
 import psutil
 import platform
 import binascii
+import concurrent.futures
 # -----------------------------------------------------------------------------
+
+
+
 
 class SyncBleak:
     """
-    Encapsule les fonctions de Bleak pour les rendre synchrone.
+    Encapsule les fonctions de Bleak pour les rendre synchrone, tout en gardant
+    les notifications réactives grâce à une boucle asyncio dans un thread dédié.
     """
     def __init__(self):
-        try:
-            self.loop = asyncio.get_running_loop()
-        except RuntimeError:
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
+        self.loop = asyncio.new_event_loop()
+        self.loop_thread = threading.Thread(target=self._start_loop, daemon=True)
+        self.loop_thread.start()
 
         self.client = None
+        self.executor = concurrent.futures.ThreadPoolExecutor()
+
+    def _start_loop(self):
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_forever()
 
     def get_loop(self):
         """Retourne la boucle asyncio utilisée par SyncBleak."""
@@ -41,7 +49,8 @@ class SyncBleak:
 
     def scan_devices(self, timeout=5):
         """Scan BLE devices de manière synchrone."""
-        return self.loop.run_until_complete(self._scan_devices(timeout))
+        future = asyncio.run_coroutine_threadsafe(self._scan_devices(timeout), self.loop)
+        return future.result()
 
     async def _scan_devices(self, timeout):
         devices = await BleakScanner.discover(timeout)
@@ -49,7 +58,8 @@ class SyncBleak:
 
     def connect(self, address):
         """Connecte à un périphérique BLE."""
-        return self.loop.run_until_complete(self._connect(address))
+        future = asyncio.run_coroutine_threadsafe(self._connect(address), self.loop)
+        return future.result()
 
     async def _connect(self, address):
         self.client = BleakClient(address)
@@ -60,11 +70,17 @@ class SyncBleak:
 
     def write_characteristic(self, client, char_uuid, data):
         """Écrit dans une caractéristique BLE."""
-        return self.loop.run_until_complete(client.write_gatt_char(char_uuid, data))
-    
+        future = asyncio.run_coroutine_threadsafe(client.write_gatt_char(char_uuid, data), self.loop)
+        return future.result()
+
     def subscribe_to_notifications(self, char_uuid, callback):
-        """S'abonne aux notifications d'une caractéristique BLE."""
-        self.loop.run_until_complete(self._subscribe(char_uuid, callback))
+        """S'abonne aux notifications d'une caractéristique BLE sans bloquer."""
+
+        async def async_callback(sender, data):
+            # Envoie le callback dans un thread non-bloquant
+            self.executor.submit(callback, sender, data)
+
+        asyncio.run_coroutine_threadsafe(self._subscribe(char_uuid, async_callback), self.loop)
 
     async def _subscribe(self, char_uuid, callback):
         if self.client and self.client.is_connected:
@@ -73,7 +89,8 @@ class SyncBleak:
 
     def unsubscribe_from_notifications(self, char_uuid):
         """Se désabonne des notifications."""
-        self.loop.run_until_complete(self._unsubscribe(char_uuid))
+        future = asyncio.run_coroutine_threadsafe(self._unsubscribe(char_uuid), self.loop)
+        return future.result()
 
     async def _unsubscribe(self, char_uuid):
         if self.client and self.client.is_connected:
@@ -82,12 +99,12 @@ class SyncBleak:
 
     def disconnect(self, client):
         """Déconnecte le client BLE."""
-        return self.loop.run_until_complete(client.disconnect())
-    
+        future = asyncio.run_coroutine_threadsafe(client.disconnect(), self.loop)
+        return future.result()
 
     def is_connected(self):
         """Vérifie si le client est connecté."""
-        return self.client.is_connected
+        return self.client.is_connected if self.client else False
     
 ble_lib = SyncBleak()
 CHARACTERISTIC_UUID = "DEAD"  # Notify  and read/write characteristic
