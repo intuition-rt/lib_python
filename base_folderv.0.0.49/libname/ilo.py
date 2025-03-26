@@ -229,7 +229,7 @@ class IloUpdater():
 
 
 
-version = "0.49"
+version = "0.50"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
