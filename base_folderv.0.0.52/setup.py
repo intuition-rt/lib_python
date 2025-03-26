@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.0.49'
+VERSION = '0.0.52'
 DESCRIPTION = 'Control ilo robot using python command.'
 with open('README.md') as f:
     long_description = f.read()
@@ -24,8 +24,9 @@ setup(
         "nest_asyncio",
         "bleak",
         "prettytable",
-        "keyboard_crossplatform"
-
+        "keyboard_crossplatform",
+        "requests",
+        "psutil"
     ],
     keywords=['python', 'education'],
     classifiers=[
