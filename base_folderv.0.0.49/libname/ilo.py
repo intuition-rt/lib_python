@@ -755,6 +755,11 @@ class robot(object):
 
         self.version = ""
 
+        self.manufacturing_date = ""
+        self.first_use_date = ""
+        self.product_version = ""
+        self.product_id = ""
+
         self.marker = True
 
         self._response_event = threading.Event()
@@ -1113,8 +1118,20 @@ class robot(object):
 
             if str(data[1:4]) == "102":  # get_accessory
                 self.potard_value = float(data[data.find('a')+1: data.find('>')])
-            
-            if str(data[1:5]) == "500y": #get_version
+
+            if str(data[1:4]) == "120":  # get_manufacturing_date
+                self.manufacturing_date = str(data[data.find('s')+1: data.find('>')])
+
+            if str(data[1:4]) == "130":  # get_first_use_date
+                self.first_use_date = str(data[data.find('s')+1: data.find('>')])
+
+            if str(data[1:4]) == "140":  # get_product_version
+                self.product_version = str(data[data.find('s')+1: data.find('>')])
+
+            if str(data[1:4]) == "150":  # get_product_id
+                self.product_id = str(data[data.find('s')+1: data.find('>')])
+
+            if str(data[1:5]) == "500y": # get_version
                 self.version = str(data[data.find('y')+1: data.find('>')])
 
             if str(data[1:4]) == "500":  # get_global_trame
@@ -2812,8 +2829,69 @@ class robot(object):
         Get a diagnosis of robot status
         """
         self.send_msg("<110>")
+    # -----------------------------------------------------------------------------
+    def set_manufacturing_date(self, date: str):
+        """
+        Set the manufacturing date of ilo
+        """
+        msg = "<121s"+str(date)+">"
+        self.send_msg(msg)
 
     
+    def get_manufacturing_date(self):
+        """
+        Get the manufacturing date of ilo
+        """
+        self.send_msg("<120>")
+        self._response_event.wait(timeout=5)
+        return (self.manufacturing_date)
+
+    def set_first_use_date(self, date: str):
+        """
+        Set the first use date of ilo
+        """
+        msg = "<131s"+str(date)+">"
+        self.send_msg(msg)
+
+    def get_first_use_date(self):
+        """
+        Get the first use date of ilo
+        """
+        self.send_msg("<130>")
+        self._response_event.wait(timeout=5)
+        return (self.first_use_date)
+
+    def set_product_version(self, version: str):
+        """
+        Set the version of the product
+        """
+        msg = "<141s"+str(version)+">"
+        self.send_msg(msg)
+
+    def get_product_version(self):
+        """
+        Get the version of the product
+        """
+        self.send_msg("<140>")
+        self._response_event.wait(timeout=5)
+        return (self.product_version)
+
+    def set_product_id(self, id: str):
+        """
+        Set the id of the product
+        """
+        msg = "<151s"+str(id)+">"
+        self.send_msg(msg)
+
+    def get_product_id(self):
+        """
+        Get the id of the product
+        """
+        self.send_msg("<150>")
+        self._response_event.wait(timeout=5)
+        return (self.product_id)
+
+
     def get_robot_version(self):
         """
         Get the version number of the code present on the robot
