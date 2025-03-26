@@ -109,7 +109,7 @@ class SyncBleak:
 ble_lib = SyncBleak()
 CHARACTERISTIC_UUID = "DEAD"  # Notify  and read/write characteristic
 
-class IloUpdater():
+class IloUpdater:
     def __init__(self, client, version, use_ble=True, ws=None):
         self.client = client
         self.version = version
@@ -118,46 +118,42 @@ class IloUpdater():
         self.size_char_uuid = "dead"
         self.notify_char_uuid = "1A2B"
         self.use_ble = use_ble
-        if use_ble:
-            self.CHUNK_SIZE = 509  # Taille maximale d'un paquet BLE
-        else:
-            self.CHUNK_SIZE = 1024
-            self.ws = ws
+        self.ws = ws
+        self.CHUNK_SIZE = 509 if use_ble else 1024
         self.update_complete = False
-
-        self.loop = ble_lib.get_loop()  # Utilisation de la même boucle que SyncBleak
+        self.loop = ble_lib.get_loop()
 
     async def send_firmware(self):
-        """Envoie un firmware en OTA via BLE au ESP32 et attend une notification de fin."""
         try:
             with open("firmware.bin", "rb") as f:
                 firmware_data = f.read()
             firmware_size = len(firmware_data)
             print(f"Firmware chargé: {firmware_size} octets")
-            if self.use_ble:
-                if not self.client.is_connected:
-                    print("Client BLE non connecté.")
-                    return
-            else:
-                if self.ws is None:
-                    print("WebSocket non connecté.")
-                    return
+
+            if self.use_ble and not self.client.is_connected:
+                print("Client BLE non connecté.")
+                return
+            if not self.use_ble and self.ws is None:
+                print("WebSocket non connecté.")
+                return
             print("\nConnecté.")
-            size_bytes = f"<500x{firmware_size}>".encode() # Envoyer la taille du firmware
-            if (self.use_ble):
+            size_bytes = f"<500x{firmware_size}>".encode()
+            if self.use_ble:
                 await self.client.write_gatt_char(self.size_char_uuid, size_bytes, response=False)
             else:
                 self.ws.send(size_bytes)
             print("\nTaille du firmware envoyée.")
             await asyncio.sleep(0.1)
-            for i in range(0, firmware_size, self.CHUNK_SIZE):  # Envoi du firmware par morceaux
+            for i in range(0, firmware_size, self.CHUNK_SIZE):
                 chunk = firmware_data[i:i+self.CHUNK_SIZE]
-                if (self.use_ble):
+                if self.use_ble:
                     await self.client.write_gatt_char(self.data_char_uuid, chunk, response=False)
                 else:
                     self.ws.send(bytes(chunk), opcode=websocket.ABNF.OPCODE_BINARY)
+
                 print(f"\rEnvoyé {i + len(chunk)} / {firmware_size} octets", end="", flush=True)
-                await asyncio.sleep(0.01) 
+                await asyncio.sleep(0.01)
+
             print("\n[UPDATE] Firmware envoyé, en attente de confirmation du robot...")
             timeout = 60
             elapsed_time = 0
@@ -174,38 +170,29 @@ class IloUpdater():
             print(f"Erreur: {e}")
 
     def _run_update(self):
-        """Exécute `send_firmware` dans la boucle asyncio existante."""
-        self.loop.run_until_complete(self.send_firmware())
+        """Planifie la coroutine dans la boucle asyncio existante."""
+        future = asyncio.run_coroutine_threadsafe(self.send_firmware(), self.loop)
+        try:
+            future.result()  # attend le résultat ou erreur
+        except Exception as e:
+            print(f"⚠️ Erreur dans _run_update: {e}")
 
     def updateWithBT(self):
-        """Lance l'update dans un thread avec une priorité CPU élevée en fonction de l'OS."""
+        """Lance l'update BLE dans un thread sans bloquer la boucle asyncio."""
         def run_with_priority():
             try:
-                p = psutil.Process(os.getpid())
-                system_name = platform.system()
-
-                if system_name == "Windows":
-                    p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)  # Windows: priorité modérée
-                    print("🟢 Priorité du thread ajustée (Windows, Below Normal).")
-                elif system_name in ["Linux", "Darwin"]:  # Darwin = macOS
-                    p.nice(0)  # Linux/macOS: valeur normale (sans sudo)
-                    print("🟢 Priorité du thread ajustée (Linux/macOS, Normal).")
-                else:
-                    print(f"⚠️ Système inconnu ({system_name}), priorité non modifiée.")
-
-                self._run_update()  # Exécute la boucle asyncio dans le thread
+                self._run_update()
             except Exception as e:
-                print(f"⚠️ Erreur en changeant la priorité: {e}")
+                print(f"⚠️ Erreur UPDATE WITH BT: {e}")
 
-        # Lancer le processus dans un thread dédié
         thread = threading.Thread(target=run_with_priority, daemon=True)
         thread.start()
 
     def updateWithWS(self):
-        """Lance l'update via WebSocket."""
+        """Lance l'update via WebSocket directement."""
         print("🟢 Envoi du firmware via WebSocket.")
         self._run_update()
-    
+
     def download_firmware(self, firmware_id):
         url = f"http://51.210.150.191:8001/api/firmwares/download/{firmware_id}/"
         try:
@@ -230,6 +217,7 @@ class IloUpdater():
         except requests.ConnectionError:
             print("No network connection. Skipping update check.")
             return
+
         try:
             req = requests.get("http://51.210.150.191:8001/api/firmwares/latest/")
             if req.status_code == 200:
@@ -691,6 +679,14 @@ class robot(object):
             # Arrêter le thread mais sans déconnexion immédiate
             if connection_type == 0:
                 old_robot.recv_thread_running = False
+            elif connection_type == 1:
+                pass
+            elif connection_type == 2:
+                print("Disconnecting from the BLE device...")
+                ble_lib.disconnect(old_robot.ble_device)
+                
+                old_robot.connect = False
+
             else:
                 pass
 
