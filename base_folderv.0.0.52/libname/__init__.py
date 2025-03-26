@@ -76,3 +76,13 @@ from ilo import get_accessory
 from ilo import set_debug_state
 from ilo import send_trame_s
 from ilo import del_trame_s
+from ilo import get_diagnostic
+from ilo import set_manufacturing_date
+from ilo import get_manufacturing_date
+from ilo import set_first_use_date
+from ilo import get_first_use_date
+from ilo import set_product_version
+from ilo import get_product_version
+from ilo import set_product_id
+from ilo import get_product_id 
+from ilo import get_robot_version

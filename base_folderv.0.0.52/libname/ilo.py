@@ -235,9 +235,7 @@ class IloUpdater():
         except Exception as e:
             print(f"Error during update check: {e}")
 
-
-
-version = "0.50"
+version = "0.52"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
