@@ -109,6 +109,8 @@ class SyncBleak:
 ble_lib = SyncBleak()
 CHARACTERISTIC_UUID = "DEAD"  # Notify  and read/write characteristic
 
+suspend_receive_msg = False # Variable pour suspendre la réception de messages (lorsqu'il y'a des interactions avec l'utilisateur)
+
 class IloUpdater:
     def __init__(self, client, version, use_ble=True, ws=None):
         self.client = client
@@ -210,14 +212,14 @@ class IloUpdater:
             return False
 
     def check_update(self):
+        global suspend_receive_msg
         print("Checking for online updates... Please wait.")
-
+        
         try:
             requests.get("https://ilorobot.com", timeout=3)
         except requests.ConnectionError:
             print("No network connection. Skipping update check.")
             return
-
         try:
             req = requests.get("http://51.210.150.191:8001/api/firmwares/latest/")
             if req.status_code == 200:
@@ -225,6 +227,7 @@ class IloUpdater:
                 latest_version = data["version"]
                 print(f"Latest version: {latest_version}")
                 if latest_version != self.version:
+                    suspend_receive_msg = True
                     print("A new update is available!")
                     update = input("Do you want to update your robot? (yes/no): ").strip().lower()
                     if update == "y" or update == "yes":
@@ -233,8 +236,10 @@ class IloUpdater:
                                 self.updateWithBT()
                             else:
                                 self.updateWithWS()
+                    suspend_receive_msg = False
                 else:
                     print("No updates available.")
+
             else:
                 print("Failed to check for updates.")
         except Exception as e:
@@ -872,8 +877,11 @@ class robot(object):
 
         elif connection_type == 2:
             def notification_handler(sender, data):
+                global suspend_receive_msg
                 try:
                     decoded_data = data.decode('utf-8')
+                    if suspend_receive_msg:
+                        return
                     print(f"Received: {decoded_data}")
                     self.process_received_data(decoded_data)
                 except UnicodeDecodeError:
