@@ -128,21 +128,21 @@ class IloUpdater:
             with open("firmware.bin", "rb") as f:
                 firmware_data = f.read()
             firmware_size = len(firmware_data)
-            print(f"Firmware chargé: {firmware_size} octets")
+            print(f"Firmware loaded: {firmware_size} octets")
 
             if self.use_ble and not self.client.is_connected:
-                print("Client BLE non connecté.")
+                print("BLE client not connected.")
                 return
             if not self.use_ble and self.ws is None:
-                print("WebSocket non connecté.")
+                print("WebSocket not connected.")
                 return
-            print("\nConnecté.")
+            print("\nConnected.")
             size_bytes = f"<500x{firmware_size}>".encode()
             if self.use_ble:
                 await self.client.write_gatt_char(self.size_char_uuid, size_bytes, response=False)
             else:
                 self.ws.send(size_bytes)
-            print("\nTaille du firmware envoyée.")
+            print("\nFirmware size sent.")
             await asyncio.sleep(0.1)
             for i in range(0, firmware_size, self.CHUNK_SIZE):
                 chunk = firmware_data[i:i+self.CHUNK_SIZE]
@@ -151,10 +151,10 @@ class IloUpdater:
                 else:
                     self.ws.send(bytes(chunk), opcode=websocket.ABNF.OPCODE_BINARY)
 
-                print(f"\rEnvoyé {i + len(chunk)} / {firmware_size} octets", end="", flush=True)
+                print(f"\rSent {i + len(chunk)} / {firmware_size} octets", end="", flush=True)
                 await asyncio.sleep(0.01)
 
-            print("\n[UPDATE] Firmware envoyé, en attente de confirmation du robot...")
+            print("\n[UPDATE] Firmware sent, waiting for robot confirmation...")
             timeout = 60
             elapsed_time = 0
             while not self.update_complete and elapsed_time < timeout:
@@ -162,12 +162,12 @@ class IloUpdater:
                 elapsed_time += 1
 
             if not self.update_complete:
-                print("[ERROR] Aucune confirmation reçue, la mise à jour pourrait avoir échoué.")
+                print("[ERROR] No confirmation received, update may have failed.")
             else:
-                print("[SUCCESS] Mise à jour terminée avec succès.")
+                print("[SUCCESS] Update successfully completed.")
 
         except Exception as e:
-            print(f"Erreur: {e}")
+            print(f"Error: {e}")
 
     def _run_update(self):
         """Planifie la coroutine dans la boucle asyncio existante."""
@@ -175,7 +175,7 @@ class IloUpdater:
         try:
             future.result()  # attend le résultat ou erreur
         except Exception as e:
-            print(f"⚠️ Erreur dans _run_update: {e}")
+            print(f"⚠️ Error in _run_update: {e}")
 
     def updateWithBT(self):
         """Lance l'update BLE dans un thread sans bloquer la boucle asyncio."""
@@ -183,14 +183,14 @@ class IloUpdater:
             try:
                 self._run_update()
             except Exception as e:
-                print(f"⚠️ Erreur UPDATE WITH BT: {e}")
+                print(f"⚠️ ERROR UPDATE WITH BT: {e}")
 
         thread = threading.Thread(target=run_with_priority, daemon=True)
         thread.start()
 
     def updateWithWS(self):
         """Lance l'update via WebSocket directement."""
-        print("🟢 Envoi du firmware via WebSocket.")
+        print("🟢 Sending the firmware via WebSocket.")
         self._run_update()
 
     def download_firmware(self, firmware_id):
@@ -200,17 +200,17 @@ class IloUpdater:
             if response.status_code == 200:
                 with open("firmware.bin", "wb") as f:
                     f.write(response.content)
-                print("Firmware downloaded successfully.")
+                print("Firmware downloaded successfully!")
                 return True
             else:
                 print(f"Failed to download firmware: {response.status_code}")
                 return False
         except Exception as e:
-            print(f"Error downloading firmware: {e}")
+            print(f"⚠️ Error downloading firmware: {e}")
             return False
 
     def check_update(self):
-        print("Checking for updates...")
+        print("Checking for online updates... Please wait.")
 
         try:
             requests.get("https://ilorobot.com", timeout=3)
@@ -225,9 +225,9 @@ class IloUpdater:
                 latest_version = data["version"]
                 print(f"Latest version: {latest_version}")
                 if latest_version != self.version:
-                    print("New update available.")
-                    update = input("Do you want to update? (y/n): ").strip().lower()
-                    if update == "y":
+                    print("A new update is available!")
+                    update = input("Do you want to update your robot? (yes/no): ").strip().lower()
+                    if update == "y" or update == "yes":
                         if self.download_firmware(data["id"]):
                             if self.use_ble:
                                 self.updateWithBT()
@@ -238,7 +238,7 @@ class IloUpdater:
             else:
                 print("Failed to check for updates.")
         except Exception as e:
-            print(f"Error during update check: {e}")
+            print(f"⚠️ Error during update check: {e}")
 
 version = "0.52"
 
