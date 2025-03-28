@@ -1,7 +1,7 @@
 import ilo
 import time
 
-ilo.check_robot_on_WiFi()
+ilo.check_robot_on_wifi()
 
 my_ilo = ilo.robot(1)
 
