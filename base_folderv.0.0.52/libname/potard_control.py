@@ -1,7 +1,7 @@
 from ilo import *
 from time import time, sleep
 
-check_robot_on_network()
+check_robot_on_wifi()
 
 my_ilo = robot(1)
 
