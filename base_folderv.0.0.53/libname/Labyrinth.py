@@ -1,7 +1,11 @@
 import ilo
 import time
 
+ilo.check_robot_on_wifi()
+
 my_ilo = ilo.robot(1)
+
+
 
 def check_obstacle():
     while my_ilo.get_distance_front() < 60:
