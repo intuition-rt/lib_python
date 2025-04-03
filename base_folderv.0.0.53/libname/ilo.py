@@ -2811,7 +2811,7 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._accessory)
     # -----------------------------------------------------------------------------
-    def set_debug_state(self, state: bool):  # pas à jour
+    def set_debug_state(self, state: bool):
 
         if not isinstance(state, bool):
             print("[ERROR] 'state' parameter must be a bool like True or False")

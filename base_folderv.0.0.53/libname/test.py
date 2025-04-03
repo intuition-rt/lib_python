@@ -1,7 +1,7 @@
 import ilo
 import time
 
-ilo.check_robot_on_WiFi()
+ilo.check_robot_on_wifi()
 
 # code gif 3 robots
 
