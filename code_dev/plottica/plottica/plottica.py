@@ -60,7 +60,7 @@ def check_esp_on_wifi():
 
                 try:
                     ws = websocket.create_connection(ws_url, timeout=1.3) # Set timeout for each connection
-                    if _co_send_msg(ws, "<ESP>") == "ESP":
+                    if _co_send_msg(ws, "<esp>") == "esp":
                         _co_send_msg(ws, "<>")
                         _tab_IP.append([IP, ESP_ID])
                         ESP_ID += 1
