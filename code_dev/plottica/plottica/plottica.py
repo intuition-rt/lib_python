@@ -79,12 +79,12 @@ def check_esp_on_wifi():
             print(table)
             print("")
             print(
-                "Use for example: my_ESP = ESP.robot(1) to create an object my_ESP with the ID = 1")
+                "Use for example: my_esp = plottica.esp(1) to create an object my_esp with the ID = 1")
             global _connection_type
             _connection_type = 0
         else:
             print(
-                "Unfortunately, no ESP is present on your current network. Check your connection.")
+                "Unfortunately, no esp is present on your current network. Check your connection.")
 
     except Exception as e:
         print(f"WebSocket error: {e}")
@@ -101,7 +101,7 @@ def _get_IP_from_ID(ID):
             return item[0]
     return None
 
-class ESP(object):
+class esp(object):
     _ESP_connected = {}  # Class variable to keep track of active connections
 
     def __init__(self, ID):
@@ -168,6 +168,7 @@ class ESP(object):
             time.sleep(0.2)
             time.sleep(0.2)
             print('Your are connected to your ESP')
+            print('Use my_esp._send_msg("<0h100z/20/61/") to start thread of data')
 
         except Exception as e:
             print(
@@ -314,7 +315,7 @@ class ESP(object):
         """
         self._send_msg("<00>")
 
-    def draw_data(get_value_func, xmax , ymax, label="Sensor"):
+    def draw_data(self, get_value_func, xmax , ymax, label="Sensor"):
         matplotlib.use("tkagg")  # Force GUI backend for pop-up window
         plt.ion()
         fig, ax = plt.subplots()
