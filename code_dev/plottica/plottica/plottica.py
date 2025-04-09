@@ -8,6 +8,10 @@ import time
 
 _tab_IP = []
 
+version = "0.1"
+
+print("Plottica library version: ", version)
+
 def _co_send_msg(ws, message):
     '''
     Send a message over the WebSocket connection
@@ -78,13 +82,13 @@ def check_esp_on_wifi():
         if len(_tab_IP) != 0:
             print(table)
             print("")
-            print(
-                "Use for example: my_esp = plottica.esp(1) to create an object my_esp with the ID = 1")
+            print("Use for example: \n my_esp = plottica.esp(1) to create an object my_esp with the ID = 1")
+            print("my_esp.start_trame_s(100, ['distance'])")
+            print("my_esp.draw_data(lambda: my_esp._distance_front, 100, 650, 'distance(mm)')")
             global _connection_type
             _connection_type = 0
         else:
-            print(
-                "Unfortunately, no esp is present on your current network. Check your connection.")
+            print("Unfortunately, no esp is present on your current network. Check your connection.")
 
     except Exception as e:
         print(f"WebSocket error: {e}")
@@ -121,10 +125,66 @@ class esp(object):
         self._recv_thread = None
         self._recv_thread_running = False
 
-        self._distance_front = 0
-        self._distance_right = 0
-        self._distance_back = 0
-        self._distance_left = 0
+        self.distance_1 = 0 # <0> <0a(data)b(data)c(data)d(data)e(data)f(data)g(data)h(data)g(data)i(data)>
+        self.distance_2 = 0 
+        self.distance_3= 0  
+        self.distance_4 = 0
+        self.distance_5 = 0
+        self.distance_6 = 0
+        self.distance_7 = 0
+        self.distance_8 = 0
+        self.distance_9 = 0
+        self.distance_10 = 0
+        
+        # 
+
+        self.roll = 0  # <1>   <1r(data)p(data)y(data)>
+        self.pitch = 0
+        self.yaw = 0
+
+        self.roll_rate = 0  # <2>   <2r(data)p(data)y(data)>
+        self.pitch_rate = 0
+        self.yaw_rate = 0
+
+        self.rotor_velocity_1 = 0 # <3> <3a(data)b(data)c(data)d(data)>
+        self.rotor_velocity_2 = 0
+        self.rotor_velocity_3 = 0
+        self.rotor_velocity_4 = 0
+
+        self.servo_angle_1 = 0 # <4> <4a(data)b(data)c(data)d(data)e(data)f(data)g(data)h(data)>
+        self.servo_angle_2 = 0
+        self.servo_angle_3 = 0
+        self.servo_angle_4 = 0
+        self.servo_angle_5 = 0
+        self.servo_angle_6 = 0
+        self.servo_angle_7 = 0
+        self.servo_angle_8 = 0
+
+        self.ctrl_roll_status = 0 # <5> <5s(data)r(data)o(data)>
+        self.ctrl_roll_ref = 0
+        self.ctrl_roll_output = 0
+
+        self.ctrl_pitch_status = 0 # <6> <6s(data)r(data)o(data)>
+        self.ctrl_pitch_ref = 0
+        self.ctrl_pitch_output = 0
+
+        self.ctrl_yaw_status = 0   # <7> <7s(data)r(data)o(data)>
+        self.ctrl_yaw_ref = 0
+        self.ctrl_yaw_output = 0
+
+        self.ctrl_roll_rate_status = 0 # <8> <8s(data)r(data)o(data)>
+        self.ctrl_roll_rate_ref = 0
+        self.ctrl_roll_rate_output = 0
+
+        self.ctrl_pitch_rate_status = 0     # <9> <9s(data)r(data)o(data)>
+        self.ctrl_pitch_rate_ref = 0
+        self.ctrl_pitch_rate_output = 0
+
+        self.ctrl_yaw_rate_status = 0       # <10> <10s(data)r(data)o(data)>
+        self.ctrl_yaw_rate_ref = 0
+        self.ctrl_yaw_rate_output = 0
+
+        self.state_machine = None   # <11> <11s(data)>
 
         self._response_event = threading.Event()
         self._response_value = None
@@ -255,30 +315,22 @@ class esp(object):
         try:
 
             if str(data[1:4]) == "20f":  # get_distance
-                self._distance_front = int(
-                    data[data.find('f')+1: data.find('r')])
-                self._distance_right = int(
-                    data[data.find('r')+1: data.find('b')])
-                self._distance_back = int(
-                    data[data.find('b')+1: data.find('l')])
-                self._distance_left = int(
-                    data[data.find('l')+1: data.find('>')])
+                self._distance_front = int(data[data.find('f')+1: data.find('r')])
+                self._distance_right = int(data[data.find('r')+1: data.find('b')])
+                self._distance_back = int(data[data.find('b')+1: data.find('l')])
+                self._distance_left = int(data[data.find('l')+1: data.find('>')])
 
             if str(data[1:4]) == "21f":  # get_distance_front
-                self._distance_front = int(
-                    data[data.find('f')+1: data.find('>')])
+                self._distance_front = int(data[data.find('f')+1: data.find('>')])
 
             if str(data[1:4]) == "22r":  # get_distance_right
-                self._distance_right = int(
-                    data[data.find('r')+1: data.find('>')])
+                self._distance_right = int(data[data.find('r')+1: data.find('>')])
 
             if str(data[1:4]) == "23b":  # get_distance_back
-                self._distance_back = int(
-                    data[data.find('b')+1: data.find('>')])
+                self._distance_back = int(data[data.find('b')+1: data.find('>')])
 
             if str(data[1:4]) == "24l":  # get_distance_left
-                self._distance_left = int(
-                    data[data.find('l')+1: data.find('>')])
+                self._distance_left = int(data[data.find('l')+1: data.find('>')])
 
             self._response_event.set()
 
@@ -359,3 +411,5 @@ class esp(object):
             print("Stopped by user.")
             plt.ioff()
             plt.show()
+
+            plt.close()
