@@ -23,10 +23,10 @@ def _co_send_msg(ws, message):
 
 def check_esp_on_wifi():
     """
-    Check the presence of the ESP(s) on the network
+    Check the presence of the esp(s) on the network
     """
     try:
-        print("Looking for ESP on your network ...")
+        print("Looking for esp on your network ...")
         global _tab_IP
         _tab_IP = []
         ESP_AP = False
@@ -71,7 +71,7 @@ def check_esp_on_wifi():
                     continue  # Continue to the next IP
 
         table = PrettyTable() # Display the IP and ID
-        table.field_names = ["IP Address", "ID of ESP"]  # add the name info <93>
+        table.field_names = ["IP Address", "ID of esp"]  # add the name info <93>
         for row in _tab_IP:
             table.add_row(row)
 
@@ -107,9 +107,9 @@ class esp(object):
     def __init__(self, ID):
         self._ID = ID
 
-        if ID in ESP._ESP_connected:  # Check if an ESP with this ID is already connected
-            print(f"An ESP with ID {ID} is already connected, automatic disconnection of the old ESP.")
-            old_robot = ESP._ESP_connected[ID]
+        if ID in esp._ESP_connected:  # Check if an esp with this ID is already connected
+            print(f"An esp with ID {ID} is already connected, automatic disconnection of the old esp.")
+            old_robot = esp._ESP_connected[ID]
             # Stop the thread without immediate disconnection
             old_robot.recv_thread_running = False
 
@@ -129,10 +129,10 @@ class esp(object):
         self._response_event = threading.Event()
         self._response_value = None
 
-        # Ajouter l'ESP à la liste des ESP connectés
-        ESP._ESP_connected[self._ID] = self
+        # Ajouter l'esp à la liste des esp connectés
+        esp._ESP_connected[self._ID] = self
 
-        print(f"ESP with ID {self._ID} will be connected")
+        print(f"esp with ID {self._ID} will be connected")
         if self._ID:
             # print("You are trying to connect to: ", self._IP)
             self._connection()
@@ -146,7 +146,7 @@ class esp(object):
 
         self._send_msg("<esp>")
 
-        print("Trying to connect to the ESP with ID: ", self._ID)
+        print("Trying to connect to the esp with ID: ", self._ID)
         try:
             # Start the WebSocket to send a frame
             self._ws = websocket.create_connection(
@@ -167,15 +167,15 @@ class esp(object):
             self._send_msg("<esp>")
             time.sleep(0.2)
             time.sleep(0.2)
-            print('Your are connected to your ESP')
+            print('Your are connected to your esp')
             print('Use my_esp._send_msg("<0h100z/20/61/") to start thread of data')
 
         except Exception as e:
             print(
-                "Connection error: you have to be connect to the ESP wifi network")
+                "Connection error: you have to be connect to the esp wifi network")
             print(
-                " --> If the malfunction persists, switch off and switch on your ESP")
-            print(f"Error connecting to the ESP: {e}")
+                " --> If the malfunction persists, switch off and switch on your esp")
+            print(f"Error connecting to the esp: {e}")
             self._connect = False
 
     def _send_msg(self, message):
@@ -239,14 +239,14 @@ class esp(object):
             print("Waiting for the reception thread to stop...")
             self._recv_thread.join(timeout=2)
 
-        if self._ID in ESP._robots_connected:
-            del ESP._robots_connected[self._ID]
+        if self._ID in esp._robots_connected:
+            del esp._robots_connected[self._ID]
 
         print(f"WebSocket connection closed for the robot {self._ID}.")
 
     def _process_received_data(self, data):
         """
-        Process the data received from the WebSocket and update the ESP's attributes
+        Process the data received from the WebSocket and update the esp's attributes
         """
         # print(f"[process_received_data] Received: {data}")
         # Here you can parse the received data and update relevant attributes
