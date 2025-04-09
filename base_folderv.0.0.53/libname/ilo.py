@@ -717,9 +717,17 @@ class robot(object):
 
         self._hostname = ""
 
-        self._red_color = 0
-        self._green_color = 0
-        self._blue_color = 0
+        self._red_color_left   = 0
+        self._green_color_left = 0
+        self._blue_color_left  = 0
+
+        self._red_color_center   = 0
+        self._green_color_center = 0
+        self._blue_color_center  = 0
+
+        self._red_color_right   = 0
+        self._green_color_right = 0
+        self._blue_color_right  = 0
 
         self._clear_left = 0
         self._clear_center = 0
@@ -1019,10 +1027,20 @@ class robot(object):
 
         try:
 
-            if str(data[1:4]) == "10r":  # get_color_rgb
-                self._red_color = int(data[data.find('r')+1: data.find('g')])
-                self._green_color = int(data[data.find('g')+1: data.find('b')])
-                self._blue_color = int(data[data.find('b')+1: data.find('>')])
+            if str(data[1:5]) == "100r":  # get_color_rgb_center
+                self._red_color_center   = int(data[data.find('r')+1: data.find('g')])
+                self._green_color_center = int(data[data.find('g')+1: data.find('b')])
+                self._blue_color_center  = int(data[data.find('b')+1: data.find('>')])
+
+            if str(data[1:5]) == "101r":  # get_color_rgb_left
+                self._red_color_left   = int(data[data.find('r')+1: data.find('g')])
+                self._green_color_left = int(data[data.find('g')+1: data.find('b')])
+                self._blue_color_left  = int(data[data.find('b')+1: data.find('>')])
+
+            if str(data[1:5]) == "102r":  # get_color_rgb_right
+                self._red_color_right   = int(data[data.find('r')+1: data.find('g')])
+                self._green_color_right = int(data[data.find('g')+1: data.find('b')])
+                self._blue_color_right  = int(data[data.find('b')+1: data.find('>')])
 
             if str(data[1:4]) == "11l":  # get_color_clear
                 self._clear_left = int(data[data.find('l')+1: data.find('m')])
@@ -1659,7 +1677,6 @@ class robot(object):
         else:
             print("You have to be connected to ILO before play with it, use ilo.connection()")
 
-
     def set_tempo_pos(self, value: int):
         """
         Set the tempo of the position control
@@ -1773,14 +1790,32 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._kp, self._ki, self._kd)
     # -----------------------------------------------------------------------------
-    def get_color_rgb(self):
+    def get_color_rgb_center(self):
         """
         Displays the color below ilo
         """
-        self._send_msg("<10>")
+        self._send_msg("<100>")
         self._response_event.wait(timeout=5)
 
-        return (self._red_color, self._green_color, self._blue_color)
+        return (self._red_color_center, self._green_color_center, self._blue_color_center)
+
+    def get_color_rgb_left(self):
+        """
+        Displays the color below ilo only with left sensor
+        """
+        self._send_msg("<101>")
+        self._response_event.wait(timeout=5)
+
+        return (self._red_color_left, self._green_color_left, self._blue_color_left)
+
+    def get_color_rgb_right(self):
+        """
+        Displays the color below ilo only with left sensor
+        """
+        self._send_msg("<102>")
+        self._response_event.wait(timeout=5)
+
+        return (self._red_color_right, self._green_color_right, self._blue_color_right)
 
     def set_led_captor(self, state: bool):
         """
@@ -2824,12 +2859,12 @@ class robot(object):
 
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
-    def send_trame_s(self, param_list: list):
+    def start_trame_s(self, hertz : int, param_list: list):
         """
         Get the global trame of ilo
         """
 
-        msg = "<0/"
+        msg = "<0h" +str(hertz)+"z/"
 
         if "color" in param_list:
             msg = msg + "10/"
@@ -2837,6 +2872,14 @@ class robot(object):
             msg = msg + "11/"
         if "distance" in param_list:
             msg = msg + "20/"
+        if "distance_front" in param_list:
+            msg = msg + "21/"
+        if "distance_right" in param_list:
+            msg = msg + "22/"
+        if "distance_back" in param_list:
+            msg = msg + "23/"
+        if "distance_left" in param_list:
+            msg = msg + "24/"
 
         if "accessory_angle" in param_list:
             msg = msg + "100/"
@@ -2845,7 +2888,7 @@ class robot(object):
 
         self._send_msg(msg)
 
-    def del_trame_s(self):
+    def stop_trame_s(self):
         """
         Stop the global trame
         """
