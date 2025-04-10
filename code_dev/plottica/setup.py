@@ -1,7 +1,7 @@
 from setuptools import setup
 
-VERSION = '0.0.1'
-DESCRIPTION = 'See your live data with a plotter'
+VERSION = '0.0.2'
+DESCRIPTION = 'A lightweight plotting library for visualizing real-time data from ESP32 over Wi-Fi.'
 with open('README.md') as f:
     long_description = f.read()
 
@@ -22,7 +22,7 @@ setup(
         "websocket-client",
         "prettytable",
     ],
-    keywords=['python'],
+    keywords=['python', 'plotter'],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -30,7 +30,6 @@ setup(
         "Programming Language :: Python :: 3",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: OS Independent",
-        "Topic :: Education",
     ]
 )
 
