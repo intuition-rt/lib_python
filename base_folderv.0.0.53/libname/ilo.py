@@ -238,7 +238,7 @@ class _IloUpdater:
                                 self.updateWithWS()
                     suspend_receive_msg = False
                 else:
-                    print("No updates available.")
+                    print("Your ilo is already up to date ;)")
 
             else:
                 print("Failed to check for updates.")
@@ -625,7 +625,7 @@ def check_robot_on_bluetooth():
         else:
             print(table)
             _connection_type = 2
-            print("Connection type: BLE")
+            # print("Connection type: BLE")
             return True
         
     except Exception as e:
@@ -686,7 +686,7 @@ class robot(object):
             elif _connection_type == 1:
                 pass
             elif _connection_type == 2:
-                print("Disconnecting from the BLE device...")
+                # print("Disconnecting from the BLE device...")
                 ble_lib.disconnect(old_robot.ble_device)
                 
                 old_robot.connect = False
@@ -802,7 +802,7 @@ class robot(object):
         # Ajouter ce robot à la liste des robots connectés
         robot._robots_connected[self._ID] = self
 
-        print(f"Robot with ID {self._ID} will be connected")
+        # print(f"Robot with ID {self._ID} will be connected")
         if self._ID:
             # print("You are trying to connect to: ", self._IP)
             self._connection()
@@ -826,7 +826,7 @@ class robot(object):
             # -- marin check if the websocket is well working (test un envoi de trame ou spécific methode
 
         #else:
-        print("Trying to connect to the robot with ID: ", self._ID, " and connection type: ", _connection_type)
+        # print("Trying to connect to the robot with ID: ", self._ID, " and connection type: ", _connection_type)
         if _connection_type == 0: 
             try:
                 # Start the WebSocket d'envoie de trame
@@ -835,7 +835,7 @@ class robot(object):
 
                 # Vérifie si un ancien thread de réception est actif et l'arrête avant d'en démarrer un nouveau
                 if self._recv_thread and self._recv_thread.is_alive():
-                    print("Stopping the previous reception thread...")
+                    # print("Stopping the previous reception thread...")
                     self._stop_reception()
 
                 # Start the WebSocket de reception in a separate thread
@@ -1926,12 +1926,15 @@ class robot(object):
                 return None
 
         else:
+            self.set_led_captor(True)
+            time.sleep(1)
             self._clear_center = 0
             self.get_color_clear()
             while self._clear_center == 0:
                 time.sleep(0.1)
             value = round(self._clear_center*1.2)
             print(f"La nouvelle valeur de seuil est: {value}")
+            self.set_led_captor(False)
 
         msg = "<13t"+str(value)+">"
         self._send_msg(msg)
