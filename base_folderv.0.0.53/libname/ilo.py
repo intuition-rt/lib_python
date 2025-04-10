@@ -265,7 +265,6 @@ _tab_ADDRESS = []
 client = None
 # -----------------------------------------------------------------------------
 
-
 def info():
     """
     Print info about ilorobot
@@ -2907,7 +2906,6 @@ class robot(object):
         msg = "<121s"+str(date)+">"
         self._send_msg(msg)
 
-    
     def get_manufacturing_date(self):
         """
         Get the manufacturing date of ilo
@@ -2960,7 +2958,6 @@ class robot(object):
         self._send_msg("<150>")
         self._response_event.wait(timeout=5)
         return (self._product_id)
-
 
     def get_robot_version(self):
         """

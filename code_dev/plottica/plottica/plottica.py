@@ -8,7 +8,7 @@ import time
 
 _tab_IP = []
 
-version = "0.1"
+version = "0.0.2"
 
 print("Plottica library version: ", version)
 
