@@ -1030,67 +1030,58 @@ class robot(object):
 
         try:
 
-            if str(data[1:5]) == "100r":  # get_color_rgb_center
+            if str(data[1:4]) == "10c":  # get_color_rgb_center
                 self._red_color_center   = int(data[data.find('r')+1: data.find('g')])
                 self._green_color_center = int(data[data.find('g')+1: data.find('b')])
                 self._blue_color_center  = int(data[data.find('b')+1: data.find('>')])
 
-            if str(data[1:5]) == "101r":  # get_color_rgb_left
+            elif str(data[1:4]) == "10l":  # get_color_rgb_left
                 self._red_color_left   = int(data[data.find('r')+1: data.find('g')])
                 self._green_color_left = int(data[data.find('g')+1: data.find('b')])
                 self._blue_color_left  = int(data[data.find('b')+1: data.find('>')])
 
-            if str(data[1:5]) == "102r":  # get_color_rgb_right
+            elif str(data[1:4]) == "10d":  # get_color_rgb_right
                 self._red_color_right   = int(data[data.find('r')+1: data.find('g')])
                 self._green_color_right = int(data[data.find('g')+1: data.find('b')])
                 self._blue_color_right  = int(data[data.find('b')+1: data.find('>')])
 
-            if str(data[1:4]) == "11l":  # get_color_clear
+            elif str(data[1:4]) == "11l":  # get_color_clear
                 self._clear_left = int(data[data.find('l')+1: data.find('m')])
                 self._clear_center = int(data[data.find('m')+1: data.find('r')])
                 self._clear_right = int(data[data.find('r')+1: data.find('>')])
 
-            if str(data[1:4]) == "12l":  # get_line
+            elif str(data[1:4]) == "12l":  # get_line
                 self._line_left = int(data[data.find('l')+1: data.find('m')])
                 self._line_center = int(data[data.find('m')+1: data.find('r')])
                 self._line_right = int(data[data.find('r')+1: data.find('>')])
 
-            if str(data[1:4]) == "14t":  # get_line_threshold_value
-                self._line_threshold_value = int(
-                    data[data.find('t')+1: data.find('>')])
+            elif str(data[1:4]) == "14t":  # get_line_threshold_value
+                self._line_threshold_value = int(data[data.find('t')+1: data.find('>')])
 
-            if str(data[1:4]) == "20f":  # get_distance
-                self._distance_front = int(
-                    data[data.find('f')+1: data.find('r')])
-                self._distance_right = int(
-                    data[data.find('r')+1: data.find('b')])
-                self._distance_back = int(
-                    data[data.find('b')+1: data.find('l')])
-                self._distance_left = int(
-                    data[data.find('l')+1: data.find('>')])
+            elif str(data[1:4]) == "20f":  # get_distance
+                self._distance_front = int(data[data.find('f')+1: data.find('r')])
+                self._distance_right = int(data[data.find('r')+1: data.find('b')])
+                self._distance_back = int(data[data.find('b')+1: data.find('l')])
+                self._distance_left = int(data[data.find('l')+1: data.find('>')])
 
-            if str(data[1:4]) == "21f":  # get_distance_front
-                self._distance_front = int(
-                    data[data.find('f')+1: data.find('>')])
+            elif str(data[1:4]) == "21f":  # get_distance_front
+                self._distance_front = int(data[data.find('f')+1: data.find('>')])
 
-            if str(data[1:4]) == "22r":  # get_distance_right
-                self._distance_right = int(
-                    data[data.find('r')+1: data.find('>')])
+            elif str(data[1:4]) == "22r":  # get_distance_right
+                self._distance_right = int(data[data.find('r')+1: data.find('>')])
 
-            if str(data[1:4]) == "23b":  # get_distance_back
-                self._distance_back = int(
-                    data[data.find('b')+1: data.find('>')])
+            elif str(data[1:4]) == "23b":  # get_distance_back
+                self._distance_back = int(data[data.find('b')+1: data.find('>')])
 
-            if str(data[1:4]) == "24l":  # get_distance_left
-                self._distance_left = int(
-                    data[data.find('l')+1: data.find('>')])
+            elif str(data[1:4]) == "24l":  # get_distance_left
+                self._distance_left = int(data[data.find('l')+1: data.find('>')])
 
-            if str(data[1:4]) == "30r":  # get_angle - données traités en degrés
+            elif str(data[1:4]) == "30r":  # get_angle - données traités en degrés
                 self._roll = float(data[data.find('r')+1: data.find('p')])
                 self._pitch = float(data[data.find('p')+1: data.find('y')])
                 self._yaw = float(data[data.find('y')+1: data.find('>')])
 
-            if str(data[1:4]) == "32x":  # get_raw_imu
+            elif str(data[1:4]) == "32x":  # get_raw_imu
                 self._accX = int(data[data.find('x')+1: data.find('y')])
                 self._accY = int(data[data.find('y')+1: data.find('z')])
                 self._accZ = int(data[data.find('z')+1: data.find('r')])
@@ -1098,92 +1089,87 @@ class robot(object):
                 self._gyroY = int(data[data.find('p')+1: data.find('g')])
                 self._gyroZ = int(data[data.find('g')+1: data.find('>')])
 
-            if str(data[1:4]) == "40s":  # get_battery
-                self._battery_status = int(
-                    data[data.find('s')+1: data.find('p')])
-                self._battery_pourcentage = int(
-                    data[data.find('p')+1: data.find('>')])
+            elif str(data[1:4]) == "40s":  # get_battery
+                self._battery_status = int(data[data.find('s')+1: data.find('p')])
+                self._battery_pourcentage = int(data[data.find('p')+1: data.find('>')])
 
-            if str(data[1:4]) == "50r":  # get_led_color
+            elif str(data[1:4]) == "50r":  # get_led_color
                 self._red_led = int(data[data.find('r')+1: data.find('g')])
                 self._green_led = int(data[data.find('g')+1: data.find('b')])
                 self._blue_led = int(data[data.find('b')+1: data.find('>')])
 
-            if str(data[1:4]) == "60i":  # ping_single_motor
+            elif str(data[1:4]) == "60i":  # ping_single_motor
                 self._motor_id = int(data[data.find('i')+1: data.find('s')])
                 self._motor_ping = int(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "611":  # get_single_motor_speed
+            elif str(data[1:4]) == "611":  # get_single_motor_speed
                 self._motor_id = int(data[data.find('i')+1: data.find('s')])
                 self._motor_speed = int(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "621":  # get_single_motor_angle
+            elif str(data[1:4]) == "621":  # get_single_motor_angle
                 self._motor_id = int(data[data.find('i')+1: data.find('s')])
                 self._motor_angle = int(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "63i":  # get_temp_single_motor
+            elif str(data[1:4]) == "63i":  # get_temp_single_motor
                 self._motor_id = int(data[data.find('i')+1: data.find('s')])
                 self._temp_motor = int(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "64i":  # get_volt_single_motor
+            elif str(data[1:4]) == "64i":  # get_volt_single_motor
                 self._motor_id = int(data[data.find('i')+1: data.find('s')])
                 self._motor_volt = int(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "65i":  # get_torque_single_motor
+            elif str(data[1:4]) == "65i":  # get_torque_single_motor
                 self._motor_id = int(data[data.find('i')+1: data.find('s')])
                 self._motor_torque = int(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "66i":  # get_current_single_motor
+            elif str(data[1:4]) == "66i":  # get_current_single_motor
                 self._motor_id = int(data[data.find('i')+1: data.find('s')])
-                self._motor_current = int(
-                    data[data.find('s')+1: data.find('>')])
+                self._motor_current = int(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "67i":  # get_motor_is_moving
+            elif str(data[1:4]) == "67i":  # get_motor_is_moving
                 self._motor_id = int(data[data.find('i')+1: data.find('s')])
-                self._motor_is_moving = int(
-                    data[data.find('s')+1: data.find('>')])
+                self._motor_is_moving = int(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "681":  # get_acc_motor
+            elif str(data[1:4]) == "681":  # get_acc_motor
                 self._acc_motor = int(data[data.find('a')+1: data.find('>')])
 
-            if str(data[1:4]) == "691":  # get_tempo_pos
+            elif str(data[1:4]) == "691":  # get_tempo_pos
                 self._tempo_pos = int(data[data.find('t')+1: data.find('>')])
 
-            if str(data[1:4]) == "71p":  # get_pid
+            elif str(data[1:4]) == "71p":  # get_pid
                 self._kp = float(data[data.find('p')+1: data.find('i')])
                 self._ki = float(data[data.find('i')+1: data.find('d')])
                 self._kd = float(data[data.find('d')+1: data.find('>')])
 
-            if str(data[1:4]) == "92s":  # get_wifi_credentials
+            elif str(data[1:4]) == "92s":  # get_wifi_credentials
                 self._ssid = str(data[data.find('s')+1: data.find('p')])
                 self._password = str(data[data.find('p')+1: data.find('>')])
 
-            if str(data[1:4]) == "93n":  # get_name
+            elif str(data[1:4]) == "93n":  # get_name
                 self._hostname = str(data[data.find('n')+1: data.find('>')])
 
-            if str(data[1:4]) == "101":  # get_accessory
+            elif str(data[1:5]) == "101t":  # get_accessory
                 self._accessory = float(data[data.find('t')+1: data.find('>')])
 
-            if str(data[1:4]) == "102":  # get_accessory
+            elif str(data[1:5]) == "102a":  # get_accessory
                 self._potard_value = float(data[data.find('a')+1: data.find('>')])
 
-            if str(data[1:4]) == "120":  # get_manufacturing_date
+            elif str(data[1:4]) == "120":  # get_manufacturing_date
                 self._manufacturing_date = str(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "130":  # get_first_use_date
+            elif str(data[1:4]) == "130":  # get_first_use_date
                 self._first_use_date = str(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "140":  # get_product_version
+            elif str(data[1:4]) == "140":  # get_product_version
                 self._product_version = str(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:4]) == "150":  # get_product_id
+            elif str(data[1:4]) == "150":  # get_product_id
                 self._product_id = str(data[data.find('s')+1: data.find('>')])
 
-            if str(data[1:5]) == "500y": # get_version
+            elif str(data[1:5]) == "500y": # get_version
                 self._version = str(data[data.find('y')+1: data.find('>')])
 
-            if str(data[1:4]) == "500":  # get_global_trame
-                
+            elif str(data[1:4]) == "500":  # get_global_trame
                 self._version = str(data[data.find('y')+1: data.find('>')])
                 print(f"Version: {self._version}")
 
@@ -1797,7 +1783,7 @@ class robot(object):
         """
         Displays the color below ilo
         """
-        self._send_msg("<100>")
+        self._send_msg("<10c>")
         self._response_event.wait(timeout=5)
 
         return (self._red_color_center, self._green_color_center, self._blue_color_center)
@@ -1806,7 +1792,7 @@ class robot(object):
         """
         Displays the color below ilo only with left sensor
         """
-        self._send_msg("<101>")
+        self._send_msg("<10l>")
         self._response_event.wait(timeout=5)
 
         return (self._red_color_left, self._green_color_left, self._blue_color_left)
@@ -1815,7 +1801,7 @@ class robot(object):
         """
         Displays the color below ilo only with left sensor
         """
-        self._send_msg("<102>")
+        self._send_msg("<10d>")
         self._response_event.wait(timeout=5)
 
         return (self._red_color_right, self._green_color_right, self._blue_color_right)
@@ -3179,8 +3165,7 @@ class robot(object):
             plt.ioff()
             plt.show()
             plt.close()
-
-            
+           
     def draw_clearance(self, xmax=100, ymax=600):
         """
         Displays 3 live clearance plots: left, center, right,
