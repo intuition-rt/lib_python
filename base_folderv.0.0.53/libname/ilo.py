@@ -458,7 +458,7 @@ def check_robot_on_wifi():
 
         try:
             ws_url = "ws://192.168.4.1:4583"
-            print(ws_url)
+            print(f"Checking {ws_url}")
             ws = websocket.create_connection(ws_url, timeout=1.3)
             if _co_send_msg(ws, "<ilo>") == "ilo":
                 _tab_IP.append(["192.168.4.1", 1, _co_send_msg(ws, "<930>")])
@@ -934,7 +934,8 @@ class robot(object):
                     print(f"Sent:     {message}")
 
                     invalid_prefixes = ("<a", "<i", "<13", "<31", "<51", "<52", "<53", "<54", "<55", "<56", "<57", "<58",
-                                        "<610", "<620", "<680", "<690", "<70", "<72", "<80", "<90", "<91", "<94", "<103", "<0", "<>")
+                                        "<610", "<620", "<680", "<690", "<70", "<72", "<80", "<90", "<91", "<94", "<103", 
+                                        "<00>", "<>")
 
                     if message.startswith(invalid_prefixes):
                         pass
@@ -2866,8 +2867,62 @@ class robot(object):
     # -----------------------------------------------------------------------------
     def start_trame_s(self, hertz : int, param_list: list):
         """
-        Get the global trame of ilo
+        Start the global trame of ilo
+
+        Parameters:
+            hertz (int): the frequency of the trame
+            param_list (list): the parameters you want to get
+                - color
+                - luminosity
+                - distance
+                - distance_front
+                - distance_right
+                - distance_back
+                - distance_left
+                - accessory_angle
+
+        Raises:
+            TypeError: If hertz is not an integer
+            ValueError: If hertz is not between 1 and 1000
+            TypeError: If param_list is not a list
+            ValueError: If param_list is empty
+            TypeError: If param_list contains non-string elements
+            ValueError: If param_list contains invalid parameter names
+
+        Examples:
+            my_ilo.start_trame_s(100, ["color", "luminosity"])
         """
+
+        if not isinstance(hertz, int):
+            print("[ERROR] 'hertz' parameter must be a integer")
+            return None
+        if hertz > 100 or hertz < 1:
+            print("[ERROR] 'hertz' parameter must be include between 1 and 1000")
+            return None
+        if not isinstance(param_list, list):
+            print("[ERROR] 'param_list' parameter must be a list")
+            return None
+        if len(param_list) == 0:
+            print("[ERROR] 'param_list' parameter must not be empty")
+            return None
+        if not all(isinstance(item, str) for item in param_list):
+            print("[ERROR] 'param_list' parameter must be a list of strings")
+            return None
+
+        valid_params = {
+            "color",
+            "clearance",
+            "distance",
+            "distance_front",
+            "distance_right",
+            "distance_back",
+            "distance_left",
+            "accessory_angle"
+        }
+        invalid_params = [item for item in param_list if item not in valid_params]
+        if invalid_params:
+            print(f"[ERROR] 'param_list' contains invalid parameters: {invalid_params}")
+            return None
 
         msg = "<0h" +str(hertz)+"z/"
 
