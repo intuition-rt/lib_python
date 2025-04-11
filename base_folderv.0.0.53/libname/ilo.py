@@ -21,6 +21,9 @@ import psutil
 import platform
 import binascii
 import concurrent.futures
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 # -----------------------------------------------------------------------------
 
 
@@ -2870,7 +2873,7 @@ class robot(object):
 
         if "color" in param_list:
             msg = msg + "10/"
-        if "luminosity" in param_list:
+        if "clearance" in param_list:
             msg = msg + "11/"
         if "distance" in param_list:
             msg = msg + "20/"
@@ -2969,4 +2972,239 @@ class robot(object):
         self._send_msg("<500y>")
         self._response_event.wait(timeout=5)
         return (self._version)
+    
+    def draw_distance(self, distance = "front", xmax=100, ymax=600):
+        """
+        draw_distance("front", "Distance Front", 100, 650):
+        """
+        if (distance == "front"):
+            label = "Distance front (mm)"
+            self.start_trame_s(10, ["distance_front"])
+            
+        elif (distance == "right"): 
+            label = "Distance right (mm)"
+            self.start_trame_s(10, ["distance_right"])
+            
+        elif (distance == "back"):  
+            label = "Distance back (mm)"
+            self.start_trame_s(10, ["distance_back"])
+            
+        elif (distance == "left"):  
+            label = "Distance left (mm)"
+            self.start_trame_s(10, ["distance_left"])
+        else: 
+            return None
+        
+        if not matplotlib.get_backend().lower().startswith("tk"):
+            matplotlib.use("tkagg")
+        plt.ion()
+        fig, ax = plt.subplots()
+        fig.canvas.manager.set_window_title("Draw_distance ILO ROBOT")
+        plt.show(block=False)
+    
+        line, = ax.plot([], [], 'r-', linewidth=2)
+        ax.set_ylim(0, ymax)
+        ax.set_xlim(0, xmax)
+        
+        ax.set_ylabel(label)
+        ax.set_title("Live Sensor Data")
+    
+        value_text = ax.text(0.5, 0.95, "", transform=ax.transAxes,
+                             ha="center", va="top", fontsize=20,
+                             weight='bold', bbox=dict(facecolor='white', alpha=0.8))
+    
+        xdata, ydata = [], []
+        i = 0
+    
+        print("Close the window or CTRL+C to stop the display")
+    
+        try:
+            while plt.fignum_exists(fig.number):
+                if (distance == "front"):   val = self._distance_front
+                elif (distance == "right"): val = self._distance_right
+                elif (distance == "back"):  val = self._distance_back
+                elif (distance == "left"):  val = self._distance_left
+
+                xdata.append(i)
+                ydata.append(val)
+                xdata = xdata[-100:]
+                ydata = ydata[-100:]
+    
+                x_smooth = np.linspace(xdata[0], xdata[-1], 200)
+                y_smooth = np.interp(x_smooth, xdata, ydata)
+    
+                line.set_data(x_smooth, y_smooth)
+                ax.set_xlim(max(0, i - xmax), i + 1)
+                value_text.set_text(f"{val:.1f}")
+    
+                ax.figure.canvas.draw()
+                ax.figure.canvas.flush_events()
+                i += 1
+            self.stop_trame_s()
+    
+        except KeyboardInterrupt:
+            plt.ioff()
+            plt.show()
+            plt.close()
+            self.stop_trame_s()
+            
+    def draw_all_distance(self, xmax=100, ymax=600):
+        """
+        Displays 4 live distance plots: front, back, left, right.
+        """
+        #self.start_trame_s(10, ["distance"])
+    
+        if not matplotlib.get_backend().lower().startswith("tk"):
+            matplotlib.use("tkagg")
+    
+        plt.ion()
+        fig, axes = plt.subplots(2, 2, figsize=(10, 6), sharex=True)
+        fig.canvas.manager.set_window_title("Draw_all_distance ILO ROBOT")
+        plt.show(block=False)
+    
+        directions = ["front", "back", "left", "right"]
+        ax_map = {
+            "front": axes[0, 0],
+            "back":  axes[0, 1],
+            "left":  axes[1, 0],
+            "right": axes[1, 1]
+        }
+    
+        line_map = {}
+        value_text_map = {}
+        xdata, ydata_map = [], {key: [] for key in directions}
+    
+        for key in directions:
+            ax = ax_map[key]
+            line, = ax.plot([], [], linewidth=2)
+            ax.set_ylim(0, ymax)
+            ax.set_ylabel(f"{key.capitalize()} (mm)")
+            ax.set_title(f"{key.capitalize()} Distance")
+            line_map[key] = line
+            value_text_map[key] = ax.text(0.5, 0.95, "", transform=ax.transAxes,
+                                          ha="center", va="top", fontsize=12,
+                                          weight='bold', bbox=dict(facecolor='white', alpha=0.8))
+    
+        i = 0
+        print("Close the window or CTRL+C to stop the display")
+    
+        try:
+            while True:
+                
+                if not plt.get_fignums():
+                    time.sleep(0.1)
+                    
+                    break
+                val_map = {
+                    "front": self._distance_front,
+                    "back":  self._distance_back,
+                    "left":  self._distance_left,
+                    "right": self._distance_right
+                }
+    
+                xdata.append(i)
+                xdata = xdata[-100:]
+    
+                for key in directions:
+                    ydata_map[key].append(val_map[key])
+                    ydata_map[key] = ydata_map[key][-100:]
+    
+                    x_smooth = np.linspace(xdata[0], xdata[-1], 200)
+                    y_smooth = np.interp(x_smooth, xdata, ydata_map[key])
+    
+                    line_map[key].set_data(x_smooth, y_smooth)
+                    ax_map[key].set_xlim(max(0, i - xmax), i + 1)
+                    value_text_map[key].set_text(f"{val_map[key]:.1f}")
+    
+                fig.canvas.draw()
+                plt.pause(0.005)  #could be decrease
+                i += 1
+    
+        except KeyboardInterrupt:
+            plt.ioff()
+            plt.show()
+            plt.close()
+
+            
+    def draw_clearance(self, xmax=100, ymax=600):
+        """
+        Displays 3 live clearance plots: left, center, right,
+        each with a constant threshold line.
+        """
+        self.get_line_threshold_value()
+        self.start_trame_s(10, ["clearance"])
+    
+        if not matplotlib.get_backend().lower().startswith("tk"):
+            matplotlib.use("tkagg")
+    
+        plt.ion()
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4), sharex=True)
+        fig.canvas.manager.set_window_title("Draw_clearance ILO ROBOT")
+        plt.show(block=False)
+    
+        directions = ["left", "center", "right"]
+        ax_map = {
+            "left":   axes[0],
+            "center": axes[1],
+            "right":  axes[2]
+        }
+    
+        line_map = {}
+        value_text_map = {}
+        xdata, ydata_map = [], {key: [] for key in directions}
+    
+        for key in directions:
+            ax = ax_map[key]
+            line, = ax.plot([], [], linewidth=2)
+            ax.set_ylim(0, ymax)
+            ax.set_ylabel(f"{key.capitalize()} (mm)")
+            ax.set_title(f"{key.capitalize()} Clearance")
+            ax.axhline(self._line_threshold_value, color='r', linestyle='--', linewidth=2)
+            line_map[key] = line
+            value_text_map[key] = ax.text(0.5, 0.95, "", transform=ax.transAxes,
+                                          ha="center", va="top", fontsize=12,
+                                          weight='bold', bbox=dict(facecolor='white', alpha=0.8))
+    
+        i = 0
+        print("Close the window or CTRL+C to stop the display")
+    
+        try:
+            while True:
+                if not plt.get_fignums():
+                    time.sleep(0.1)
+                    self.stop_trame_s()
+                    break
+    
+                val_map = {
+                    "left": self._clear_left,
+                    "center": self._clear_center,
+                    "right": self._clear_right
+                }
+    
+                xdata.append(i)
+                xdata = xdata[-xmax:]
+    
+                for key in directions:
+                    ydata_map[key].append(val_map[key])
+                    ydata_map[key] = ydata_map[key][-xmax:]
+    
+                    x_smooth = np.linspace(xdata[0], xdata[-1], 200)
+                    y_smooth = np.interp(x_smooth, xdata, ydata_map[key])
+    
+                    line_map[key].set_data(x_smooth, y_smooth)
+                    ax_map[key].set_xlim(max(0, i - xmax), i + 1)
+                    value_text_map[key].set_text(f"{val_map[key]:.1f}")
+    
+                fig.canvas.draw()
+                plt.pause(0.005)
+                i += 1
+    
+        except KeyboardInterrupt:
+            print("Stopped by user.")
+        finally:
+            plt.ioff()
+            plt.show()
+            plt.close()
+            self.stop_trame_s()
+    
 
