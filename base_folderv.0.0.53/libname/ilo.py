@@ -503,8 +503,7 @@ def check_robot_on_wifi():
         if len(_tab_IP) != 0:
             print(table)
             print("")
-            print(
-                "Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
+            print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
             global _connection_type
             _connection_type = 0
         else:
@@ -627,6 +626,7 @@ def check_robot_on_bluetooth():
             return False
         else:
             print(table)
+            print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
             _connection_type = 2
             # print("Connection type: BLE")
             return True
@@ -3247,4 +3247,3 @@ class robot(object):
             plt.close()
             self.stop_trame_s()
     
-
