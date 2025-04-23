@@ -1,9 +1,8 @@
 from ilo import info
 from ilo import list_function
-from ilo import check_robot_on_WiFi
+from ilo import check_robot_on_wifi
 from ilo import check_robot_on_serial
 from ilo import check_robot_on_bluetooth
-from ilo import stop_reception
 from ilo import test_connection
 from ilo import stop
 from ilo import pause
@@ -18,7 +17,9 @@ from ilo import get_tempo_pos
 from ilo import rotation
 from ilo import set_pid
 from ilo import get_pid
-from ilo import get_color_rgb
+from ilo import get_color_rgb_center
+from ilo import get_color_rgb_left
+from ilo import get_color_rgb_right
 from ilo import set_led_captor
 from ilo import get_color_clear
 from ilo import get_color_clear_left
@@ -48,6 +49,7 @@ from ilo import set_led_shape
 from ilo import set_led_anim
 from ilo import set_led_single
 from ilo import set_led_word
+from ilo import stop_led_word
 from ilo import get_acc_motor
 from ilo import set_acc_motor
 from ilo import ping_single_motor
@@ -74,8 +76,8 @@ from ilo import set_name
 from ilo import get_name
 from ilo import get_accessory
 from ilo import set_debug_state
-from ilo import send_trame_s
-from ilo import del_trame_s
+from ilo import start_trame_s
+from ilo import stop_trame_s
 from ilo import get_diagnostic
 from ilo import set_manufacturing_date
 from ilo import get_manufacturing_date
@@ -86,3 +88,6 @@ from ilo import get_product_version
 from ilo import set_product_id
 from ilo import get_product_id 
 from ilo import get_robot_version
+from ilo import draw_distance
+from ilo import draw_all_distance
+from ilo import drawn_clearance

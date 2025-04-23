@@ -46,7 +46,7 @@ Don't worry, these dependencies are automatically installed with the ilo library
 ```
 import ilo
 
-ilo.check_robot_on_network()
+ilo.check_robot_on_wifi()
 
 my_ilo = ilo.robot(1)
 

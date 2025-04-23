@@ -16,10 +16,6 @@ import asyncio
 from bleak import BleakScanner, BleakClient
 from prettytable import PrettyTable
 import requests
-import os
-import psutil
-import platform
-import binascii
 import concurrent.futures
 import matplotlib
 import matplotlib.pyplot as plt
@@ -248,7 +244,7 @@ class _IloUpdater:
         except Exception as e:
             print(f"⚠️ Impossible to check for updates :,(")
 
-version = "0.53"
+version = "0.54"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")

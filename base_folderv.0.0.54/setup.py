@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.0.53'
+VERSION = '0.0.54'
 DESCRIPTION = 'Control ilo robot using python command.'
 with open('README.md') as f:
     long_description = f.read()
@@ -21,12 +21,12 @@ setup(
         "pyperclip",
         "pyserial",
         "websocket-client",
-        "nest_asyncio",
         "bleak",
         "prettytable",
         "keyboard_crossplatform",
         "requests",
-        "psutil"
+        "numpy",
+        "matplotlib"
     ],
     keywords=['python', 'education'],
     classifiers=[
