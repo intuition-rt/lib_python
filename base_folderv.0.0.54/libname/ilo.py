@@ -105,10 +105,10 @@ class _SyncBleak:
         """Vérifie si le client est connecté."""
         return self.client.is_connected if self.client else False
     
-ble_lib = _SyncBleak()
-CHARACTERISTIC_UUID = "DEAD"  # Notify  and read/write characteristic
+_ble_lib = _SyncBleak()
+_CHARACTERISTIC_UUID = "DEAD"  # Notify  and read/write characteristic
 
-suspend_receive_msg = False # Variable pour suspendre la réception de messages (lorsqu'il y'a des interactions avec l'utilisateur)
+_suspend_receive_msg = False # Variable pour suspendre la réception de messages (lorsqu'il y'a des interactions avec l'utilisateur)
 
 class _IloUpdater:
     def __init__(self, client, version, use_ble=True, ws=None):
@@ -122,7 +122,7 @@ class _IloUpdater:
         self.ws = ws
         self.CHUNK_SIZE = 509 if use_ble else 1024
         self.update_complete = False
-        self.loop = ble_lib.get_loop()
+        self.loop = _ble_lib.get_loop()
 
     async def send_firmware(self):
         try:
@@ -211,7 +211,7 @@ class _IloUpdater:
             return False
 
     def check_update(self):
-        global suspend_receive_msg
+        global _suspend_receive_msg
         print("Checking for online updates... Please wait.")
         
         try:
@@ -226,7 +226,7 @@ class _IloUpdater:
                 latest_version = data["version"]
                 print(f"Latest version: {latest_version}")
                 if latest_version != self.version:
-                    suspend_receive_msg = True
+                    _suspend_receive_msg = True
                     print("A new update is available!")
                     update = input("Do you want to update your robot? (yes/no): ").strip().lower()
                     if update == "y" or update == "yes":
@@ -235,7 +235,7 @@ class _IloUpdater:
                                 self.updateWithBT()
                             else:
                                 self.updateWithWS()
-                    suspend_receive_msg = False
+                    _suspend_receive_msg = False
                 else:
                     print("Your ilo is already up to date ;)")
 
@@ -608,7 +608,7 @@ def check_robot_on_bluetooth():
 
     print("[ILO] Scanning for BLE devices...")
     try:    
-        devices = ble_lib.scan_devices()
+        devices = _ble_lib.scan_devices()
         table = PrettyTable()
         table.field_names = ["Device adress", "ID of ilo", "Name of ilo"]
         i = 1
@@ -686,7 +686,7 @@ class robot(object):
                 pass
             elif _connection_type == 2:
                 # print("Disconnecting from the BLE device...")
-                ble_lib.disconnect(old_robot.ble_device)
+                _ble_lib.disconnect(old_robot.ble_device)
                 
                 old_robot.connect = False
 
@@ -883,10 +883,10 @@ class robot(object):
 
         elif _connection_type == 2:
             def notification_handler(sender, data):
-                global suspend_receive_msg
+                global _suspend_receive_msg
                 try:
                     decoded_data = data.decode('utf-8')
-                    if suspend_receive_msg:
+                    if _suspend_receive_msg:
                         return
                     print(f"Received: {decoded_data}")
                     self._process_received_data(decoded_data)
@@ -894,8 +894,8 @@ class robot(object):
                     print(f"Received non-UTF-8 data: {data}")
             print("Connecting to the BLE device...")
             try:
-                self._ble_device = ble_lib.connect(_tab_ADDRESS[self._ID - 1][1])
-                ble_lib.subscribe_to_notifications(CHARACTERISTIC_UUID, notification_handler)
+                self._ble_device = _ble_lib.connect(_tab_ADDRESS[self._ID - 1][1])
+                _ble_lib.subscribe_to_notifications(_CHARACTERISTIC_UUID, notification_handler)
                 self._connect = True
                 print("Connected to the BLE device.")
                 self._send_msg("<ilo>")
@@ -947,7 +947,7 @@ class robot(object):
         elif _connection_type == 2:
             if self._ble_device and self._connect:
                 try:
-                    ble_lib.write_characteristic(self._ble_device, CHARACTERISTIC_UUID, message.encode())
+                    _ble_lib.write_characteristic(self._ble_device, _CHARACTERISTIC_UUID, message.encode())
                     print(f"Sent:     {message}")
                 except Exception as e:
                     print(f"Error sending message: {e}")
@@ -1216,7 +1216,7 @@ class robot(object):
         elif _connection_type == 1:
             pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
         elif _connection_type == 2:
-            ble_lib.disconnect(self._ble_device)
+            _ble_lib.disconnect(self._ble_device)
         else:
             pass  
     # -----------------------------------------------------------------------------
@@ -2101,25 +2101,37 @@ class robot(object):
         msg = "<52v"+str(value)+">"
         self._send_msg(msg)
 
-    def set_led_anim(self, value: str):
+    def set_led_anim(self, value: str, nb_loop=1):
         """
         Starting an animation with LEDs
 
         Parameters:
             value (str): led animation name
+            nb_loop (int): number of loops of the animation
 
         Raises:
             TypeError: If value is not a string
+            TypeError: If nb_loop is not an integer
+            ValueError: if nb_loop is less than 1
 
         Examples:
             my_ilo.set_led_anim("wave")
+            my_ilo.set_led_anim("breath", 5)
         """
 
         if not isinstance(value, str):
             print("[ERROR] 'value' parameter must be a string")
             return None
 
-        msg = "<53"+str(value)+">"
+        if not isinstance(nb_loop, int):
+            print("[ERROR] 'nb_loop' parameter must be a integer")
+            return None
+        
+        if nb_loop < 1:
+            print("[ERROR] 'nb_loop' parameter must be more than 1")
+            return None
+
+        msg = "<53"+str(value)+"/" + str(nb_loop) + ">"
         self._send_msg(msg)
 
     def set_led_single(self, type: str, id: int, red: int, green: int, blue: int, luminosity=None):
@@ -2193,7 +2205,7 @@ class robot(object):
             str(green)+"b"+str(blue)+"l"+str(luminosity)+">"
         self._send_msg(msg)
     
-    def set_led_word(self, type: str, word: str, delay=None):
+    def set_led_word(self, type: str, word: str, delay=None, nb_loop=1):
         """
         Show your word with the robot leds.
 
@@ -2206,10 +2218,16 @@ class robot(object):
             TypeError: If type is not a string
             ValueError: If type is not "reveal" or "slide"
             TypeError: If word is not a string
+            ValueError: If word is more than 10 characters
+            TypeError: If delay is not an integer
+            ValueError: If delay is not between 10 and 2000
+            TypeError: If nb_loop is not an integer
+            ValueError: If nb_loop is less than 1
 
         Examples:
             my_ilo.set_led_word("reveal", "Hello")
             my_ilo.set_led_word("slide", "robot", 300)
+            my_ilo.set_led_word("slide", "robot", 400, 5)
         """
 
         if not isinstance(type, str):
@@ -2239,10 +2257,18 @@ class robot(object):
             print("[ERROR] 'delay' parameter must be include between 10 and 2000")
             return None
 
+        if not isinstance(nb_loop, int):
+            print("[ERROR] 'nb_loop' parameter must be a integer")
+            return None
+        
+        if nb_loop < 1:
+            print("[ERROR] 'nb_loop' parameter must be more than 1")
+            return None
+
         if type == "reveal":
-            msg = "<56w"+str(word.upper())+"d"+ str(delay)+">"
+            msg = "<56w"+str(word.upper())+"d"+ str(delay)+ "/" + str(nb_loop) + ">"
         else:
-            msg = "<57w"+str(word.upper())+"d"+ str(delay)+">"
+            msg = "<57w"+str(word.upper())+"d"+ str(delay)+"/" + str(nb_loop) + ">"
         self._send_msg(msg)
     
     def stop_led_word(self):
@@ -3009,7 +3035,7 @@ class robot(object):
         self._send_msg("<500y>")
         self._response_event.wait(timeout=5)
         return (self._version)
-    
+    # -----------------------------------------------------------------------------
     def draw_distance(self, distance = "front", xmax=100, ymax=600):
         """
         draw_distance("front", "Distance Front", 100, 650):
@@ -3242,4 +3268,10 @@ class robot(object):
             plt.show()
             plt.close()
             self.stop_trame_s()
-    
+    # -----------------------------------------------------------------------------
+    def debugPrint(self, msg):
+        """
+        Print debug message
+        """
+        if self._debug:
+            print(msg)
