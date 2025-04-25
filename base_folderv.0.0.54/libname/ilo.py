@@ -2205,7 +2205,7 @@ class robot(object):
             str(green)+"b"+str(blue)+"l"+str(luminosity)+">"
         self._send_msg(msg)
     
-    def set_led_word(self, type: str, word: str, delay=None, nb_loop=1):
+    def set_led_word(self, type: str, word: str, *, delay=None, nb_loop=1):
         """
         Show your word with the robot leds.
 
@@ -2226,8 +2226,9 @@ class robot(object):
 
         Examples:
             my_ilo.set_led_word("reveal", "Hello")
-            my_ilo.set_led_word("slide", "robot", 300)
-            my_ilo.set_led_word("slide", "robot", 400, 5)
+            my_ilo.set_led_word("slide", "robot", delay=300)
+            my_ilo.set_led_word("slide", "robot", nb_loop=5)
+            my_ilo.set_led_word("reveal", "marin", delay=300, nb_loop=3)
         """
 
         if not isinstance(type, str):
