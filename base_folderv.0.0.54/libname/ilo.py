@@ -786,6 +786,17 @@ class robot(object):
         self._product_version = ""
         self._product_id = ""
 
+        # GRAPHs
+        self._nbValues = []
+        self._valuesLabels = []
+        self._labels_y = []
+        self._max_y = []
+        self._min_y = []
+        self._graphUnit = []
+
+        self._last_message = ""
+
+        self.trame_s = ""
 
         self._response_event = threading.Event()
         self._response_value = None
@@ -891,12 +902,8 @@ class robot(object):
                     if _suspend_receive_msg:
                         return
                     self.debugPrint(f"Received: {decoded_data}")
-                    if '/' in decoded_data:
-                        sub_trames = decoded_data.split('/')[1:-1]
-                        for sub_trame in sub_trames:
-                            self._process_received_data(f"<{sub_trame}>")
-                    else:
-                        self._process_received_data(decoded_data)
+
+                    self._process_received_data(decoded_data)
                 except UnicodeDecodeError:
                     print(f"Received non-UTF-8 data: {data}")
             print("Connecting to the BLE device...")
@@ -966,12 +973,7 @@ class robot(object):
                 data = self._ws.recv() # Timeout de 1 seconde pour éviter un blocage sur recv()
                 if data:
                     self.debugPrint(f"[web_socket_receive]: Received: {data}")
-                    if '/' in data:
-                        sub_trames = data.split('/')[1:-1]
-                        for sub_trame in sub_trames:
-                            self._process_received_data(f"<{sub_trame}>")
-                    else:
-                        self._process_received_data(data)
+                    self._process_received_data(data)
             except websocket.WebSocketTimeoutException:
                 # Timeout atteint, continue à boucler pour vérifier recv_thread_running
                 continue
@@ -992,12 +994,7 @@ class robot(object):
                 self.debugPrint(f"[serial_read]: Received: {trame}")
                 if trame:
                     if '<' in trame and '>' in trame:
-                        if '/' in trame:
-                            sub_trames = trame.split('/')[1:-1]
-                            for sub_trame in sub_trames:
-                                self._process_received_data(f"<{sub_trame}>")
-                        else:
-                            self._process_received_data(trame)
+                        self._process_received_data(trame)
                     else:
                         print(f"[serial_read] Invalid data format: {trame}")
                 else:
@@ -1005,6 +1002,40 @@ class robot(object):
             except serial.SerialException as e:
                 print(f"Error: {e}")
     # -----------------------------------------------------------------------------
+
+
+    def _defineLabelsAndAxes(self, data : list):
+        """
+        Define the labels and axes for the graph
+        """
+        print("PARSE LABELS AND Y_MAX: ", data)
+        print("Graph size: ", len(data))
+
+        for v in data:
+            temp = v.split('&')
+            nb_values = temp[0]
+            label_y = temp[1]
+            label_values = temp[2]
+            
+            unit = temp[3]
+            y_min = temp[4]
+            y_max = temp[5]
+
+            print("----------------")
+            print("Nb values: ", nb_values)
+            print("Label values: ", label_values)
+            print("Label Y: ", label_y)
+            print("Y_min: ", y_min)
+            print("Y_max: ", y_max)
+            print("----------------------------")
+            self._nbValues.append(int(nb_values))
+            self._labels_y.append(label_y)
+            self._valuesLabels.append(label_values.split('_'))
+            self._min_y.append(int(y_min))
+            self._max_y.append(int(y_max))
+            self._graphUnit.append(unit)
+
+
     def _process_received_data(self, data):
         """
         Process the data received from the WebSocket or Serial and update the robot's attributes
@@ -1012,8 +1043,31 @@ class robot(object):
         # print(f"[process_received_data] Received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
-        try:
+        print("Data received: ", data)
 
+        if data[1] == "0" and len(self.trame_s) == 0:
+            self.trame_s = "<0/"
+            return
+        
+        if self.trame_s != "":
+            self.trame_s += data
+            print("___trame s: ", self.trame_s)
+
+            if data == ">":
+                print("Final trame S: ", self.trame_s)
+                if "/" in self.trame_s: # Données de la trame S.
+                    if "&" in self.trame_s: # Initialisation de la trame S.
+                        self._defineLabelsAndAxes(self.trame_s.split('/')[1:-1])
+                        return
+                    self._last_message = self.trame_s
+                    return
+                
+        if "/" in data: # Données de la trame S.
+            if "&" not in data: # Initialisation de la trame S.
+                self._last_message = data
+            return
+
+        try:
             if str(data[1:4]) == "10c":  # get_color_rgb_center
                 self._red_color_center   = int(data[data.find('r')+1: data.find('g')])
                 self._green_color_center = int(data[data.find('g')+1: data.find('b')])
@@ -2873,14 +2927,19 @@ class robot(object):
         Parameters:
             hertz (int): the frequency of the trame
             param_list (list): the parameters you want to get
-                - color
-                - luminosity
-                - distance
-                - distance_front
-                - distance_right
-                - distance_back
-                - distance_left
-                - accessory_angle
+                color_rgb_center
+                color_rgb_left  
+                color_rgb_right 
+                color_clear     
+                line            
+                distance        
+                distance_f      
+                distance_b      
+                distance_r      
+                distance_l      
+                angle           
+                raw_imu         
+                battery
 
         Raises:
             TypeError: If hertz is not an integer
@@ -2911,15 +2970,21 @@ class robot(object):
             return None
 
         valid_params = {
-            "color",
-            "clearance",
+            "color_rgb_center",
+            "color_rgb_left",
+            "color_rgb_right",
+            "color_clear",
+            "line",
             "distance",
             "distance_front",
-            "distance_right",
             "distance_back",
+            "distance_right",
             "distance_left",
-            "accessory_angle"
+            "angle",
+            "raw_imu",
+            "battery",
         }
+
         invalid_params = [item for item in param_list if item not in valid_params]
         if invalid_params:
             print(f"[ERROR] 'param_list' contains invalid parameters: {invalid_params}")
@@ -2927,32 +2992,42 @@ class robot(object):
 
         msg = "<0h" +str(hertz)+"z/"
 
-        if "color" in param_list:
-            msg = msg + "10/"
-        if "clearance" in param_list:
+        if "color_rgb_center" in param_list:
+            msg = msg + "10c/"
+        if "color_rgb_left" in param_list:
+            msg = msg + "10l/"
+        if "color_rgb_right" in param_list:
+            msg = msg + "10r/"
+        if "color_clear" in param_list:
             msg = msg + "11/"
+        if "line" in param_list:
+            msg = msg + "12/"
         if "distance" in param_list:
             msg = msg + "20/"
         if "distance_front" in param_list:
             msg = msg + "21/"
-        if "distance_right" in param_list:
-            msg = msg + "22/"
         if "distance_back" in param_list:
+            msg = msg + "22/"
+        if "distance_right" in param_list:
             msg = msg + "23/"
         if "distance_left" in param_list:
             msg = msg + "24/"
-
-        if "accessory_angle" in param_list:
-            msg = msg + "100/"
+        if "angle" in param_list:
+            msg = msg + "30/"
+        if "raw_imu" in param_list:
+            msg = msg + "32/"
+        if "battery" in param_list:
+            msg = msg + "40/"
 
         msg = msg + ">"
-
+        print("[INFO] START TRAME S: ", msg)
         self._send_msg(msg)
 
     def stop_trame_s(self):
         """
         Stop the global trame
         """
+        self.trame_s = ""
         self._send_msg("<00>")
     # -----------------------------------------------------------------------------
     def get_diagnostic(self):
@@ -3029,10 +3104,144 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._version)
     # -----------------------------------------------------------------------------
-    def draw_distance(self, distance = "front", xmax=100, ymax=600):
+
+    def draw(self, graphType=["distance"], xmax=100):
+        print(f"[DRAW] ▶️ Lancement du graph pour {graphType}")
+
+        self.stop_trame_s()
+        self._nbValues.clear()
+        self._labels_y.clear()
+        self._valuesLabels.clear()
+        self._graphUnit.clear()
+        self._min_y.clear()
+        self._max_y.clear()
+        self._last_message = ""
+
+        self.start_trame_s(10, graphType)
+
+        time.sleep(0.5)
+
+        if self.trame_s != "":
+            while self.trame_s[-1] != ">":
+                time.sleep(0.1)
+            
+        if not self._labels_y:
+            print("[DRAW] ❌ Aucun label reçu, abandon")
+            return
+
+        if not matplotlib.get_backend().lower().startswith("tk"):
+            matplotlib.use("tkagg")
+        plt.ion()
+
+        directions = self._labels_y
+        fig, axes = plt.subplots(len(directions), 1, figsize=(10, 6), sharex=True)
+        fig.canvas.manager.set_window_title("Drawer ILO ROBOT")
+        plt.show(block=False)
+
+        if len(directions) == 1:
+            axes = [axes]
+
+        # Initialisation
+        xdata_map = {k: [] for k in directions}
+        ydata_map = {k: [[] for _ in range(self._nbValues[i])] for i, k in enumerate(directions)}
+        line_map = {k: [] for k in directions}
+        text_map = {k: [] for k in directions}
+        ax_map = {}
+
+        for i, key in enumerate(directions):
+            ax = axes[i]
+            ax_map[key] = ax
+            for j in range(self._nbValues[i]):
+                label = self._valuesLabels[i][j] if i < len(self._valuesLabels) and j < len(self._valuesLabels[i]) else f"{key}_{j+1}"
+                color = f"C{j % 10}"
+                line, = ax.plot([], [], label=label, color=color, linewidth=2)
+                text = ax.text(
+                    0.5, 0.95 - 0.07 * j, "", transform=ax.transAxes,
+                    ha="center", va="top", fontsize=10, weight="bold",
+                    bbox=dict(facecolor="white", alpha=0.8)
+                )
+                line_map[key].append(line)
+                text_map[key].append(text)
+            ax.set_ylim(self._min_y[i] * -1.2, self._max_y[i] * 1.2)
+            ax.set_ylabel(self._graphUnit[i])
+            ax.set_title(key)
+            ax.legend()
+
+        print("----------------------------")
+        print("Ferme la fenêtre ou fais CTRL+C pour arrêter")
+
+        frame = 0
+        try:
+            while True:
+                if not plt.get_fignums():
+                    time.sleep(0.1)
+                    break
+
+                try:
+                    parts = self._last_message.strip('<>/').split('/')
+                    if len(parts) < 2:
+                        continue
+                except Exception as e:
+                    print("[ERROR] Failed to parse message:", e)
+                    continue
+
+                if len(parts) < sum(self._nbValues) + 1:
+                    print(f"[WARNING] Trame reçue trop courte: {parts}")
+                    continue
+
+                print(f"[FRAME {frame}] Nouvelle trame reçue: {parts}")
+                index = 1  # skip 0
+
+                for d_idx, key in enumerate(directions):
+                    print(f"[FRAME {frame}] 📊 Traitement du graphique {key}")
+                    for j in range(self._nbValues[d_idx]):
+                        if index >= len(parts):
+                            print(f"[FRAME {frame}] [WARNING] Index {index} dépasse parts (len={len(parts)})")
+                            break
+                        try:
+                            val = float(parts[index])
+                        except (ValueError, IndexError):
+                            val = 0
+                        print(f"[FRAME {frame}] ➡️ Ajout valeur {val} à {key}[{j}]")
+                        if j < len(ydata_map[key]):
+                            ydata_map[key][j].append(val)
+                            ydata_map[key][j] = ydata_map[key][j][-xmax:]
+                        index += 1
+
+                    xdata_map[key].append(frame)
+                    xdata_map[key] = xdata_map[key][-xmax:]
+
+                for key in directions:
+                    for j in range(len(ydata_map[key])):
+                        if len(xdata_map[key]) < 2:
+                            continue
+                        if len(xdata_map[key]) == len(ydata_map[key][j]):
+                            x_smooth = np.linspace(xdata_map[key][0], xdata_map[key][-1], 200)
+                            y_smooth = np.interp(x_smooth, xdata_map[key], ydata_map[key][j])
+
+                            line_map[key][j].set_data(x_smooth, y_smooth)
+                            text_map[key][j].set_text(f"{ydata_map[key][j][-1]:.1f}")
+                            ax_map[key].set_xlim(max(0, frame - xmax), frame + 1)
+                        else:
+                            print(f"[FRAME {frame}] [WARNING] Courbe {key}_{j}: mismatch len(x)={len(xdata_map[key])} vs len(y)={len(ydata_map[key][j])}")
+
+                fig.canvas.draw()
+                plt.pause(0.005)
+                frame += 1
+
+        except KeyboardInterrupt:
+            print("[DRAW] ⏹️ Interruption manuelle")
+        finally:
+            plt.ioff()
+            plt.show()
+            plt.close()
+            self.stop_trame_s()
+
+    def draw_distance(self, distance = "front", ymax=700, xmax=100):
         """
         draw_distance("front", "Distance Front", 100, 650):
         """
+
         if (distance == "front"):
             label = "Distance front (mm)"
             self.start_trame_s(10, ["distance_front"])
@@ -3051,6 +3260,7 @@ class robot(object):
         else: 
             return None
         
+
         if not matplotlib.get_backend().lower().startswith("tk"):
             matplotlib.use("tkagg")
         plt.ion()
@@ -3103,6 +3313,8 @@ class robot(object):
             plt.show()
             plt.close()
             self.stop_trame_s()
+
+
             
     def draw_all_distance(self, xmax=100, ymax=600):
         """
@@ -3180,6 +3392,7 @@ class robot(object):
             plt.ioff()
             plt.show()
             plt.close()
+        
            
     def draw_clearance(self, xmax=100, ymax=600):
         """
@@ -3268,4 +3481,10 @@ class robot(object):
         """
         if self._debug:
             print(msg)
+
+    def setDebug(self, debug: bool):
+        """
+        Set the debug mode
+        """
+        self._debug = debug
 
