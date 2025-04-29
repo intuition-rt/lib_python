@@ -22,9 +22,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 # -----------------------------------------------------------------------------
 
-
-
-
 class _SyncBleak:
     """
     Encapsule les fonctions de Bleak pour les rendre synchrone, tout en gardant
@@ -909,7 +906,6 @@ class robot(object):
             except Exception as e:
                 print(f"Error connecting to the BLE device: {e}")
                 self._connect = False
-
     # -----------------------------------------------------------------------------
     def _send_msg(self, message):
         self._response_event.clear()
@@ -980,7 +976,7 @@ class robot(object):
                 break
 
         print("Thread de réception terminé.")
-
+    # -----------------------------------------------------------------------------
     def _serial_read(self):
         """
         Serial function to read data from serial.
@@ -1175,7 +1171,7 @@ class robot(object):
             # -- marin add e to check the error
             print(f'[COMMUNICATION ERROR] data process: {e}')
             return None
-    # -----------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _stop_reception(self):
         """
         Stop the WebSocket reception thread and close the connection.
@@ -1203,7 +1199,7 @@ class robot(object):
             del robot._robots_connected[self._ID]
 
         print(f"WebSocket connection closed for the robot {self._ID}.")
-    # -----------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def __del__(self):
         """
         Destructor to ensure the WebSocket connection is closed gracefully
@@ -1219,7 +1215,7 @@ class robot(object):
             _ble_lib.disconnect(self._ble_device)
         else:
             pass  
-    # -----------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def test_connection(self):
         """
         Test the connection to the robot via a try of stop method
@@ -1246,7 +1242,7 @@ class robot(object):
             except:
                 print("Error connection to the robot")
                 return False
-    # -----------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _correction_command(self, acc, list_course):
         """
         Convert a list of 3 elements to a sendable string
@@ -1282,7 +1278,7 @@ class robot(object):
         str_command = str(list_course[0] + list_course[1] + list_course[2])
         new_command = "<a" + str(acc) + "v" + str_command + "pxyr>"
         return new_command
-    # -----------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def stop(self):
         """
         Stop ilo and free its engines
@@ -2682,7 +2678,7 @@ class robot(object):
         msg = "<66i"+str(id)+">"
         self._send_msg(msg)
         self._response_event.wait(timeout=5)
-        return (self._motor_id, self.current_motor)
+        return (self._motor_id, self._motor_current)
     # <67i1s20>
     def get_motor_is_moving(self, id: int):
         """
@@ -3157,8 +3153,8 @@ class robot(object):
                 
                 if not plt.get_fignums():
                     time.sleep(0.1)
-                    
                     break
+                
                 val_map = {
                     "front": self._distance_front,
                     "back":  self._distance_back,
