@@ -453,7 +453,7 @@ def check_robot_on_wifi():
             ws_url = "ws://192.168.4.1:4583"
             print(f"Checking {ws_url}")
             ws = websocket.create_connection(ws_url, timeout=1.3)
-            if _co_send_msg(ws, "<ilo>") == "ilo":
+            if _co_send_msg(ws, "<ilo>") == "<ilo>":
                 _tab_IP.append(["192.168.4.1", 1, _co_send_msg(ws, "<930>")])
 
                 ilo_AP = True
@@ -478,7 +478,7 @@ def check_robot_on_wifi():
 
                 try:
                     ws = websocket.create_connection(ws_url, timeout=1.3) # Set timeout for each connection
-                    if _co_send_msg(ws, "<ilo>") == "ilo":
+                    if _co_send_msg(ws, "<ilo>") == "<ilo>":
                         _co_send_msg(ws, "<>")
                         _tab_IP.append([IP, ilo_ID, _co_send_msg(ws, "<930>")])
                         ilo_ID += 1
@@ -514,89 +514,76 @@ def check_robot_on_serial(COM=None):
     global _connection_type
     global _tab_PORT
 
-    if COM:
-        try:
-            print("Check that ilo is properly connected ...")
-            with serial.Serial(COM, 115200, timeout=1) as ser:
-                # with serial.Serial(port.device, 115200, timeout=1, dsrdtr=False, rtscts=False) as ser:
-                ser.reset_input_buffer()
-                ser.reset_output_buffer()
-                time.sleep(1)
+    try:
+        _tab_PORT = []
+        ilo_ID = 1
 
-                ser.write(("<ilo>").encode())
-                ser.write(("<930>").encode())
-                time.sleep(1)
+        print("Check that ilo is properly connected ...")
 
-                response = ser.readline().decode().strip()
-                ser.close()
+        devices_black_list = [
+            "/dev/cu.debug-console", "/dev/cu.Bluetooth-Incoming-Port" # macOS
+        ]
 
-                if response:
-                    print(f"Robot {response} detected on port {COM}")
-                    _tab_PORT = [[COM, 1, response]]
-                    table = PrettyTable()
-                    table.field_names = ["Device port","ID of ilo", "Name of ilo"]
-                    table.add_row([COM, 1, response])
-                    print(table)
-                    print("")
-                    print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-                    _connection_type = 1
-                else:
-                    print(f"No valid response received on {COM}")
-        except (serial.SerialException, OSError) as e:
-            print(f"Error with port {COM} : {e}")
+        ports = serial.tools.list_ports.comports()
+        for port in ports:
+            if port.device in devices_black_list:
+                continue
+            if COM != None:
+                port.device = COM
+            print(f"Testing port: {port.device}")
+            try:
+                with serial.Serial(port.device, 115200, timeout=0.1) as ser:
+                    ser.reset_input_buffer()
+                    ser.reset_output_buffer()
+                    ser.write("<ilo>".encode())
+                    ser.flush()
 
-    else:
-        try:
-            _tab_PORT = []
-            ilo_ID = 1
+                    start = time.time()
+                    response = ""
 
-            print("Check that ilo is properly connected ...")
-            ports = serial.tools.list_ports.comports()
-            for port in ports:
-                print(f"Testing port: {port.device}")
-                try:
-                    with serial.Serial(port.device, 115200, timeout=1, write_timeout=1) as ser:
-                        # with serial.Serial(port.device, 115200, timeout=1, dsrdtr=False, rtscts=False) as ser:
-                        ser.reset_input_buffer()
-                        ser.reset_output_buffer()
-                        time.sleep(0.2)
+                    while time.time() - start < 2:
+                        try:
+                            char = ser.read(1)
+                            if char:
+                                decoded = char.decode('utf-8', errors='ignore')
+                                response += decoded
+                                print(f"Received char: {repr(decoded)}")
+                        except serial.SerialException as e:
+                            print(f"Serial error: {e}")
+                            break
 
-                        ser.write(("<ilo>").encode())
-                        ser.write(("<930>").encode())
-                        time.sleep(1)
+                    response = response.strip()
+                    print(f"Final response: {repr(response)}")
 
-                        response = ser.readline().decode().strip()
-                        ser.close()
+                    if "<ilo>" in response or "ilorobot" in response.lower():
+                        print(f"Robot {response} detected on port {port.device}")
+                        _tab_PORT.append([port.device, ilo_ID, response])
+                        ilo_ID += 1
+                    else:
+                        print(f"No valid response received on {port.device}")
 
-                        if response:
-                            print(f"Robot {response} detected on port {port.device}")
-                            _tab_PORT.append([port.device, ilo_ID, response])
-                            ilo_ID += 1
-                        else:
-                            print(f"No valid response received on {port.device}")
-                except (serial.SerialException, OSError) as e:
-                    print(f"Error with port {port.device} : {e}")
-                    continue
+            except serial.SerialException as e:
+                print(f"Error with port {port.device} : {e}")
 
-            table = PrettyTable()
-            table.field_names = ["Device port", "ID of ilo", "Name of ilo"]
+        table = PrettyTable()
+        table.field_names = ["Device port", "ID of ilo", "Name of ilo"]
 
-            for row in _tab_PORT:
-                table.add_row(row)
+        for row in _tab_PORT:
+            table.add_row(row)
 
-            if len(_tab_PORT) != 0:
-                print(table)
-                print("")
-                print(
-                    "Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-                _connection_type = 1
-            else:
-                print(
-                    "Unfortunately, no ilo is connected to your computer. Check your connection.")
+        if len(_tab_PORT) != 0:
+            print(table)
+            print("")
+            print(
+                "Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
+            _connection_type = 1
+        else:
+            print(
+                "Unfortunately, no ilo is connected to your computer. Check your connection.")
 
-        except Exception as e:
-            print(f"Serial error: {e}")
-            return None
+    except Exception as e:
+        print(f"Serial error: {e}")
+        return None
 
 def check_robot_on_bluetooth():
     pyperclip.copy('''my_ilo = ilo.robot(1)''')
@@ -705,6 +692,7 @@ class robot(object):
 
 
         self._version = ""
+        self._debug = False
 
         #BLE:
         # self.adress = get_ADDRESS_from_ID(self._ID)
@@ -787,7 +775,6 @@ class robot(object):
         self._product_version = ""
         self._product_id = ""
 
-        self._marker = True
 
         self._response_event = threading.Event()
         self._response_value = None
@@ -811,8 +798,6 @@ class robot(object):
         """
         Connection of your machine to robot object 
         """
-
-        self._send_msg("<ilo>")
 
         #if self._hostname != "":
 
@@ -845,7 +830,7 @@ class robot(object):
                 self._send_msg("<500y>")
                 time.sleep(0.2)
                 self.get_name()
-                time.sleep(0.2)
+                time.sleep(0.4)
                 print('Your are connected to ' + self._hostname)
                 updater = _IloUpdater(self._ser, self._version, False, self._ws)
                 updater.check_update()
@@ -861,7 +846,16 @@ class robot(object):
         elif _connection_type == 1:
             try:
                 # Start the serial connection
-                self._ser = serial.Serial(self._port, 115200)
+                self._ser = serial.Serial(self._port, 115200, timeout=10)  
+
+                if self._recv_thread and self._recv_thread.is_alive():
+                    # print("Stopping the previous reception thread...")
+                    self._stop_reception()
+
+                self._recv_thread_running = True
+                self._recv_thread = threading.Thread(
+                    target=self._serial_read)
+                self._recv_thread.start()
 
                 self._connect = True
                 self._send_msg("<ilo>")
@@ -885,7 +879,7 @@ class robot(object):
                     decoded_data = data.decode('utf-8')
                     if _suspend_receive_msg:
                         return
-                    #print(f"Received: {decoded_data}")
+                    self.debugPrint(f"Received: {decoded_data}")
                     if '/' in decoded_data:
                         sub_trames = decoded_data.split('/')[1:-1]
                         for sub_trame in sub_trames:
@@ -930,16 +924,11 @@ class robot(object):
                     self._ser.write(message.encode())
                     print(f"Sent:     {message}")
 
-                    invalid_prefixes = ("<a", "<i", "<13", "<31", "<51", "<52", "<53", "<54", "<55", "<56", "<57", "<58",
-                                        "<610", "<620", "<680", "<690", "<70", "<72", "<80", "<90", "<91", "<94", "<103", 
-                                        "<00>", "<>")
-
-                    if message.startswith(invalid_prefixes):
-                        pass
-                    else:
+                    
+                    #else:
                         # start_time = time.time()
                         # while time.time() - start_time < 1:
-                        self._serial_read()
+                        #self._serial_read()
 
                 except Exception as e:
                     print(f"Error sending message: {e}")
@@ -965,13 +954,13 @@ class robot(object):
                 self._ws.settimeout(1) # Ajout d'un timeout pour que recv() ne bloque pas indéfiniment
                 data = self._ws.recv() # Timeout de 1 seconde pour éviter un blocage sur recv()
                 if data:
+                    self.debugPrint(f"[web_socket_receive]: Received: {data}")
                     if '/' in data:
                         sub_trames = data.split('/')[1:-1]
                         for sub_trame in sub_trames:
                             self._process_received_data(f"<{sub_trame}>")
                     else:
                         self._process_received_data(data)
-                        self._marker = True
             except websocket.WebSocketTimeoutException:
                 # Timeout atteint, continue à boucler pour vérifier recv_thread_running
                 continue
@@ -984,38 +973,26 @@ class robot(object):
     # -----------------------------------------------------------------------------
     def _serial_read(self):
         """
-        Serial function to read data from serial.
+        THREAD to continuously receive data from the serial port.
         """
-
-        timeout = 1
-        start_time = time.time()
-        try:
-            trame = ""
-            while True:
-                if time.time() - start_time > timeout:
-                    print("[serial_read] Timeout atteint dans la première boucle")
-                    return
-
-                char = self._ser.read().decode()
-                if char == '<':
-                    trame += char
-                    break
-
-            while True:
-                if time.time() - start_time > timeout:
-                    print("[serial_read] Timeout atteint dans la seconde boucle")
-                    return
-
-                char = self._ser.read().decode()
-                if char:
-                    trame += char
-                    if char == '>':
-                        break
-            if trame:
-                self._process_received_data(trame)
-                self._marker = True
-        except serial.SerialException as e:
-            print(f"Error: {e}")
+        while self._recv_thread_running:
+            try:
+                trame = self._ser.readline().decode().strip()
+                self.debugPrint(f"[serial_read]: Received: {trame}")
+                if trame:
+                    if '<' in trame and '>' in trame:
+                        if '/' in trame:
+                            sub_trames = trame.split('/')[1:-1]
+                            for sub_trame in sub_trames:
+                                self._process_received_data(f"<{sub_trame}>")
+                        else:
+                            self._process_received_data(trame)
+                    else:
+                        print(f"[serial_read] Invalid data format: {trame}")
+                else:
+                    print("[serial_read] No data received or timeout reached")
+            except serial.SerialException as e:
+                print(f"Error: {e}")
     # -----------------------------------------------------------------------------
     def _process_received_data(self, data):
         """
@@ -1024,7 +1001,6 @@ class robot(object):
         # print(f"[process_received_data] Received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
-        
         try:
 
             if str(data[1:4]) == "10c":  # get_color_rgb_center
@@ -3279,3 +3255,4 @@ class robot(object):
         """
         if self._debug:
             print(msg)
+
