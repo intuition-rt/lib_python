@@ -885,8 +885,13 @@ class robot(object):
                     decoded_data = data.decode('utf-8')
                     if _suspend_receive_msg:
                         return
-                    print(f"Received: {decoded_data}")
-                    self._process_received_data(decoded_data)
+                    #print(f"Received: {decoded_data}")
+                    if '/' in decoded_data:
+                        sub_trames = decoded_data.split('/')[1:-1]
+                        for sub_trame in sub_trames:
+                            self._process_received_data(f"<{sub_trame}>")
+                    else:
+                        self._process_received_data(decoded_data)
                 except UnicodeDecodeError:
                     print(f"Received non-UTF-8 data: {data}")
             print("Connecting to the BLE device...")
@@ -899,7 +904,7 @@ class robot(object):
                 self._send_msg("<500y>")
                 time.sleep(0.2)
                 self.get_name()
-                time.sleep(0.2)
+                time.sleep(0.3)
                 print('Your are connected to ' + self._hostname)
                 updater = _IloUpdater(self._ble_device, self._version)
                 updater.check_update()
@@ -1019,7 +1024,7 @@ class robot(object):
         # print(f"[process_received_data] Received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
-
+        
         try:
 
             if str(data[1:4]) == "10c":  # get_color_rgb_center
@@ -1164,6 +1169,8 @@ class robot(object):
             elif str(data[1:4]) == "500":  # get_global_trame
                 self._version = str(data[data.find('y')+1: data.find('>')])
                 print(f"Version: {self._version}")
+            else:
+                print(f"Unknown data received: {data}")
 
             self._response_event.set()
 
@@ -3112,7 +3119,7 @@ class robot(object):
         """
         Displays 4 live distance plots: front, back, left, right.
         """
-        #self.start_trame_s(10, ["distance"])
+        self.start_trame_s(10, ["distance"])
     
         if not matplotlib.get_backend().lower().startswith("tk"):
             matplotlib.use("tkagg")
