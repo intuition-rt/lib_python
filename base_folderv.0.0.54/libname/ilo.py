@@ -1045,9 +1045,11 @@ class robot(object):
         # Example: Update distance values
         print("Data received: ", data)
 
-        if data[1] == "0" and len(self.trame_s) == 0:
-            self.trame_s = "<0/"
-            return
+
+        if len(data) > 1:
+            if data[1] == "0" and len(self.trame_s) == 0:
+                self.trame_s = "<0/"
+                return
         
         if self.trame_s != "":
             self.trame_s += data
