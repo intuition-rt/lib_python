@@ -547,16 +547,27 @@ def check_robot_on_serial(COM=None):
                             if char:
                                 decoded = char.decode('utf-8', errors='ignore')
                                 response += decoded
-                                print(f"Received char: {repr(decoded)}")
                         except serial.SerialException as e:
                             print(f"Serial error: {e}")
                             break
-
                     response = response.strip()
-                    print(f"Final response: {repr(response)}")
-
                     if "<ilo>" in response or "ilorobot" in response.lower():
-                        print(f"Robot {response} detected on port {port.device}")
+                        print(f"Robot detected on port {port.device}")
+                        ser.write("<930>".encode())
+                        ser.flush()
+
+                        start = time.time()
+                        response = ""
+                        while time.time() - start < 2:
+                            try:
+                                char = ser.read(1)
+                                if char:
+                                    decoded = char.decode('utf-8', errors='ignore')
+                                    response += decoded
+                            except serial.SerialException as e:
+                                print(f"Serial error: {e}")
+                                break
+                        response = response.strip()
                         _tab_PORT.append([port.device, ilo_ID, response])
                         ilo_ID += 1
                     else:
@@ -1145,6 +1156,8 @@ class robot(object):
             elif str(data[1:4]) == "500":  # get_global_trame
                 self._version = str(data[data.find('y')+1: data.find('>')])
                 print(f"Version: {self._version}")
+            elif str(data[1:4]) == "ilo":  # get_global_trame
+                pass
             else:
                 print(f"Unknown data received: {data}")
 
