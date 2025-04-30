@@ -1436,7 +1436,7 @@ class robot(object):
             self._response_event.wait(timeout = 5*step)
             print("Flag of end displacement received")
 
-    def flat_movement(self, angle, distance):
+    def flat_movement(self, angle, distance, finish_state=None):
         """
         Move ilo in the selected direction in angle for a selected distance
 
@@ -1481,12 +1481,21 @@ class robot(object):
             print("Angle should be between 0 to 360 degrees")
             return
 
+        if finish_state != None:
+            if not isinstance(finish_state, bool):
+                print ("[ERROR] 'finish_state' should be a boolean")
+                return None
+
         radian = angle * math.pi / 180
         distance_x = abs(int(math.cos(radian) * distance))
         distance_y = abs(int(math.sin(radian) * distance))
         msg = ("<avpx" + str(indice_x) + str(distance_x) +
                "y" + str(indice_y) + str(distance_y) + ">")
         self._send_msg(msg)
+
+        if finish_state == True:
+            self._response_event.wait(timeout = 5*(distance/100))
+            print("Flag of end displacement received")
 
     def list_order(self, ilo_list):
         """
@@ -1740,7 +1749,7 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._tempo_pos)
 
-    def rotation(self, angle: int):
+    def rotation(self, angle: int, finish_state=None):
         """
         Rotate ilo with selected angle
 
@@ -1764,8 +1773,17 @@ class robot(object):
         else:
             indice = 0
 
+        if finish_state != None:
+            if not isinstance(finish_state, bool):
+                print ("[ERROR] 'finish_state' should be a boolean")
+                return None
+
         command = ("<avpxyr" + str(indice) + str(abs(angle)) + ">")
         self._send_msg(command)
+
+        if finish_state == True:
+            self._response_event.wait(timeout = 3 * round(angle % 360, 2))
+            print("Flag of end displacement received")
 
     def set_pid(self, kp, ki, kd):
         """
