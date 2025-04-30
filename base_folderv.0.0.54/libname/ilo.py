@@ -796,7 +796,8 @@ class robot(object):
 
         self._last_message = ""
 
-        self.trame_s = ""
+        self._trame_s = ""
+        self._trame_s_received = False
 
         self._response_event = threading.Event()
         self._response_value = None
@@ -1003,7 +1004,6 @@ class robot(object):
                 print(f"Error: {e}")
     # -----------------------------------------------------------------------------
 
-
     def _defineLabelsAndAxes(self, data : list):
         """
         Define the labels and axes for the graph
@@ -1035,7 +1035,6 @@ class robot(object):
             self._max_y.append(int(y_max))
             self._graphUnit.append(unit)
 
-
     def _process_received_data(self, data):
         """
         Process the data received from the WebSocket or Serial and update the robot's attributes
@@ -1044,32 +1043,32 @@ class robot(object):
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
         print("Data received: ", data)
-
-
-        if len(data) > 1:
-            if data[1] == "0" and len(self.trame_s) == 0:
-                self.trame_s = "<0/"
-                return
-        
-        if self.trame_s != "":
-            self.trame_s += data
-            print("___trame s: ", self.trame_s)
-
-            if data == ">":
-                print("Final trame S: ", self.trame_s)
-                if "/" in self.trame_s: # Données de la trame S.
-                    if "&" in self.trame_s: # Initialisation de la trame S.
-                        self._defineLabelsAndAxes(self.trame_s.split('/')[1:-1])
-                        return
-                    self._last_message = self.trame_s
-                    return
-                
-        if "/" in data: # Données de la trame S.
-            if "&" not in data: # Initialisation de la trame S.
-                self._last_message = data
-            return
-
         try:
+            if len(data) > 1:
+                if data[1] == "0" and len(self._trame_s) == 0 and self._trame_s_received == False: #creation de la _trame_s  <0/
+                    self._trame_s = "<0/"
+                    return
+            
+            if self._trame_s != "" and self._trame_s_received == False:  #_trame_s déjà crée
+                self._trame_s += data
+                print("___trame s: ", self._trame_s)
+
+                if data == ">":
+                    self._trame_s_received = True
+                    print("Final trame S: ", self._trame_s)
+
+                    if "/" in self._trame_s: # Données de la trame S.
+                        if "&" in self._trame_s: # Initialisation de la trame S.
+                            self._defineLabelsAndAxes(self._trame_s.split('/')[1:-1])
+                            return
+                        self._last_message = self._trame_s
+                        return
+                    
+            if "/" in data: # Données de la trame S.
+                if "&" not in data: # Initialisation de la trame S.
+                    self._last_message = data
+                return
+
             if str(data[1:4]) == "10c":  # get_color_rgb_center
                 self._red_color_center   = int(data[data.find('r')+1: data.find('g')])
                 self._green_color_center = int(data[data.find('g')+1: data.find('b')])
@@ -1212,6 +1211,10 @@ class robot(object):
             elif str(data[1:4]) == "500":  # get_global_trame
                 self._version = str(data[data.find('y')+1: data.find('>')])
                 print(f"Version: {self._version}")
+
+            elif str(data[1:5]) == "avp0":  # get_global_trame
+                pass
+            
             elif str(data[1:4]) == "ilo":  # get_global_trame
                 pass
             else:
@@ -1427,13 +1430,11 @@ class robot(object):
             msg = '<a60vpxyr1' + str(step) + '>'
             self._send_msg(msg)
         else:
-            print(
-                "[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'")
-            
+            print("[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'")
+
         if finish_state == True:
-            print("Finish state is True")
-            # self._response_event.wait(timeout=5)
-            # return (self._version)
+            self._response_event.wait(timeout = 5*step)
+            print("Flag of end displacement received")
 
     def flat_movement(self, angle, distance):
         """
@@ -2922,7 +2923,7 @@ class robot(object):
 
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
-    def start_trame_s(self, hertz : int, param_list: list):
+    def start__trame_s(self, hertz : int, param_list: list):
         """
         Start the global trame of ilo
 
@@ -2952,7 +2953,7 @@ class robot(object):
             ValueError: If param_list contains invalid parameter names
 
         Examples:
-            my_ilo.start_trame_s(100, ["color", "luminosity"])
+            my_ilo.start__trame_s(100, ["color", "luminosity"])
         """
 
         if not isinstance(hertz, int):
@@ -2972,19 +2973,30 @@ class robot(object):
             return None
 
         valid_params = {
-            "color_rgb_center",
-            "color_rgb_left",
-            "color_rgb_right",
-            "color_clear",
-            "line",
-            "distance",
-            "distance_front",
-            "distance_back",
-            "distance_right",
-            "distance_left",
-            "angle",
-            "raw_imu",
+            #Color
+            "color_rgb_center", "color_rgb_left","color_rgb_right", "color_clear", "line",
+            #Distance
+            "distance", "distance_front","distance_back","distance_right", "distance_left",
+            #IMU
+            "angle","raw_imu",
+            #Battery
             "battery",
+            # Moteurs – vitesse
+            "vel_motor_1", "vel_motor_2", "vel_motor_3", "vel_motor_4",
+            # Moteurs – position
+            "pos_motor_1", "pos_motor_2", "pos_motor_3", "pos_motor_4",
+            # Moteurs – température
+            "temp_motor_1", "temp_motor_2", "temp_motor_3", "temp_motor_4",
+            # Moteurs – tension
+            "volt_motor_1", "volt_motor_2", "volt_motor_3", "volt_motor_4",
+            # Moteurs – charge
+            "load_motor_1", "load_motor_2", "load_motor_3", "load_motor_4",
+            # Moteurs – courant
+            "current_motor_1", "current_motor_2", "current_motor_3", "current_motor_4",
+            # Moteurs – déplacement*
+            "move_motor_1", "move_motor_2", "move_motor_3", "move_motor_4",
+            #accessory
+            "accessory"
         }
 
         invalid_params = [item for item in param_list if item not in valid_params]
@@ -3004,6 +3016,7 @@ class robot(object):
             msg = msg + "11/"
         if "line" in param_list:
             msg = msg + "12/"
+
         if "distance" in param_list:
             msg = msg + "20/"
         if "distance_front" in param_list:
@@ -3014,22 +3027,91 @@ class robot(object):
             msg = msg + "23/"
         if "distance_left" in param_list:
             msg = msg + "24/"
+
         if "angle" in param_list:
             msg = msg + "30/"
         if "raw_imu" in param_list:
             msg = msg + "32/"
+
         if "battery" in param_list:
             msg = msg + "40/"
+
+        if "vel_motor_1" in param_list:
+            msg += "611i1/"
+        if "vel_motor_2" in param_list:
+            msg += "611i2/"
+        if "vel_motor_3" in param_list:
+            msg += "611i3/"
+        if "vel_motor_4" in param_list:
+            msg += "611i4/"
+
+        if "pos_motor_1" in param_list:
+            msg += "621i1/"
+        if "pos_motor_2" in param_list:
+            msg += "621i2/"
+        if "pos_motor_3" in param_list:
+            msg += "621i3/"
+        if "pos_motor_4" in param_list:
+            msg += "621i4/"
+
+        if "temp_motor_1" in param_list:
+            msg += "63i1/"
+        if "temp_motor_2" in param_list:
+            msg += "63i2/"
+        if "temp_motor_3" in param_list:
+            msg += "63i3/"
+        if "temp_motor_4" in param_list:
+            msg += "63i4/"
+
+        if "volt_motor_1" in param_list:
+            msg += "64i1/"
+        if "volt_motor_2" in param_list:
+            msg += "64i2/"
+        if "volt_motor_3" in param_list:
+            msg += "64i3/"
+        if "volt_motor_4" in param_list:
+            msg += "64i4/"
+
+        if "load_motor_1" in param_list:
+            msg += "65i1/"
+        if "load_motor_2" in param_list:
+            msg += "65i2/"
+        if "load_motor_3" in param_list:
+            msg += "65i3/"
+        if "load_motor_4" in param_list:
+            msg += "65i4/"
+
+        if "current_motor_1" in param_list:
+            msg += "66i1/"
+        if "current_motor_2" in param_list:
+            msg += "66i2/"
+        if "current_motor_3" in param_list:
+            msg += "66i3/"
+        if "current_motor_4" in param_list:
+            msg += "66i4/"
+
+        if "move_motor_1" in param_list:
+            msg += "67i1/"
+        if "move_motor_2" in param_list:
+            msg += "67i2/"
+        if "move_motor_3" in param_list:
+            msg += "67i3/"
+        if "move_motor_4" in param_list:
+            msg += "67i4/"
+
+        if "accessory" in param_list:
+            msg = msg + "100/"
 
         msg = msg + ">"
         print("[INFO] START TRAME S: ", msg)
         self._send_msg(msg)
 
-    def stop_trame_s(self):
+    def stop__trame_s(self):
         """
         Stop the global trame
         """
-        self.trame_s = ""
+        self._trame_s_received = False
+        self._trame_s = ""
         self._send_msg("<00>")
     # -----------------------------------------------------------------------------
     def get_diagnostic(self):
@@ -3106,11 +3188,10 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._version)
     # -----------------------------------------------------------------------------
-
     def draw(self, graphType=["distance"], xmax=100):
         print(f"[DRAW] ▶️ Lancement du graph pour {graphType}")
 
-        self.stop_trame_s()
+        self.stop__trame_s()
         self._nbValues.clear()
         self._labels_y.clear()
         self._valuesLabels.clear()
@@ -3119,12 +3200,12 @@ class robot(object):
         self._max_y.clear()
         self._last_message = ""
 
-        self.start_trame_s(10, graphType)
+        self.start__trame_s(10, graphType)
 
         time.sleep(0.5)
 
-        if self.trame_s != "":
-            while self.trame_s[-1] != ">":
+        if self._trame_s != "":
+            while self._trame_s[-1] != ">":
                 time.sleep(0.1)
             
         if not self._labels_y:
@@ -3237,172 +3318,15 @@ class robot(object):
             plt.ioff()
             plt.show()
             plt.close()
-            self.stop_trame_s()
+            self.stop__trame_s()
 
-    def draw_distance(self, distance = "front", ymax=700, xmax=100):
-        """
-        draw_distance("front", "Distance Front", 100, 650):
-        """
-
-        if (distance == "front"):
-            label = "Distance front (mm)"
-            self.start_trame_s(10, ["distance_front"])
-            
-        elif (distance == "right"): 
-            label = "Distance right (mm)"
-            self.start_trame_s(10, ["distance_right"])
-            
-        elif (distance == "back"):  
-            label = "Distance back (mm)"
-            self.start_trame_s(10, ["distance_back"])
-            
-        elif (distance == "left"):  
-            label = "Distance left (mm)"
-            self.start_trame_s(10, ["distance_left"])
-        else: 
-            return None
-        
-
-        if not matplotlib.get_backend().lower().startswith("tk"):
-            matplotlib.use("tkagg")
-        plt.ion()
-        fig, ax = plt.subplots()
-        fig.canvas.manager.set_window_title("Draw_distance ILO ROBOT")
-        plt.show(block=False)
     
-        line, = ax.plot([], [], 'r-', linewidth=2)
-        ax.set_ylim(0, ymax)
-        ax.set_xlim(0, xmax)
-        
-        ax.set_ylabel(label)
-        ax.set_title("Live Sensor Data")
-    
-        value_text = ax.text(0.5, 0.95, "", transform=ax.transAxes,
-                             ha="center", va="top", fontsize=20,
-                             weight='bold', bbox=dict(facecolor='white', alpha=0.8))
-    
-        xdata, ydata = [], []
-        i = 0
-    
-        print("Close the window or CTRL+C to stop the display")
-    
-        try:
-            while plt.fignum_exists(fig.number):
-                if (distance == "front"):   val = self._distance_front
-                elif (distance == "right"): val = self._distance_right
-                elif (distance == "back"):  val = self._distance_back
-                elif (distance == "left"):  val = self._distance_left
-
-                xdata.append(i)
-                ydata.append(val)
-                xdata = xdata[-100:]
-                ydata = ydata[-100:]
-    
-                x_smooth = np.linspace(xdata[0], xdata[-1], 200)
-                y_smooth = np.interp(x_smooth, xdata, ydata)
-    
-                line.set_data(x_smooth, y_smooth)
-                ax.set_xlim(max(0, i - xmax), i + 1)
-                value_text.set_text(f"{val:.1f}")
-    
-                ax.figure.canvas.draw()
-                ax.figure.canvas.flush_events()
-                i += 1
-            self.stop_trame_s()
-    
-        except KeyboardInterrupt:
-            plt.ioff()
-            plt.show()
-            plt.close()
-            self.stop_trame_s()
-
-
-            
-    def draw_all_distance(self, xmax=100, ymax=600):
-        """
-        Displays 4 live distance plots: front, back, left, right.
-        """
-        self.start_trame_s(10, ["distance"])
-    
-        if not matplotlib.get_backend().lower().startswith("tk"):
-            matplotlib.use("tkagg")
-    
-        plt.ion()
-        fig, axes = plt.subplots(2, 2, figsize=(10, 6), sharex=True)
-        fig.canvas.manager.set_window_title("Draw_all_distance ILO ROBOT")
-        plt.show(block=False)
-    
-        directions = ["front", "back", "left", "right"]
-        ax_map = {
-            "front": axes[0, 0],
-            "back":  axes[0, 1],
-            "left":  axes[1, 0],
-            "right": axes[1, 1]
-        }
-    
-        line_map = {}
-        value_text_map = {}
-        xdata, ydata_map = [], {key: [] for key in directions}
-    
-        for key in directions:
-            ax = ax_map[key]
-            line, = ax.plot([], [], linewidth=2)
-            ax.set_ylim(0, ymax)
-            ax.set_ylabel(f"{key.capitalize()} (mm)")
-            ax.set_title(f"{key.capitalize()} Distance")
-            line_map[key] = line
-            value_text_map[key] = ax.text(0.5, 0.95, "", transform=ax.transAxes,
-                                          ha="center", va="top", fontsize=12,
-                                          weight='bold', bbox=dict(facecolor='white', alpha=0.8))
-    
-        i = 0
-        print("Close the window or CTRL+C to stop the display")
-    
-        try:
-            while True:
-                
-                if not plt.get_fignums():
-                    time.sleep(0.1)
-                    break
-                
-                val_map = {
-                    "front": self._distance_front,
-                    "back":  self._distance_back,
-                    "left":  self._distance_left,
-                    "right": self._distance_right
-                }
-    
-                xdata.append(i)
-                xdata = xdata[-100:]
-    
-                for key in directions:
-                    ydata_map[key].append(val_map[key])
-                    ydata_map[key] = ydata_map[key][-100:]
-    
-                    x_smooth = np.linspace(xdata[0], xdata[-1], 200)
-                    y_smooth = np.interp(x_smooth, xdata, ydata_map[key])
-    
-                    line_map[key].set_data(x_smooth, y_smooth)
-                    ax_map[key].set_xlim(max(0, i - xmax), i + 1)
-                    value_text_map[key].set_text(f"{val_map[key]:.1f}")
-    
-                fig.canvas.draw()
-                plt.pause(0.005)  #could be decrease
-                i += 1
-    
-        except KeyboardInterrupt:
-            plt.ioff()
-            plt.show()
-            plt.close()
-        
-           
-    def draw_clearance(self, xmax=100, ymax=600):
         """
         Displays 3 live clearance plots: left, center, right,
         each with a constant threshold line.
         """
         self.get_line_threshold_value()
-        self.start_trame_s(10, ["clearance"])
+        self.start__trame_s(10, ["clearance"])
     
         if not matplotlib.get_backend().lower().startswith("tk"):
             matplotlib.use("tkagg")
@@ -3442,7 +3366,7 @@ class robot(object):
             while True:
                 if not plt.get_fignums():
                     time.sleep(0.1)
-                    self.stop_trame_s()
+                    self.stop__trame_s()
                     break
     
                 val_map = {
@@ -3475,7 +3399,7 @@ class robot(object):
             plt.ioff()
             plt.show()
             plt.close()
-            self.stop_trame_s()
+            self.stop__trame_s()
     # -----------------------------------------------------------------------------
     def debugPrint(self, msg):
         """
