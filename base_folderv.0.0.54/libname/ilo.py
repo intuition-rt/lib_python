@@ -1130,7 +1130,8 @@ class robot(object):
 
             elif str(data[1:4]) == "40s":  # get_battery
                 self._battery_status = int(data[data.find('s')+1: data.find('p')])
-                self._battery_pourcentage = int(data[data.find('p')+1: data.find('>')])
+                self._battery_pourcentage = int(data[data.find('p')+1: data.find('v')])
+                self._battery_voltage = float(data[data.find('v')+1: data.find('>')])
 
             elif str(data[1:4]) == "50r":  # get_led_color
                 self._red_led = int(data[data.find('r')+1: data.find('g')])
@@ -2094,7 +2095,7 @@ class robot(object):
         """
         self._send_msg("<40>")
         self._response_event.wait(timeout=5)
-        return (self._battery_status, self._battery_pourcentage)
+        return (self._battery_status, self._battery_pourcentage, self._battery_voltage)
     # -----------------------------------------------------------------------------
     def get_led_color(self):
         """
