@@ -751,6 +751,7 @@ class robot(object):
 
         self._battery_status = 0
         self._battery_pourcentage = 0
+        self._battery_voltage = 0
 
         self._red_led = 0
         self._green_led = 0
