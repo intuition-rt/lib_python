@@ -32,7 +32,7 @@ class _SyncBleak:
         self.loop_thread = threading.Thread(target=self._start_loop, daemon=True)
         self.loop_thread.start()
 
-        self.client = None
+        self._client = None
         self.executor = concurrent.futures.ThreadPoolExecutor()
 
     def _start_loop(self):
@@ -58,10 +58,10 @@ class _SyncBleak:
         return future.result()
 
     async def _connect(self, address):
-        self.client = BleakClient(address)
-        connected = await self.client.connect()
+        self._client = BleakClient(address)
+        connected = await self._client.connect()
         if connected:
-            return self.client
+            return self._client
         return None
 
     def write_characteristic(self, client, char_uuid, data):
@@ -79,8 +79,8 @@ class _SyncBleak:
         asyncio.run_coroutine_threadsafe(self._subscribe(char_uuid, async_callback), self.loop)
 
     async def _subscribe(self, char_uuid, callback):
-        if self.client and self.client.is_connected:
-            await self.client.start_notify(char_uuid, callback)
+        if self._client and self._client.is_connected:
+            await self._client.start_notify(char_uuid, callback)
             print(f"🔔 Abonné aux notifications sur {char_uuid}")
 
     def unsubscribe_from_notifications(self, char_uuid):
@@ -89,8 +89,8 @@ class _SyncBleak:
         return future.result()
 
     async def _unsubscribe(self, char_uuid):
-        if self.client and self.client.is_connected:
-            await self.client.stop_notify(char_uuid)
+        if self._client and self._client.is_connected:
+            await self._client.stop_notify(char_uuid)
             print(f"🚫 Désabonné des notifications sur {char_uuid}")
 
     def disconnect(self, client):
@@ -100,7 +100,7 @@ class _SyncBleak:
 
     def is_connected(self):
         """Vérifie si le client est connecté."""
-        return self.client.is_connected if self.client else False
+        return self._client.is_connected if self._client else False
     
 _ble_lib = _SyncBleak()
 _CHARACTERISTIC_UUID = "DEAD"  # Notify  and read/write characteristic
@@ -109,7 +109,7 @@ _suspend_receive_msg = False # Variable pour suspendre la réception de messages
 
 class _IloUpdater:
     def __init__(self, client, version, use_ble=True, ws=None):
-        self.client = client
+        self._client = client
         self.version = version
         self.service_uuid = "5f6d"
         self.data_char_uuid = "c0de"
@@ -128,7 +128,7 @@ class _IloUpdater:
             firmware_size = len(firmware_data)
             print(f"Firmware loaded: {firmware_size} octets")
 
-            if self.use_ble and not self.client.is_connected:
+            if self.use_ble and not self._client.is_connected:
                 print("BLE client not connected.")
                 return
             if not self.use_ble and self.ws is None:
@@ -137,7 +137,7 @@ class _IloUpdater:
             print("\nConnected.")
             size_bytes = f"<500x{firmware_size}>".encode()
             if self.use_ble:
-                await self.client.write_gatt_char(self.size_char_uuid, size_bytes, response=False)
+                await self._client.write_gatt_char(self.size_char_uuid, size_bytes, response=False)
             else:
                 self.ws.send(size_bytes)
             print("\nFirmware size sent.")
@@ -145,7 +145,7 @@ class _IloUpdater:
             for i in range(0, firmware_size, self.CHUNK_SIZE):
                 chunk = firmware_data[i:i+self.CHUNK_SIZE]
                 if self.use_ble:
-                    await self.client.write_gatt_char(self.data_char_uuid, chunk, response=False)
+                    await self._client.write_gatt_char(self.data_char_uuid, chunk, response=False)
                 else:
                     self.ws.send(bytes(chunk), opcode=websocket.ABNF.OPCODE_BINARY)
 
@@ -673,17 +673,17 @@ class robot(object):
         # if _connection_type == 0:
         if ID in robot._robots_connected:  # Vérification si un robot avec cet ID est déjà connecté
             print(f"Un robot avec l'ID {ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
-            old_robot = robot._robots_connected[ID]
+            _old_robot = robot._robots_connected[ID]
             # Arrêter le thread mais sans déconnexion immédiate
             if _connection_type == 0:
-                old_robot.recv_thread_running = False
+                _old_robot.recv_thread_running = False
             elif _connection_type == 1:
                 pass
             elif _connection_type == 2:
                 # print("Disconnecting from the BLE device...")
-                _ble_lib.disconnect(old_robot.ble_device)
+                _ble_lib.disconnect(_old_robot.ble_device)
                 
-                old_robot.connect = False
+                _old_robot.connect = False
 
             else:
                 pass
@@ -2346,7 +2346,6 @@ class robot(object):
         Stop the led word
         """
         self._send_msg("<58>")
-
     # -----------------------------------------------------------------------------
     def get_acc_motor(self):
         """
@@ -2824,7 +2823,6 @@ class robot(object):
         if mode == "speed":
             msg = "<72"+str(motor_id)+"m1>"
         self._send_msg(msg)
-        
     # -----------------------------------------------------------------------------
     def set_autonomous_mode(self, value: str):
         """
