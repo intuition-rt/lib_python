@@ -711,6 +711,10 @@ class robot(object):
 
         self._hostname = ""
 
+        self._red_color_mix = 0
+        self._green_color_mix = 0
+        self._blue_color_mix = 0
+
         self._red_color_left   = 0
         self._green_color_left = 0
         self._blue_color_left  = 0
@@ -1844,6 +1848,22 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._kp, self._ki, self._kd)
     # -----------------------------------------------------------------------------
+    def get_color_rgb(self):
+        """
+        Displays the color below ilo
+        Returns:
+            tuple: (red, green, blue) color values averaged from all sensors
+        """
+        self.get_color_rgb_center()
+        self.get_color_rgb_left()
+        self.get_color_rgb_right()
+    
+        self._red_color_mix = (self._red_color_center + self._red_color_left + self._red_color_right) // 3
+        self._green_color_mix = (self._green_color_center + self._green_color_left + self._green_color_right) // 3
+        self._blue_color_mix = (self._blue_color_center + self._blue_color_left + self._blue_color_right) // 3
+
+        return (self._red_color_mix, self._green_color_mix, self._blue_color_mix)
+    
     def get_color_rgb_center(self):
         """
         Displays the color below ilo
@@ -1871,28 +1891,42 @@ class robot(object):
 
         return (self._red_color_right, self._green_color_right, self._blue_color_right)
 
-    def set_led_captor(self, state: bool):
+    def set_led_captor(self, state: bool, intensity: int=None):
         """
         Turns on/off the lights under ilo
 
         Parameters:
             state (bool): allows you to turn on or off the leds
+            intensity (int, optional): allows you to set the intensity of the leds (0-255). Only used if state is True.
 
         Raises:
             TypeError: If state is not a bool
+            TypeError: If intensity is not an integer
+            ValueError: If intensity is not between 0 and 255
 
         Examples:
             my_ilo.set_led_captor(True)
+            my_ilo.set_led_captor(True, 100)
+            my_ilo.set_led_captor(False)
         """
 
         if not isinstance(state, bool):
             print("[ERROR] 'state' parameter must be a bool")
             return None
-
-        if (state == True):
-            msg = "<54l1>"
-        elif (state == False):
+        
+        if not state:
             msg = "<54l0>"
+        else:
+            if intensity is not None:
+                if not isinstance(intensity, int):
+                    print("[ERROR] 'intensity' parameter must be a integer")
+                    return None
+                if intensity < 0 or intensity > 255:
+                    print("[ERROR] 'intensity' parameter must be between 0 and 255")
+                    return None
+                msg = "<54l" + str(intensity) + ">"
+            else:
+                msg = "<54l255>"
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
     def get_color_clear(self):
@@ -2006,9 +2040,7 @@ class robot(object):
         """
         Get the distance around ilo
         """
-        # self._response_event.clear()
         self._send_msg("<20>")
-        # time.sleep(0.15)
         self._response_event.wait(timeout=5)
         return (self._distance_front, self._distance_right, self._distance_back, self._distance_left)
 
@@ -2360,18 +2392,18 @@ class robot(object):
         Set the acceleration of all motors
 
         Parameters:
-            value (int): the acceleration value
+            acc (int): the acceleration value
 
         Raises:
-            TypeError: If value is not an integer
-            ValueError: If value is not between 10 and 200
+            TypeError: If acc is not an integer
+            ValueError: If acc is not between 10 and 200
 
         Examples:
             my_ilo.set_acc_motor(67)
         """
 
         if not isinstance(acc, int):
-            print("[ERROR] 'value' parameter must be a integer")
+            print("[ERROR] 'acc' parameter must be a integer")
             return None
         if acc > 200 or acc < 1:
             print("[ERROR] 'acc' parameter must be include between 1 and 200")
@@ -2779,10 +2811,7 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._motor_id, self.motor_moving)
 
-    def get_vmax():
-        pass
 
-    def set_vmax(vmax):
         pass
 
     def set_motor_mode(self, motor_id:int, mode:str):
@@ -2883,7 +2912,7 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._ssid, self._password)
     # -----------------------------------------------------------------------------
-    def set_name(self, name: str):  # going to be change by <93n>
+    def set_name(self, name: str):
         """
         Set a new name for your ilo
 
