@@ -2853,25 +2853,30 @@ class robot(object):
             msg = "<72"+str(motor_id)+"m1>"
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
-    def set_autonomous_mode(self, value: str):
+    def set_autonomous_mode(self, mode: str):
         """
         Launch ilo in an autonomous mode
 
         Parameters:
-            value (str): the autonomous mode you want to launch
+            mode (str): the autonomous mode you want to launch
 
         Raises:
-            TypeError: If value is not a string
+            TypeError: If mode is not a string
+            ValueError: If mode is not one of the following: "labyrinth", "color_displacement", "line_following", "imu_water", "distance_displacement"
 
         Examples:
-            my_ilo.set_autonomous_mode("distance_displacement")
+            my_ilo.set_autonomous_mode("labyrinth")
         """
 
-        if not isinstance(value, str):
-            print("[ERROR] 'value' parameter must be a string")
+        if not isinstance(mode, str):
+            print("[ERROR] 'mode' parameter must be a string")
             return None
 
-        msg = "<80"+str(value)+">"
+        if mode not in ["labyrinth", "color_displacement", "line_following", "imu_water", "distance_displacement"]:
+            print("[ERROR] 'mode' parameter must be one of the following: 'labyrinth', 'color_displacement', 'line_following', 'imu_water', 'distance_displacement'")
+            return None
+
+        msg = "<80"+str(mode)+">"
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
     def set_wifi_credentials(self, ssid: str, password: str):
