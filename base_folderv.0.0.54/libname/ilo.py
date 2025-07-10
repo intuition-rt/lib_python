@@ -1008,7 +1008,6 @@ class robot(object):
             except serial.SerialException as e:
                 print(f"Error: {e}")
     # -----------------------------------------------------------------------------
-
     def _defineLabelsAndAxes(self, data : list):
         """
         Define the labels and axes for the graph
@@ -1304,7 +1303,7 @@ class robot(object):
                 print("Error connection to the robot")
                 return False
     # -------------------------------------------------------------------------
-    def _correction_command(self, acc, list_course):
+    def _correction_command(self, list_course):
         """
         Convert a list of 3 elements to a sendable string
         """
@@ -1337,7 +1336,7 @@ class robot(object):
 
         new_command = []
         str_command = str(list_course[0] + list_course[1] + list_course[2])
-        new_command = "<a" + str(acc) + "v" + str_command + "pxyr>"
+        new_command = "<a200v" + str_command + "pxyr>"
         return new_command
     # -------------------------------------------------------------------------
     def stop(self):
@@ -1350,7 +1349,7 @@ class robot(object):
         """
         Stop ilo and block its motors
         """
-        self.direct_control(200, 128, 128, 128)
+        self.direct_control(128, 128, 128)
 
     def step(self, direction, step=None, finish_state=None):
         """
@@ -1525,7 +1524,7 @@ class robot(object):
         for i in range(len(ilo_list)):
             self.step(ilo_list[i])
 
-    def move(self, direction: str, speed: int, acc: int):
+    def move(self, direction: str, speed: int):
         """
         Move ilo with selected direction and speed
 
@@ -1555,19 +1554,10 @@ class robot(object):
         if not isinstance(speed, int):
             print("[ERROR] 'speed' parameter must be a integer")
             return None
-        if not isinstance(acc, int):
-            print("[ERROR] 'acc' parameter must be a integer")
-            return None
 
         if speed > 100 or speed < 0:
             print("[ERROR] 'speed' parameter must be include between 0 to 100")
             return None
-
-        if acc > 200 or acc < 1:
-            print("[ERROR] 'acc' parameter must be include between 1 to 200 ")
-            return None
-
-        self.set_acc_motor(acc)
 
         if direction == 'front':
             command = [int((speed*1.27)+128), 128, 128]
@@ -1586,10 +1576,10 @@ class robot(object):
                 "[ERROR] 'direction' parameter should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock', 'stop'")
             return None
 
-        corrected_command = self._correction_command(acc, command)
+        corrected_command = self._correction_command(command)
         self._send_msg(corrected_command)
 
-    def direct_control(self, acc: int, axial: int, radial: int, rotation: int):
+    def direct_control(self, axial: int, radial: int, rotation: int):
         """
         Control ilo with full control \n
         Value from 0 to 128 are negative and value from 128 to 255 are positive
@@ -1611,15 +1601,9 @@ class robot(object):
             ValueError: If rotation is not between 0 and 255
 
         Examples:
-            my_ilo.direct_control(100, 180, 128, 128)
+            my_ilo.direct_control(180, 128, 128)
         """
 
-        if not isinstance(acc, int):
-            print("[ERROR] 'acc' parameter must be a integer")
-            return None
-        if acc > 200 or acc < 1:
-            print("[ERROR] 'acc' parameter must be include between 1 to 200 ")
-            return None
         if not isinstance(axial, int):
             print("[ERROR] 'axial' parameter must be a integer")
             return None
@@ -1640,7 +1624,7 @@ class robot(object):
             return None
 
         command = [axial, radial, rotation]
-        corrected_command = self._correction_command(acc, command)
+        corrected_command = self._correction_command(command)
         self._send_msg(corrected_command)
 
     def game(self):
@@ -1721,7 +1705,7 @@ class robot(object):
                     #print("Invalid key", key)
 
                 if new_keyboard_instruction == True:
-                    self.direct_control(acc, axial_value, radial_value, rotation_value)
+                    self.direct_control(axial_value, radial_value, rotation_value)
                     new_keyboard_instruction = False
         else:
             print("You have to be connected to ILO before play with it, use ilo.connection()")
