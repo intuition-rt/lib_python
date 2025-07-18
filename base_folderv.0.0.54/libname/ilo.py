@@ -442,7 +442,7 @@ def _co_send_msg(ws, message):
         print(f"Error sending message: {e}")
         return "..."
 
-def check_robot_on_wifi():
+def check_robot_on_wifi(ap_mode = True):
     """
     Check the presence of the ilo(s) on the network
     """
@@ -453,25 +453,26 @@ def check_robot_on_wifi():
         _tab_IP = []
         ilo_AP = False
 
-        try:
-            ws_url = "ws://192.168.4.1:4583"
-            print(f"Checking {ws_url}")
-            ws = websocket.create_connection(ws_url, timeout=1.3)
-            if _co_send_msg(ws, "<ilo>") == "ilo":
-                _tab_IP.append(["192.168.4.1", 1, _co_send_msg(ws, "<930>")])
+        if ap_mode:
+            try:
+                ws_url = "ws://192.168.4.1:4583"
+                print(f"Checking {ws_url}")
+                ws = websocket.create_connection(ws_url, timeout=1.3)
+                if _co_send_msg(ws, "<ilo>") == "ilo":
+                    _tab_IP.append(["192.168.4.1", 1, _co_send_msg(ws, "<930>")])
 
-                ilo_AP = True
-                ws.close()
-                print("Your robot is working as an access point")
-        except:
-            pass
+                    ilo_AP = True
+                    ws.close()
+                    print("Your robot is working as an access point")
+            except:
+                pass
 
         if not ilo_AP:
             _tab_IP = []
             ilo_ID = 1
             DISCOVERY_MESSAGE = "DISCOVER_ROBOT"
             BROADCAST_PORT = 12345
-            DISCOVERY_TIMEOUT = 2
+            DISCOVERY_TIMEOUT = 5
             BUFFER_SIZE = 1024
 
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -494,6 +495,7 @@ def check_robot_on_wifi():
                                 product_id = parts[1]
                                 hostname = parts[2]
                                 _tab_IP.append([IP, product_id, hostname])
+                                break;
                     except socket.timeout:
                         break
             except Exception as e:
