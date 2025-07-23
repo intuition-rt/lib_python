@@ -442,7 +442,7 @@ def _co_send_msg(ws, message):
         print(f"Error sending message: {e}")
         return "..."
 
-def check_robot_on_wifi(ap_mode = True):
+def check_robot_on_wifi(ap_mode = True, timeout = 5):
     """
     Check the presence of the ilo(s) on the network
     """
@@ -472,18 +472,17 @@ def check_robot_on_wifi(ap_mode = True):
             ilo_ID = 1
             DISCOVERY_MESSAGE = "DISCOVER_ROBOT"
             BROADCAST_PORT = 12345
-            DISCOVERY_TIMEOUT = 5
             BUFFER_SIZE = 1024
 
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            s.settimeout(DISCOVERY_TIMEOUT)
+            s.settimeout(timeout)
 
             try:
                 s.sendto(DISCOVERY_MESSAGE.encode(), ("<broadcast>", BROADCAST_PORT))
 
                 start = time.time()
-                while time.time() - start < DISCOVERY_TIMEOUT:
+                while time.time() - start < timeout:
                     try:
                         data, addr = s.recvfrom(BUFFER_SIZE)
                         msg = data.decode().strip()
@@ -496,7 +495,6 @@ def check_robot_on_wifi(ap_mode = True):
                                 hostname = parts[1]
                                 _tab_IP.append([IP, product_id, hostname])
                                 ilo_ID += 1;
-                                break;
                     except socket.timeout:
                         break
             except Exception as e:
