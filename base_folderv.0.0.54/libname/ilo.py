@@ -5,6 +5,7 @@
 import pyperclip
 import serial.tools.list_ports
 import serial
+import socket
 import math
 import threading
 import websocket
@@ -22,6 +23,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 # -----------------------------------------------------------------------------
 
+
+
+
 class _SyncBleak:
     """
     Encapsule les fonctions de Bleak pour les rendre synchrone, tout en gardant
@@ -32,7 +36,7 @@ class _SyncBleak:
         self.loop_thread = threading.Thread(target=self._start_loop, daemon=True)
         self.loop_thread.start()
 
-        self._client = None
+        self.client = None
         self.executor = concurrent.futures.ThreadPoolExecutor()
 
     def _start_loop(self):
@@ -58,10 +62,10 @@ class _SyncBleak:
         return future.result()
 
     async def _connect(self, address):
-        self._client = BleakClient(address)
-        connected = await self._client.connect()
+        self.client = BleakClient(address)
+        connected = await self.client.connect()
         if connected:
-            return self._client
+            return self.client
         return None
 
     def write_characteristic(self, client, char_uuid, data):
@@ -79,8 +83,8 @@ class _SyncBleak:
         asyncio.run_coroutine_threadsafe(self._subscribe(char_uuid, async_callback), self.loop)
 
     async def _subscribe(self, char_uuid, callback):
-        if self._client and self._client.is_connected:
-            await self._client.start_notify(char_uuid, callback)
+        if self.client and self.client.is_connected:
+            await self.client.start_notify(char_uuid, callback)
             print(f"🔔 Abonné aux notifications sur {char_uuid}")
 
     def unsubscribe_from_notifications(self, char_uuid):
@@ -89,8 +93,8 @@ class _SyncBleak:
         return future.result()
 
     async def _unsubscribe(self, char_uuid):
-        if self._client and self._client.is_connected:
-            await self._client.stop_notify(char_uuid)
+        if self.client and self.client.is_connected:
+            await self.client.stop_notify(char_uuid)
             print(f"🚫 Désabonné des notifications sur {char_uuid}")
 
     def disconnect(self, client):
@@ -100,16 +104,16 @@ class _SyncBleak:
 
     def is_connected(self):
         """Vérifie si le client est connecté."""
-        return self._client.is_connected if self._client else False
+        return self.client.is_connected if self.client else False
     
-_ble_lib = _SyncBleak()
-_CHARACTERISTIC_UUID = "DEAD"  # Notify  and read/write characteristic
+ble_lib = _SyncBleak()
+CHARACTERISTIC_UUID = "DEAD"  # Notify  and read/write characteristic
 
-_suspend_receive_msg = False # Variable pour suspendre la réception de messages (lorsqu'il y'a des interactions avec l'utilisateur)
+suspend_receive_msg = False # Variable pour suspendre la réception de messages (lorsqu'il y'a des interactions avec l'utilisateur)
 
 class _IloUpdater:
     def __init__(self, client, version, use_ble=True, ws=None):
-        self._client = client
+        self.client = client
         self.version = version
         self.service_uuid = "5f6d"
         self.data_char_uuid = "c0de"
@@ -119,7 +123,7 @@ class _IloUpdater:
         self.ws = ws
         self.CHUNK_SIZE = 509 if use_ble else 1024
         self.update_complete = False
-        self.loop = _ble_lib.get_loop()
+        self.loop = ble_lib.get_loop()
 
     async def send_firmware(self):
         try:
@@ -128,7 +132,7 @@ class _IloUpdater:
             firmware_size = len(firmware_data)
             print(f"Firmware loaded: {firmware_size} octets")
 
-            if self.use_ble and not self._client.is_connected:
+            if self.use_ble and not self.client.is_connected:
                 print("BLE client not connected.")
                 return
             if not self.use_ble and self.ws is None:
@@ -137,7 +141,7 @@ class _IloUpdater:
             print("\nConnected.")
             size_bytes = f"<500x{firmware_size}>".encode()
             if self.use_ble:
-                await self._client.write_gatt_char(self.size_char_uuid, size_bytes, response=False)
+                await self.client.write_gatt_char(self.size_char_uuid, size_bytes, response=False)
             else:
                 self.ws.send(size_bytes)
             print("\nFirmware size sent.")
@@ -145,7 +149,7 @@ class _IloUpdater:
             for i in range(0, firmware_size, self.CHUNK_SIZE):
                 chunk = firmware_data[i:i+self.CHUNK_SIZE]
                 if self.use_ble:
-                    await self._client.write_gatt_char(self.data_char_uuid, chunk, response=False)
+                    await self.client.write_gatt_char(self.data_char_uuid, chunk, response=False)
                 else:
                     self.ws.send(bytes(chunk), opcode=websocket.ABNF.OPCODE_BINARY)
 
@@ -208,7 +212,7 @@ class _IloUpdater:
             return False
 
     def check_update(self):
-        global _suspend_receive_msg
+        global suspend_receive_msg
         print("Checking for online updates... Please wait.")
         
         try:
@@ -223,7 +227,7 @@ class _IloUpdater:
                 latest_version = data["version"]
                 print(f"Latest version: {latest_version}")
                 if latest_version != self.version:
-                    _suspend_receive_msg = True
+                    suspend_receive_msg = True
                     print("A new update is available!")
                     update = input("Do you want to update your robot? (yes/no): ").strip().lower()
                     if update == "y" or update == "yes":
@@ -232,7 +236,7 @@ class _IloUpdater:
                                 self.updateWithBT()
                             else:
                                 self.updateWithWS()
-                    _suspend_receive_msg = False
+                    suspend_receive_msg = False
                 else:
                     print("Your ilo is already up to date ;)")
 
@@ -241,7 +245,7 @@ class _IloUpdater:
         except Exception as e:
             print(f"⚠️ Impossible to check for updates :,(")
 
-version = "0.54"
+version = "0.53"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
@@ -438,7 +442,7 @@ def _co_send_msg(ws, message):
         print(f"Error sending message: {e}")
         return "..."
 
-def check_robot_on_wifi():
+def check_robot_on_wifi(ap_mode = True, timeout = 5):
     """
     Check the presence of the ilo(s) on the network
     """
@@ -449,59 +453,68 @@ def check_robot_on_wifi():
         _tab_IP = []
         ilo_AP = False
 
-        try:
-            ws_url = "ws://192.168.4.1:4583"
-            print(f"Checking {ws_url}")
-            ws = websocket.create_connection(ws_url, timeout=1.3)
-            if _co_send_msg(ws, "<ilo>") == "<ilo>":
-                _tab_IP.append(["192.168.4.1", 1, _co_send_msg(ws, "<930>")])
+        if ap_mode:
+            try:
+                ws_url = "ws://192.168.4.1:4583"
+                print(f"Checking {ws_url}")
+                ws = websocket.create_connection(ws_url, timeout=1.3)
+                if _co_send_msg(ws, "<ilo>") == "ilo":
+                    _tab_IP.append(["192.168.4.1", 1, _co_send_msg(ws, "<930>")])
 
-                ilo_AP = True
-                ws.close()
-                print("Your robot is working as an access point")
-        except:
-            pass
+                    ilo_AP = True
+                    ws.close()
+                    print("Your robot is working as an access point")
+            except:
+                pass
 
         if not ilo_AP:
-            base_ip = "192.168.1."
+            _tab_IP = []
             ilo_ID = 1
-            c = 3     # Checking 3 more IP addresses after success
+            DISCOVERY_MESSAGE = "DISCOVER_ROBOT"
+            BROADCAST_PORT = 12345
+            BUFFER_SIZE = 1024
 
-            for i in range(100, 200):  # Between 192.168.1.100 and 192.168.1.200
-                ip_check = f"{base_ip}{i}"
-                IP = ip_check
-                ws_url = f"ws://{IP}:4583"
-                print(f"Checking {ws_url}")
-                c -= 1
-                if c == 0:
-                    break
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            s.settimeout(timeout)
 
-                try:
-                    ws = websocket.create_connection(ws_url, timeout=1.3) # Set timeout for each connection
-                    if _co_send_msg(ws, "<ilo>") == "<ilo>":
-                        _co_send_msg(ws, "<>")
-                        _tab_IP.append([IP, ilo_ID, _co_send_msg(ws, "<930>")])
-                        ilo_ID += 1
-                        c += 1
-                        ws.close()
+            try:
+                s.sendto(DISCOVERY_MESSAGE.encode(), ("<broadcast>", BROADCAST_PORT))
 
-                except:
-                    continue  # Continue to the next IP
+                start = time.time()
+                while time.time() - start < timeout:
+                    try:
+                        data, addr = s.recvfrom(BUFFER_SIZE)
+                        msg = data.decode().strip()
+                        if msg.startswith("<") and msg.endswith(">"):
+                            content = msg[1:-1]
+                            parts = content.split(",")
+                            if len(parts) == 3:
+                                IP = addr[0]
+                                product_id = ilo_ID
+                                hostname = parts[1]
+                                _tab_IP.append([IP, product_id, hostname])
+                                ilo_ID += 1
+                    except socket.timeout:
+                        break
+            except Exception as e:
+                print(f"Discovery error: {e}")
+            finally:
+                s.close()
 
-        table = PrettyTable() # Display the IP and ID
-        table.field_names = ["IP Address", "ID of ilo", "Name of ilo"]  # add the name info <93>
-        for row in _tab_IP:
-            table.add_row(row)
+            table = PrettyTable()
+            table.field_names = ["IP Address", "ID of ilo", "Name of ilo"]
+            for row in _tab_IP:
+                table.add_row(row)
 
-        if len(_tab_IP) != 0:
-            print(table)
-            print("")
-            print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-            global _connection_type
-            _connection_type = 0
-        else:
-            print(
-                "Unfortunately, no ilo is present on your current network. Check your connection.")
+            if len(_tab_IP) != 0:
+                print(table)
+                print("")
+                print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
+                global _connection_type
+                _connection_type = 0
+            else:
+                print("Unfortunately, no ilo is present on your current network. Check your connection.")
 
     except Exception as e:
         print(f"WebSocket error: {e}")
@@ -514,87 +527,89 @@ def check_robot_on_serial(COM=None):
     global _connection_type
     global _tab_PORT
 
-    try:
-        _tab_PORT = []
-        ilo_ID = 1
+    if COM:
+        try:
+            print("Check that ilo is properly connected ...")
+            with serial.Serial(COM, 115200, timeout=1) as ser:
+                # with serial.Serial(port.device, 115200, timeout=1, dsrdtr=False, rtscts=False) as ser:
+                ser.reset_input_buffer()
+                ser.reset_output_buffer()
+                time.sleep(1)
 
-        print("Check that ilo is properly connected ...")
+                ser.write(("<ilo>").encode())
+                ser.write(("<930>").encode())
+                time.sleep(1)
 
-        devices_black_list = [
-            "/dev/cu.debug-console", "/dev/cu.Bluetooth-Incoming-Port" # macOS
-        ]
+                response = ser.readline().decode().strip()
+                ser.close()
 
-        ports = serial.tools.list_ports.comports()
-        for port in ports:
-            if port.device in devices_black_list:
-                continue
-            if COM != None:
-                port.device = COM
-            print(f"Testing port: {port.device}")
-            try:
-                with serial.Serial(port.device, 115200, timeout=0.1) as ser:
-                    ser.reset_input_buffer()
-                    ser.reset_output_buffer()
-                    ser.write("<ilo>".encode())
-                    ser.flush()
+                if response:
+                    print(f"Robot {response} detected on port {COM}")
+                    _tab_PORT = [[COM, 1, response]]
+                    table = PrettyTable()
+                    table.field_names = ["Device port","ID of ilo", "Name of ilo"]
+                    table.add_row([COM, 1, response])
+                    print(table)
+                    print("")
+                    print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
+                    _connection_type = 1
+                else:
+                    print(f"No valid response received on {COM}")
+        except (serial.SerialException, OSError) as e:
+            print(f"Error with port {COM} : {e}")
 
-                    start = time.time()
-                    response = ""
+    else:
+        try:
+            _tab_PORT = []
+            ilo_ID = 1
 
-                    while time.time() - start < 2:
-                        try:
-                            char = ser.read(1)
-                            if char:
-                                decoded = char.decode('utf-8', errors='ignore')
-                                response += decoded
-                        except serial.SerialException as e:
-                            print(f"Serial error: {e}")
-                            break
-                    response = response.strip()
-                    if "<ilo>" in response or "ilorobot" in response.lower():
-                        print(f"Robot detected on port {port.device}")
-                        ser.write("<930>".encode())
-                        ser.flush()
+            print("Check that ilo is properly connected ...")
+            ports = serial.tools.list_ports.comports()
+            for port in ports:
+                print(f"Testing port: {port.device}")
+                try:
+                    with serial.Serial(port.device, 115200, timeout=1, write_timeout=1) as ser:
+                        # with serial.Serial(port.device, 115200, timeout=1, dsrdtr=False, rtscts=False) as ser:
+                        ser.reset_input_buffer()
+                        ser.reset_output_buffer()
+                        time.sleep(0.2)
 
-                        start = time.time()
-                        response = ""
-                        while time.time() - start < 2:
-                            try:
-                                char = ser.read(1)
-                                if char:
-                                    decoded = char.decode('utf-8', errors='ignore')
-                                    response += decoded
-                            except serial.SerialException as e:
-                                print(f"Serial error: {e}")
-                                break
-                        response = response.strip()
-                        _tab_PORT.append([port.device, ilo_ID, response])
-                        ilo_ID += 1
-                    else:
-                        print(f"No valid response received on {port.device}")
+                        ser.write(("<ilo>").encode())
+                        ser.write(("<930>").encode())
+                        time.sleep(1)
 
-            except serial.SerialException as e:
-                print(f"Error with port {port.device} : {e}")
+                        response = ser.readline().decode().strip()
+                        ser.close()
 
-        table = PrettyTable()
-        table.field_names = ["Device port", "ID of ilo", "Name of ilo"]
+                        if response:
+                            print(f"Robot {response} detected on port {port.device}")
+                            _tab_PORT.append([port.device, ilo_ID, response])
+                            ilo_ID += 1
+                        else:
+                            print(f"No valid response received on {port.device}")
+                except (serial.SerialException, OSError) as e:
+                    print(f"Error with port {port.device} : {e}")
+                    continue
 
-        for row in _tab_PORT:
-            table.add_row(row)
+            table = PrettyTable()
+            table.field_names = ["Device port", "ID of ilo", "Name of ilo"]
 
-        if len(_tab_PORT) != 0:
-            print(table)
-            print("")
-            print(
-                "Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-            _connection_type = 1
-        else:
-            print(
-                "Unfortunately, no ilo is connected to your computer. Check your connection.")
+            for row in _tab_PORT:
+                table.add_row(row)
 
-    except Exception as e:
-        print(f"Serial error: {e}")
-        return None
+            if len(_tab_PORT) != 0:
+                print(table)
+                print("")
+                print(
+                    "Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
+                _connection_type = 1
+            else:
+                print(
+                    "Unfortunately, no ilo is connected to your computer. Check your connection.")
+
+        except Exception as e:
+            print(f"Serial error: {e}")
+            return None
 
 def check_robot_on_bluetooth():
     pyperclip.copy('''my_ilo = ilo.robot(1)''')
@@ -603,7 +618,7 @@ def check_robot_on_bluetooth():
 
     print("[ILO] Scanning for BLE devices...")
     try:    
-        devices = _ble_lib.scan_devices()
+        devices = ble_lib.scan_devices()
         table = PrettyTable()
         table.field_names = ["Device adress", "ID of ilo", "Name of ilo"]
         i = 1
@@ -673,17 +688,17 @@ class robot(object):
         # if _connection_type == 0:
         if ID in robot._robots_connected:  # Vérification si un robot avec cet ID est déjà connecté
             print(f"Un robot avec l'ID {ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
-            _old_robot = robot._robots_connected[ID]
+            old_robot = robot._robots_connected[ID]
             # Arrêter le thread mais sans déconnexion immédiate
             if _connection_type == 0:
-                _old_robot.recv_thread_running = False
+                old_robot.recv_thread_running = False
             elif _connection_type == 1:
                 pass
             elif _connection_type == 2:
                 # print("Disconnecting from the BLE device...")
-                _ble_lib.disconnect(_old_robot.ble_device)
+                ble_lib.disconnect(old_robot.ble_device)
                 
-                _old_robot.connect = False
+                old_robot.connect = False
 
             else:
                 pass
@@ -703,17 +718,12 @@ class robot(object):
 
 
         self._version = ""
-        self._debug = False
 
         #BLE:
         # self.adress = get_ADDRESS_from_ID(self._ID)
         self._ble_device = None
 
         self._hostname = ""
-
-        self._red_color_mix = 0
-        self._green_color_mix = 0
-        self._blue_color_mix = 0
 
         self._red_color_left   = 0
         self._green_color_left = 0
@@ -755,7 +765,6 @@ class robot(object):
 
         self._battery_status = 0
         self._battery_pourcentage = 0
-        self._battery_voltage = 0
 
         self._red_led = 0
         self._green_led = 0
@@ -791,18 +800,7 @@ class robot(object):
         self._product_version = ""
         self._product_id = ""
 
-        # GRAPHs
-        self._nbValues = []
-        self._valuesLabels = []
-        self._labels_y = []
-        self._max_y = []
-        self._min_y = []
-        self._graphUnit = []
-
-        self._last_message = ""
-
-        self._trame_s = ""
-        self._trame_s_received = False
+        self._marker = True
 
         self._response_event = threading.Event()
         self._response_value = None
@@ -826,6 +824,8 @@ class robot(object):
         """
         Connection of your machine to robot object 
         """
+
+        self._send_msg("<ilo>")
 
         #if self._hostname != "":
 
@@ -858,7 +858,7 @@ class robot(object):
                 self._send_msg("<500y>")
                 time.sleep(0.2)
                 self.get_name()
-                time.sleep(0.4)
+                time.sleep(0.2)
                 print('Your are connected to ' + self._hostname)
                 updater = _IloUpdater(self._ser, self._version, False, self._ws)
                 updater.check_update()
@@ -874,16 +874,7 @@ class robot(object):
         elif _connection_type == 1:
             try:
                 # Start the serial connection
-                self._ser = serial.Serial(self._port, 115200, timeout=10)  
-
-                if self._recv_thread and self._recv_thread.is_alive():
-                    # print("Stopping the previous reception thread...")
-                    self._stop_reception()
-
-                self._recv_thread_running = True
-                self._recv_thread = threading.Thread(
-                    target=self._serial_read)
-                self._recv_thread.start()
+                self._ser = serial.Serial(self._port, 115200)
 
                 self._connect = True
                 self._send_msg("<ilo>")
@@ -902,33 +893,33 @@ class robot(object):
 
         elif _connection_type == 2:
             def notification_handler(sender, data):
-                global _suspend_receive_msg
+                global suspend_receive_msg
                 try:
                     decoded_data = data.decode('utf-8')
-                    if _suspend_receive_msg:
+                    if suspend_receive_msg:
                         return
-                    self.debugPrint(f"Received: {decoded_data}")
-
+                    print(f"Received: {decoded_data}")
                     self._process_received_data(decoded_data)
                 except UnicodeDecodeError:
                     print(f"Received non-UTF-8 data: {data}")
             print("Connecting to the BLE device...")
             try:
-                self._ble_device = _ble_lib.connect(_tab_ADDRESS[self._ID - 1][1])
-                _ble_lib.subscribe_to_notifications(_CHARACTERISTIC_UUID, notification_handler)
+                self._ble_device = ble_lib.connect(_tab_ADDRESS[self._ID - 1][1])
+                ble_lib.subscribe_to_notifications(CHARACTERISTIC_UUID, notification_handler)
                 self._connect = True
                 print("Connected to the BLE device.")
                 self._send_msg("<ilo>")
                 self._send_msg("<500y>")
                 time.sleep(0.2)
                 self.get_name()
-                time.sleep(0.3)
+                time.sleep(0.2)
                 print('Your are connected to ' + self._hostname)
                 updater = _IloUpdater(self._ble_device, self._version)
                 updater.check_update()
             except Exception as e:
                 print(f"Error connecting to the BLE device: {e}")
                 self._connect = False
+
     # -----------------------------------------------------------------------------
     def _send_msg(self, message):
         self._response_event.clear()
@@ -948,11 +939,16 @@ class robot(object):
                     self._ser.write(message.encode())
                     print(f"Sent:     {message}")
 
-                    
-                    #else:
+                    invalid_prefixes = ("<a", "<i", "<13", "<31", "<51", "<52", "<53", "<54", "<55", "<56", "<57", "<58",
+                                        "<610", "<620", "<680", "<690", "<70", "<72", "<80", "<90", "<91", "<94", "<103", 
+                                        "<00>", "<>")
+
+                    if message.startswith(invalid_prefixes):
+                        pass
+                    else:
                         # start_time = time.time()
                         # while time.time() - start_time < 1:
-                        #self._serial_read()
+                        self._serial_read()
 
                 except Exception as e:
                     print(f"Error sending message: {e}")
@@ -961,7 +957,7 @@ class robot(object):
         elif _connection_type == 2:
             if self._ble_device and self._connect:
                 try:
-                    _ble_lib.write_characteristic(self._ble_device, _CHARACTERISTIC_UUID, message.encode())
+                    ble_lib.write_characteristic(self._ble_device, CHARACTERISTIC_UUID, message.encode())
                     print(f"Sent:     {message}")
                 except Exception as e:
                     print(f"Error sending message: {e}")
@@ -978,8 +974,13 @@ class robot(object):
                 self._ws.settimeout(1) # Ajout d'un timeout pour que recv() ne bloque pas indéfiniment
                 data = self._ws.recv() # Timeout de 1 seconde pour éviter un blocage sur recv()
                 if data:
-                    self.debugPrint(f"[web_socket_receive]: Received: {data}")
-                    self._process_received_data(data)
+                    if '/' in data:
+                        sub_trames = data.split('/')[1:-1]
+                        for sub_trame in sub_trames:
+                            self._process_received_data(f"<{sub_trame}>")
+                    else:
+                        self._process_received_data(data)
+                        self._marker = True
             except websocket.WebSocketTimeoutException:
                 # Timeout atteint, continue à boucler pour vérifier recv_thread_running
                 continue
@@ -989,56 +990,42 @@ class robot(object):
                 break
 
         print("Thread de réception terminé.")
-    # -----------------------------------------------------------------------------
+
     def _serial_read(self):
         """
-        THREAD to continuously receive data from the serial port.
+        Serial function to read data from serial.
         """
-        while self._recv_thread_running:
-            try:
-                trame = self._ser.readline().decode().strip()
-                self.debugPrint(f"[serial_read]: Received: {trame}")
-                if trame:
-                    if '<' in trame and '>' in trame:
-                        self._process_received_data(trame)
-                    else:
-                        print(f"[serial_read] Invalid data format: {trame}")
-                else:
-                    print("[serial_read] No data received or timeout reached")
-            except serial.SerialException as e:
-                print(f"Error: {e}")
+
+        timeout = 1
+        start_time = time.time()
+        try:
+            trame = ""
+            while True:
+                if time.time() - start_time > timeout:
+                    print("[serial_read] Timeout atteint dans la première boucle")
+                    return
+
+                char = self._ser.read().decode()
+                if char == '<':
+                    trame += char
+                    break
+
+            while True:
+                if time.time() - start_time > timeout:
+                    print("[serial_read] Timeout atteint dans la seconde boucle")
+                    return
+
+                char = self._ser.read().decode()
+                if char:
+                    trame += char
+                    if char == '>':
+                        break
+            if trame:
+                self._process_received_data(trame)
+                self._marker = True
+        except serial.SerialException as e:
+            print(f"Error: {e}")
     # -----------------------------------------------------------------------------
-    def _defineLabelsAndAxes(self, data : list):
-        """
-        Define the labels and axes for the graph
-        """
-        print("PARSE LABELS AND Y_MAX: ", data)
-        print("Graph size: ", len(data))
-
-        for v in data:
-            temp = v.split('&')
-            nb_values = temp[0]
-            label_y = temp[1]
-            label_values = temp[2]
-            
-            unit = temp[3]
-            y_min = temp[4]
-            y_max = temp[5]
-
-            print("----------------")
-            print("Nb values: ", nb_values)
-            print("Label values: ", label_values)
-            print("Label Y: ", label_y)
-            print("Y_min: ", y_min)
-            print("Y_max: ", y_max)
-            print("----------------------------")
-            self._nbValues.append(int(nb_values))
-            self._labels_y.append(label_y)
-            self._valuesLabels.append(label_values.split('_'))
-            self._min_y.append(int(y_min))
-            self._max_y.append(int(y_max))
-            self._graphUnit.append(unit)
-
     def _process_received_data(self, data):
         """
         Process the data received from the WebSocket or Serial and update the robot's attributes
@@ -1046,32 +1033,8 @@ class robot(object):
         # print(f"[process_received_data] Received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
-        print("Data received: ", data)
+
         try:
-            if len(data) > 1:
-                if data[1] == "0" and len(self._trame_s) == 0 and self._trame_s_received == False: #creation de la _trame_s  <0/
-                    self._trame_s = "<0/"
-                    return
-            
-            if self._trame_s != "" and self._trame_s_received == False:  #_trame_s déjà crée
-                self._trame_s += data
-                print("___trame s: ", self._trame_s)
-
-                if data == ">":
-                    self._trame_s_received = True
-                    print("Final trame S: ", self._trame_s)
-
-                    if "/" in self._trame_s: # Données de la trame S.
-                        if "&" in self._trame_s: # Initialisation de la trame S.
-                            self._defineLabelsAndAxes(self._trame_s.split('/')[1:-1])
-                            return
-                        self._last_message = self._trame_s
-                        return
-                    
-            if "/" in data: # Données de la trame S.
-                if "&" not in data: # Initialisation de la trame S.
-                    self._last_message = data
-                return
 
             if str(data[1:4]) == "10c":  # get_color_rgb_center
                 self._red_color_center   = int(data[data.find('r')+1: data.find('g')])
@@ -1134,8 +1097,7 @@ class robot(object):
 
             elif str(data[1:4]) == "40s":  # get_battery
                 self._battery_status = int(data[data.find('s')+1: data.find('p')])
-                self._battery_pourcentage = int(data[data.find('p')+1: data.find('v')])
-                self._battery_voltage = float(data[data.find('v')+1: data.find('>')])
+                self._battery_pourcentage = int(data[data.find('p')+1: data.find('>')])
 
             elif str(data[1:4]) == "50r":  # get_led_color
                 self._red_led = int(data[data.find('r')+1: data.find('g')])
@@ -1217,21 +1179,13 @@ class robot(object):
                 self._version = str(data[data.find('y')+1: data.find('>')])
                 print(f"Version: {self._version}")
 
-            elif str(data[1:5]) == "avp0":  # get_global_trame
-                pass
-            
-            elif str(data[1:4]) == "ilo":  # get_global_trame
-                pass
-            else:
-                print(f"Unknown data received: {data}")
-
             self._response_event.set()
 
         except Exception as e:
             # -- marin add e to check the error
             print(f'[COMMUNICATION ERROR] data process: {e}')
             return None
-    # -------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
     def _stop_reception(self):
         """
         Stop the WebSocket reception thread and close the connection.
@@ -1259,7 +1213,7 @@ class robot(object):
             del robot._robots_connected[self._ID]
 
         print(f"WebSocket connection closed for the robot {self._ID}.")
-    # -------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
     def __del__(self):
         """
         Destructor to ensure the WebSocket connection is closed gracefully
@@ -1272,10 +1226,10 @@ class robot(object):
         elif _connection_type == 1:
             pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
         elif _connection_type == 2:
-            _ble_lib.disconnect(self._ble_device)
+            ble_lib.disconnect(self._ble_device)
         else:
             pass  
-    # -------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
     def test_connection(self):
         """
         Test the connection to the robot via a try of stop method
@@ -1302,8 +1256,8 @@ class robot(object):
             except:
                 print("Error connection to the robot")
                 return False
-    # -------------------------------------------------------------------------
-    def _correction_command(self, list_course):
+    # -----------------------------------------------------------------------------
+    def _correction_command(self, acc, list_course):
         """
         Convert a list of 3 elements to a sendable string
         """
@@ -1336,9 +1290,9 @@ class robot(object):
 
         new_command = []
         str_command = str(list_course[0] + list_course[1] + list_course[2])
-        new_command = "<a200v" + str_command + "pxyr>"
+        new_command = "<a" + str(acc) + "v" + str_command + "pxyr>"
         return new_command
-    # -------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
     def stop(self):
         """
         Stop ilo and free its engines
@@ -1349,7 +1303,7 @@ class robot(object):
         """
         Stop ilo and block its motors
         """
-        self.direct_control(128, 128, 128)
+        self.direct_control(200, 128, 128, 128)
 
     def step(self, direction, step=None, finish_state=None):
         """
@@ -1435,13 +1389,15 @@ class robot(object):
             msg = '<a60vpxyr1' + str(step) + '>'
             self._send_msg(msg)
         else:
-            print("[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'")
-
+            print(
+                "[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'")
+            
         if finish_state == True:
-            self._response_event.wait(timeout = 5*step)
-            print("Flag of end displacement received")
+            print("Finish state is True")
+            # self._response_event.wait(timeout=5)
+            # return (self._version)
 
-    def flat_movement(self, angle, distance, finish_state=None):
+    def flat_movement(self, angle, distance):
         """
         Move ilo in the selected direction in angle for a selected distance
 
@@ -1486,21 +1442,12 @@ class robot(object):
             print("Angle should be between 0 to 360 degrees")
             return
 
-        if finish_state != None:
-            if not isinstance(finish_state, bool):
-                print ("[ERROR] 'finish_state' should be a boolean")
-                return None
-
         radian = angle * math.pi / 180
         distance_x = abs(int(math.cos(radian) * distance))
         distance_y = abs(int(math.sin(radian) * distance))
         msg = ("<avpx" + str(indice_x) + str(distance_x) +
                "y" + str(indice_y) + str(distance_y) + ">")
         self._send_msg(msg)
-
-        if finish_state == True:
-            self._response_event.wait(timeout = 5*(distance/100))
-            print("Flag of end displacement received")
 
     def list_order(self, ilo_list):
         """
@@ -1524,7 +1471,7 @@ class robot(object):
         for i in range(len(ilo_list)):
             self.step(ilo_list[i])
 
-    def move(self, direction: str, speed: int):
+    def move(self, direction: str, speed: int, acc: int):
         """
         Move ilo with selected direction and speed
 
@@ -1554,10 +1501,19 @@ class robot(object):
         if not isinstance(speed, int):
             print("[ERROR] 'speed' parameter must be a integer")
             return None
+        if not isinstance(acc, int):
+            print("[ERROR] 'acc' parameter must be a integer")
+            return None
 
         if speed > 100 or speed < 0:
             print("[ERROR] 'speed' parameter must be include between 0 to 100")
             return None
+
+        if acc > 200 or acc < 1:
+            print("[ERROR] 'acc' parameter must be include between 1 to 200 ")
+            return None
+
+        self.set_acc_motor(acc)
 
         if direction == 'front':
             command = [int((speed*1.27)+128), 128, 128]
@@ -1576,10 +1532,10 @@ class robot(object):
                 "[ERROR] 'direction' parameter should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock', 'stop'")
             return None
 
-        corrected_command = self._correction_command(command)
+        corrected_command = self._correction_command(acc, command)
         self._send_msg(corrected_command)
 
-    def direct_control(self, axial: int, radial: int, rotation: int):
+    def direct_control(self, acc: int, axial: int, radial: int, rotation: int):
         """
         Control ilo with full control \n
         Value from 0 to 128 are negative and value from 128 to 255 are positive
@@ -1601,9 +1557,15 @@ class robot(object):
             ValueError: If rotation is not between 0 and 255
 
         Examples:
-            my_ilo.direct_control(180, 128, 128)
+            my_ilo.direct_control(100, 180, 128, 128)
         """
 
+        if not isinstance(acc, int):
+            print("[ERROR] 'acc' parameter must be a integer")
+            return None
+        if acc > 200 or acc < 1:
+            print("[ERROR] 'acc' parameter must be include between 1 to 200 ")
+            return None
         if not isinstance(axial, int):
             print("[ERROR] 'axial' parameter must be a integer")
             return None
@@ -1624,7 +1586,7 @@ class robot(object):
             return None
 
         command = [axial, radial, rotation]
-        corrected_command = self._correction_command(command)
+        corrected_command = self._correction_command(acc, command)
         self._send_msg(corrected_command)
 
     def game(self):
@@ -1705,7 +1667,7 @@ class robot(object):
                     #print("Invalid key", key)
 
                 if new_keyboard_instruction == True:
-                    self.direct_control(axial_value, radial_value, rotation_value)
+                    self.direct_control(acc, axial_value, radial_value, rotation_value)
                     new_keyboard_instruction = False
         else:
             print("You have to be connected to ILO before play with it, use ilo.connection()")
@@ -1739,7 +1701,7 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._tempo_pos)
 
-    def rotation(self, angle: int, finish_state=None):
+    def rotation(self, angle: int):
         """
         Rotate ilo with selected angle
 
@@ -1763,17 +1725,8 @@ class robot(object):
         else:
             indice = 0
 
-        if finish_state != None:
-            if not isinstance(finish_state, bool):
-                print ("[ERROR] 'finish_state' should be a boolean")
-                return None
-
         command = ("<avpxyr" + str(indice) + str(abs(angle)) + ">")
         self._send_msg(command)
-
-        if finish_state == True:
-            self._response_event.wait(timeout = 3 * round(angle % 360, 2))
-            print("Flag of end displacement received")
 
     def set_pid(self, kp, ki, kd):
         """
@@ -1832,22 +1785,6 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._kp, self._ki, self._kd)
     # -----------------------------------------------------------------------------
-    def get_color_rgb(self):
-        """
-        Displays the color below ilo
-        Returns:
-            tuple: (red, green, blue) color values averaged from all sensors
-        """
-        self.get_color_rgb_center()
-        self.get_color_rgb_left()
-        self.get_color_rgb_right()
-    
-        self._red_color_mix = (self._red_color_center + self._red_color_left + self._red_color_right) // 3
-        self._green_color_mix = (self._green_color_center + self._green_color_left + self._green_color_right) // 3
-        self._blue_color_mix = (self._blue_color_center + self._blue_color_left + self._blue_color_right) // 3
-
-        return (self._red_color_mix, self._green_color_mix, self._blue_color_mix)
-    
     def get_color_rgb_center(self):
         """
         Displays the color below ilo
@@ -1875,42 +1812,28 @@ class robot(object):
 
         return (self._red_color_right, self._green_color_right, self._blue_color_right)
 
-    def set_led_captor(self, state: bool, intensity: int=None):
+    def set_led_captor(self, state: bool):
         """
         Turns on/off the lights under ilo
 
         Parameters:
             state (bool): allows you to turn on or off the leds
-            intensity (int, optional): allows you to set the intensity of the leds (0-255). Only used if state is True.
 
         Raises:
             TypeError: If state is not a bool
-            TypeError: If intensity is not an integer
-            ValueError: If intensity is not between 0 and 255
 
         Examples:
             my_ilo.set_led_captor(True)
-            my_ilo.set_led_captor(True, 100)
-            my_ilo.set_led_captor(False)
         """
 
         if not isinstance(state, bool):
             print("[ERROR] 'state' parameter must be a bool")
             return None
-        
-        if not state:
+
+        if (state == True):
+            msg = "<54l1>"
+        elif (state == False):
             msg = "<54l0>"
-        else:
-            if intensity is not None:
-                if not isinstance(intensity, int):
-                    print("[ERROR] 'intensity' parameter must be a integer")
-                    return None
-                if intensity < 0 or intensity > 255:
-                    print("[ERROR] 'intensity' parameter must be between 0 and 255")
-                    return None
-                msg = "<54l" + str(intensity) + ">"
-            else:
-                msg = "<54l255>"
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
     def get_color_clear(self):
@@ -2024,7 +1947,9 @@ class robot(object):
         """
         Get the distance around ilo
         """
+        # self._response_event.clear()
         self._send_msg("<20>")
+        # time.sleep(0.15)
         self._response_event.wait(timeout=5)
         return (self._distance_front, self._distance_right, self._distance_back, self._distance_left)
 
@@ -2112,7 +2037,7 @@ class robot(object):
         """
         self._send_msg("<40>")
         self._response_event.wait(timeout=5)
-        return (self._battery_status, self._battery_pourcentage, self._battery_voltage)
+        return (self._battery_status, self._battery_pourcentage)
     # -----------------------------------------------------------------------------
     def get_led_color(self):
         """
@@ -2186,37 +2111,25 @@ class robot(object):
         msg = "<52v"+str(value)+">"
         self._send_msg(msg)
 
-    def set_led_anim(self, value: str, nb_loop=1):
+    def set_led_anim(self, value: str):
         """
         Starting an animation with LEDs
 
         Parameters:
             value (str): led animation name
-            nb_loop (int): number of loops of the animation
 
         Raises:
             TypeError: If value is not a string
-            TypeError: If nb_loop is not an integer
-            ValueError: if nb_loop is less than 1
 
         Examples:
             my_ilo.set_led_anim("wave")
-            my_ilo.set_led_anim("breath", 5)
         """
 
         if not isinstance(value, str):
             print("[ERROR] 'value' parameter must be a string")
             return None
 
-        if not isinstance(nb_loop, int):
-            print("[ERROR] 'nb_loop' parameter must be a integer")
-            return None
-        
-        if nb_loop < 1:
-            print("[ERROR] 'nb_loop' parameter must be more than 1")
-            return None
-
-        msg = "<53"+str(value)+"/" + str(nb_loop) + ">"
+        msg = "<53"+str(value)+">"
         self._send_msg(msg)
 
     def set_led_single(self, type: str, id: int, red: int, green: int, blue: int, luminosity=None):
@@ -2290,7 +2203,7 @@ class robot(object):
             str(green)+"b"+str(blue)+"l"+str(luminosity)+">"
         self._send_msg(msg)
     
-    def set_led_word(self, type: str, word: str, *, delay=None, nb_loop=1):
+    def set_led_word(self, type: str, word: str, delay=None):
         """
         Show your word with the robot leds.
 
@@ -2303,17 +2216,10 @@ class robot(object):
             TypeError: If type is not a string
             ValueError: If type is not "reveal" or "slide"
             TypeError: If word is not a string
-            ValueError: If word is more than 10 characters
-            TypeError: If delay is not an integer
-            ValueError: If delay is not between 10 and 2000
-            TypeError: If nb_loop is not an integer
-            ValueError: If nb_loop is less than 1
 
         Examples:
             my_ilo.set_led_word("reveal", "Hello")
-            my_ilo.set_led_word("slide", "robot", delay=300)
-            my_ilo.set_led_word("slide", "robot", nb_loop=5)
-            my_ilo.set_led_word("reveal", "marin", delay=300, nb_loop=3)
+            my_ilo.set_led_word("slide", "robot", 300)
         """
 
         if not isinstance(type, str):
@@ -2343,18 +2249,10 @@ class robot(object):
             print("[ERROR] 'delay' parameter must be include between 10 and 2000")
             return None
 
-        if not isinstance(nb_loop, int):
-            print("[ERROR] 'nb_loop' parameter must be a integer")
-            return None
-        
-        if nb_loop < 1:
-            print("[ERROR] 'nb_loop' parameter must be more than 1")
-            return None
-
         if type == "reveal":
-            msg = "<56w"+str(word.upper())+"d"+ str(delay)+ "/" + str(nb_loop) + ">"
+            msg = "<56w"+str(word.upper())+"d"+ str(delay)+">"
         else:
-            msg = "<57w"+str(word.upper())+"d"+ str(delay)+"/" + str(nb_loop) + ">"
+            msg = "<57w"+str(word.upper())+"d"+ str(delay)+">"
         self._send_msg(msg)
     
     def stop_led_word(self):
@@ -2362,6 +2260,7 @@ class robot(object):
         Stop the led word
         """
         self._send_msg("<58>")
+
     # -----------------------------------------------------------------------------
     def get_acc_motor(self):
         """
@@ -2376,18 +2275,18 @@ class robot(object):
         Set the acceleration of all motors
 
         Parameters:
-            acc (int): the acceleration value
+            value (int): the acceleration value
 
         Raises:
-            TypeError: If acc is not an integer
-            ValueError: If acc is not between 10 and 200
+            TypeError: If value is not an integer
+            ValueError: If value is not between 10 and 200
 
         Examples:
             my_ilo.set_acc_motor(67)
         """
 
         if not isinstance(acc, int):
-            print("[ERROR] 'acc' parameter must be a integer")
+            print("[ERROR] 'value' parameter must be a integer")
             return None
         if acc > 200 or acc < 1:
             print("[ERROR] 'acc' parameter must be include between 1 and 200")
@@ -2766,7 +2665,7 @@ class robot(object):
         msg = "<66i"+str(id)+">"
         self._send_msg(msg)
         self._response_event.wait(timeout=5)
-        return (self._motor_id, self._motor_current)
+        return (self._motor_id, self.current_motor)
     # <67i1s20>
     def get_motor_is_moving(self, id: int):
         """
@@ -2795,7 +2694,10 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._motor_id, self.motor_moving)
 
+    def get_vmax():
+        pass
 
+    def set_vmax(vmax):
         pass
 
     def set_motor_mode(self, motor_id:int, mode:str):
@@ -2836,31 +2738,27 @@ class robot(object):
         if mode == "speed":
             msg = "<72"+str(motor_id)+"m1>"
         self._send_msg(msg)
+        
     # -----------------------------------------------------------------------------
-    def set_autonomous_mode(self, mode: str):
+    def set_autonomous_mode(self, value: str):
         """
         Launch ilo in an autonomous mode
 
         Parameters:
-            mode (str): the autonomous mode you want to launch
+            value (str): the autonomous mode you want to launch
 
         Raises:
-            TypeError: If mode is not a string
-            ValueError: If mode is not one of the following: "labyrinth", "color_displacement", "line_following", "imu_water", "distance_displacement"
+            TypeError: If value is not a string
 
         Examples:
-            my_ilo.set_autonomous_mode("labyrinth")
+            my_ilo.set_autonomous_mode("distance_displacement")
         """
 
-        if not isinstance(mode, str):
-            print("[ERROR] 'mode' parameter must be a string")
+        if not isinstance(value, str):
+            print("[ERROR] 'value' parameter must be a string")
             return None
 
-        if mode not in ["labyrinth", "color_displacement", "line_following", "imu_water", "distance_displacement"]:
-            print("[ERROR] 'mode' parameter must be one of the following: 'labyrinth', 'color_displacement', 'line_following', 'imu_water', 'distance_displacement'")
-            return None
-
-        msg = "<80"+str(mode)+">"
+        msg = "<80"+str(value)+">"
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
     def set_wifi_credentials(self, ssid: str, password: str):
@@ -2901,7 +2799,7 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._ssid, self._password)
     # -----------------------------------------------------------------------------
-    def set_name(self, name: str):
+    def set_name(self, name: str):  # going to be change by <93n>
         """
         Set a new name for your ilo
 
@@ -2959,26 +2857,21 @@ class robot(object):
 
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
-    def start__trame_s(self, hertz : int, param_list: list):
+    def start_trame_s(self, hertz : int, param_list: list):
         """
         Start the global trame of ilo
 
         Parameters:
             hertz (int): the frequency of the trame
             param_list (list): the parameters you want to get
-                color_rgb_center
-                color_rgb_left  
-                color_rgb_right 
-                color_clear     
-                line            
-                distance        
-                distance_f      
-                distance_b      
-                distance_r      
-                distance_l      
-                angle           
-                raw_imu         
-                battery
+                - color
+                - luminosity
+                - distance
+                - distance_front
+                - distance_right
+                - distance_back
+                - distance_left
+                - accessory_angle
 
         Raises:
             TypeError: If hertz is not an integer
@@ -2989,7 +2882,7 @@ class robot(object):
             ValueError: If param_list contains invalid parameter names
 
         Examples:
-            my_ilo.start__trame_s(100, ["color", "luminosity"])
+            my_ilo.start_trame_s(100, ["color", "luminosity"])
         """
 
         if not isinstance(hertz, int):
@@ -3009,32 +2902,15 @@ class robot(object):
             return None
 
         valid_params = {
-            #Color
-            "color_rgb_center", "color_rgb_left","color_rgb_right", "color_clear", "line",
-            #Distance
-            "distance", "distance_front","distance_back","distance_right", "distance_left",
-            #IMU
-            "angle","raw_imu",
-            #Battery
-            "battery",
-            # Moteurs – vitesse
-            "vel_motor_1", "vel_motor_2", "vel_motor_3", "vel_motor_4",
-            # Moteurs – position
-            "pos_motor_1", "pos_motor_2", "pos_motor_3", "pos_motor_4",
-            # Moteurs – température
-            "temp_motor_1", "temp_motor_2", "temp_motor_3", "temp_motor_4",
-            # Moteurs – tension
-            "volt_motor_1", "volt_motor_2", "volt_motor_3", "volt_motor_4",
-            # Moteurs – charge
-            "load_motor_1", "load_motor_2", "load_motor_3", "load_motor_4",
-            # Moteurs – courant
-            "current_motor_1", "current_motor_2", "current_motor_3", "current_motor_4",
-            # Moteurs – déplacement*
-            "move_motor_1", "move_motor_2", "move_motor_3", "move_motor_4",
-            #accessory
-            "accessory"
+            "color",
+            "clearance",
+            "distance",
+            "distance_front",
+            "distance_right",
+            "distance_back",
+            "distance_left",
+            "accessory_angle"
         }
-
         invalid_params = [item for item in param_list if item not in valid_params]
         if invalid_params:
             print(f"[ERROR] 'param_list' contains invalid parameters: {invalid_params}")
@@ -3042,112 +2918,32 @@ class robot(object):
 
         msg = "<0h" +str(hertz)+"z/"
 
-        if "color_rgb_center" in param_list:
-            msg = msg + "10c/"
-        if "color_rgb_left" in param_list:
-            msg = msg + "10l/"
-        if "color_rgb_right" in param_list:
-            msg = msg + "10r/"
-        if "color_clear" in param_list:
+        if "color" in param_list:
+            msg = msg + "10/"
+        if "clearance" in param_list:
             msg = msg + "11/"
-        if "line" in param_list:
-            msg = msg + "12/"
-
         if "distance" in param_list:
             msg = msg + "20/"
         if "distance_front" in param_list:
             msg = msg + "21/"
-        if "distance_back" in param_list:
-            msg = msg + "22/"
         if "distance_right" in param_list:
+            msg = msg + "22/"
+        if "distance_back" in param_list:
             msg = msg + "23/"
         if "distance_left" in param_list:
             msg = msg + "24/"
 
-        if "angle" in param_list:
-            msg = msg + "30/"
-        if "raw_imu" in param_list:
-            msg = msg + "32/"
-
-        if "battery" in param_list:
-            msg = msg + "40/"
-
-        if "vel_motor_1" in param_list:
-            msg += "611i1/"
-        if "vel_motor_2" in param_list:
-            msg += "611i2/"
-        if "vel_motor_3" in param_list:
-            msg += "611i3/"
-        if "vel_motor_4" in param_list:
-            msg += "611i4/"
-
-        if "pos_motor_1" in param_list:
-            msg += "621i1/"
-        if "pos_motor_2" in param_list:
-            msg += "621i2/"
-        if "pos_motor_3" in param_list:
-            msg += "621i3/"
-        if "pos_motor_4" in param_list:
-            msg += "621i4/"
-
-        if "temp_motor_1" in param_list:
-            msg += "63i1/"
-        if "temp_motor_2" in param_list:
-            msg += "63i2/"
-        if "temp_motor_3" in param_list:
-            msg += "63i3/"
-        if "temp_motor_4" in param_list:
-            msg += "63i4/"
-
-        if "volt_motor_1" in param_list:
-            msg += "64i1/"
-        if "volt_motor_2" in param_list:
-            msg += "64i2/"
-        if "volt_motor_3" in param_list:
-            msg += "64i3/"
-        if "volt_motor_4" in param_list:
-            msg += "64i4/"
-
-        if "load_motor_1" in param_list:
-            msg += "65i1/"
-        if "load_motor_2" in param_list:
-            msg += "65i2/"
-        if "load_motor_3" in param_list:
-            msg += "65i3/"
-        if "load_motor_4" in param_list:
-            msg += "65i4/"
-
-        if "current_motor_1" in param_list:
-            msg += "66i1/"
-        if "current_motor_2" in param_list:
-            msg += "66i2/"
-        if "current_motor_3" in param_list:
-            msg += "66i3/"
-        if "current_motor_4" in param_list:
-            msg += "66i4/"
-
-        if "move_motor_1" in param_list:
-            msg += "67i1/"
-        if "move_motor_2" in param_list:
-            msg += "67i2/"
-        if "move_motor_3" in param_list:
-            msg += "67i3/"
-        if "move_motor_4" in param_list:
-            msg += "67i4/"
-
-        if "accessory" in param_list:
+        if "accessory_angle" in param_list:
             msg = msg + "100/"
 
         msg = msg + ">"
-        print("[INFO] START TRAME S: ", msg)
+
         self._send_msg(msg)
 
-    def stop__trame_s(self):
+    def stop_trame_s(self):
         """
         Stop the global trame
         """
-        self._trame_s_received = False
-        self._trame_s = ""
         self._send_msg("<00>")
     # -----------------------------------------------------------------------------
     def get_diagnostic(self):
@@ -3223,146 +3019,166 @@ class robot(object):
         self._send_msg("<500y>")
         self._response_event.wait(timeout=5)
         return (self._version)
-    # -----------------------------------------------------------------------------
-    def draw(self, graphType=["distance"], xmax=100):
-        print(f"[DRAW] ▶️ Lancement du graph pour {graphType}")
-
-        self.stop__trame_s()
-        self._nbValues.clear()
-        self._labels_y.clear()
-        self._valuesLabels.clear()
-        self._graphUnit.clear()
-        self._min_y.clear()
-        self._max_y.clear()
-        self._last_message = ""
-
-        self.start__trame_s(10, graphType)
-
-        time.sleep(0.5)
-
-        if self._trame_s != "":
-            while self._trame_s[-1] != ">":
-                time.sleep(0.1)
+    
+    def draw_distance(self, distance = "front", xmax=100, ymax=600):
+        """
+        draw_distance("front", "Distance Front", 100, 650):
+        """
+        if (distance == "front"):
+            label = "Distance front (mm)"
+            self.start_trame_s(10, ["distance_front"])
             
-        if not self._labels_y:
-            print("[DRAW] ❌ Aucun label reçu, abandon")
-            return
-
+        elif (distance == "right"): 
+            label = "Distance right (mm)"
+            self.start_trame_s(10, ["distance_right"])
+            
+        elif (distance == "back"):  
+            label = "Distance back (mm)"
+            self.start_trame_s(10, ["distance_back"])
+            
+        elif (distance == "left"):  
+            label = "Distance left (mm)"
+            self.start_trame_s(10, ["distance_left"])
+        else: 
+            return None
+        
         if not matplotlib.get_backend().lower().startswith("tk"):
             matplotlib.use("tkagg")
         plt.ion()
-
-        directions = self._labels_y
-        fig, axes = plt.subplots(len(directions), 1, figsize=(10, 6), sharex=True)
-        fig.canvas.manager.set_window_title("Drawer ILO ROBOT")
+        fig, ax = plt.subplots()
+        fig.canvas.manager.set_window_title("Draw_distance ILO ROBOT")
         plt.show(block=False)
-
-        if len(directions) == 1:
-            axes = [axes]
-
-        # Initialisation
-        xdata_map = {k: [] for k in directions}
-        ydata_map = {k: [[] for _ in range(self._nbValues[i])] for i, k in enumerate(directions)}
-        line_map = {k: [] for k in directions}
-        text_map = {k: [] for k in directions}
-        ax_map = {}
-
-        for i, key in enumerate(directions):
-            ax = axes[i]
-            ax_map[key] = ax
-            for j in range(self._nbValues[i]):
-                label = self._valuesLabels[i][j] if i < len(self._valuesLabels) and j < len(self._valuesLabels[i]) else f"{key}_{j+1}"
-                color = f"C{j % 10}"
-                line, = ax.plot([], [], label=label, color=color, linewidth=2)
-                text = ax.text(
-                    0.5, 0.95 - 0.07 * j, "", transform=ax.transAxes,
-                    ha="center", va="top", fontsize=10, weight="bold",
-                    bbox=dict(facecolor="white", alpha=0.8)
-                )
-                line_map[key].append(line)
-                text_map[key].append(text)
-            ax.set_ylim(self._min_y[i] * -1.2, self._max_y[i] * 1.2)
-            ax.set_ylabel(self._graphUnit[i])
-            ax.set_title(key)
-            ax.legend()
-
-        print("----------------------------")
-        print("Ferme la fenêtre ou fais CTRL+C pour arrêter")
-
-        frame = 0
+    
+        line, = ax.plot([], [], 'r-', linewidth=2)
+        ax.set_ylim(0, ymax)
+        ax.set_xlim(0, xmax)
+        
+        ax.set_ylabel(label)
+        ax.set_title("Live Sensor Data")
+    
+        value_text = ax.text(0.5, 0.95, "", transform=ax.transAxes,
+                             ha="center", va="top", fontsize=20,
+                             weight='bold', bbox=dict(facecolor='white', alpha=0.8))
+    
+        xdata, ydata = [], []
+        i = 0
+    
+        print("Close the window or CTRL+C to stop the display")
+    
         try:
-            while True:
-                if not plt.get_fignums():
-                    time.sleep(0.1)
-                    break
+            while plt.fignum_exists(fig.number):
+                if (distance == "front"):   val = self._distance_front
+                elif (distance == "right"): val = self._distance_right
+                elif (distance == "back"):  val = self._distance_back
+                elif (distance == "left"):  val = self._distance_left
 
-                try:
-                    parts = self._last_message.strip('<>/').split('/')
-                    if len(parts) < 2:
-                        continue
-                except Exception as e:
-                    print("[ERROR] Failed to parse message:", e)
-                    continue
-
-                if len(parts) < sum(self._nbValues) + 1:
-                    print(f"[WARNING] Trame reçue trop courte: {parts}")
-                    continue
-
-                print(f"[FRAME {frame}] Nouvelle trame reçue: {parts}")
-                index = 1  # skip 0
-
-                for d_idx, key in enumerate(directions):
-                    print(f"[FRAME {frame}] 📊 Traitement du graphique {key}")
-                    for j in range(self._nbValues[d_idx]):
-                        if index >= len(parts):
-                            print(f"[FRAME {frame}] [WARNING] Index {index} dépasse parts (len={len(parts)})")
-                            break
-                        try:
-                            val = float(parts[index])
-                        except (ValueError, IndexError):
-                            val = 0
-                        print(f"[FRAME {frame}] ➡️ Ajout valeur {val} à {key}[{j}]")
-                        if j < len(ydata_map[key]):
-                            ydata_map[key][j].append(val)
-                            ydata_map[key][j] = ydata_map[key][j][-xmax:]
-                        index += 1
-
-                    xdata_map[key].append(frame)
-                    xdata_map[key] = xdata_map[key][-xmax:]
-
-                for key in directions:
-                    for j in range(len(ydata_map[key])):
-                        if len(xdata_map[key]) < 2:
-                            continue
-                        if len(xdata_map[key]) == len(ydata_map[key][j]):
-                            x_smooth = np.linspace(xdata_map[key][0], xdata_map[key][-1], 200)
-                            y_smooth = np.interp(x_smooth, xdata_map[key], ydata_map[key][j])
-
-                            line_map[key][j].set_data(x_smooth, y_smooth)
-                            text_map[key][j].set_text(f"{ydata_map[key][j][-1]:.1f}")
-                            ax_map[key].set_xlim(max(0, frame - xmax), frame + 1)
-                        else:
-                            print(f"[FRAME {frame}] [WARNING] Courbe {key}_{j}: mismatch len(x)={len(xdata_map[key])} vs len(y)={len(ydata_map[key][j])}")
-
-                fig.canvas.draw()
-                plt.pause(0.005)
-                frame += 1
-
+                xdata.append(i)
+                ydata.append(val)
+                xdata = xdata[-100:]
+                ydata = ydata[-100:]
+    
+                x_smooth = np.linspace(xdata[0], xdata[-1], 200)
+                y_smooth = np.interp(x_smooth, xdata, ydata)
+    
+                line.set_data(x_smooth, y_smooth)
+                ax.set_xlim(max(0, i - xmax), i + 1)
+                value_text.set_text(f"{val:.1f}")
+    
+                ax.figure.canvas.draw()
+                ax.figure.canvas.flush_events()
+                i += 1
+            self.stop_trame_s()
+    
         except KeyboardInterrupt:
-            print("[DRAW] ⏹️ Interruption manuelle")
-        finally:
             plt.ioff()
             plt.show()
             plt.close()
-            self.stop__trame_s()
-
+            self.stop_trame_s()
+            
+    def draw_all_distance(self, xmax=100, ymax=600):
+        """
+        Displays 4 live distance plots: front, back, left, right.
+        """
+        #self.start_trame_s(10, ["distance"])
     
+        if not matplotlib.get_backend().lower().startswith("tk"):
+            matplotlib.use("tkagg")
+    
+        plt.ion()
+        fig, axes = plt.subplots(2, 2, figsize=(10, 6), sharex=True)
+        fig.canvas.manager.set_window_title("Draw_all_distance ILO ROBOT")
+        plt.show(block=False)
+    
+        directions = ["front", "back", "left", "right"]
+        ax_map = {
+            "front": axes[0, 0],
+            "back":  axes[0, 1],
+            "left":  axes[1, 0],
+            "right": axes[1, 1]
+        }
+    
+        line_map = {}
+        value_text_map = {}
+        xdata, ydata_map = [], {key: [] for key in directions}
+    
+        for key in directions:
+            ax = ax_map[key]
+            line, = ax.plot([], [], linewidth=2)
+            ax.set_ylim(0, ymax)
+            ax.set_ylabel(f"{key.capitalize()} (mm)")
+            ax.set_title(f"{key.capitalize()} Distance")
+            line_map[key] = line
+            value_text_map[key] = ax.text(0.5, 0.95, "", transform=ax.transAxes,
+                                          ha="center", va="top", fontsize=12,
+                                          weight='bold', bbox=dict(facecolor='white', alpha=0.8))
+    
+        i = 0
+        print("Close the window or CTRL+C to stop the display")
+    
+        try:
+            while True:
+                
+                if not plt.get_fignums():
+                    time.sleep(0.1)
+                    
+                    break
+                val_map = {
+                    "front": self._distance_front,
+                    "back":  self._distance_back,
+                    "left":  self._distance_left,
+                    "right": self._distance_right
+                }
+    
+                xdata.append(i)
+                xdata = xdata[-100:]
+    
+                for key in directions:
+                    ydata_map[key].append(val_map[key])
+                    ydata_map[key] = ydata_map[key][-100:]
+    
+                    x_smooth = np.linspace(xdata[0], xdata[-1], 200)
+                    y_smooth = np.interp(x_smooth, xdata, ydata_map[key])
+    
+                    line_map[key].set_data(x_smooth, y_smooth)
+                    ax_map[key].set_xlim(max(0, i - xmax), i + 1)
+                    value_text_map[key].set_text(f"{val_map[key]:.1f}")
+    
+                fig.canvas.draw()
+                plt.pause(0.005)  #could be decrease
+                i += 1
+    
+        except KeyboardInterrupt:
+            plt.ioff()
+            plt.show()
+            plt.close()
+           
+    def draw_clearance(self, xmax=100, ymax=600):
         """
         Displays 3 live clearance plots: left, center, right,
         each with a constant threshold line.
         """
         self.get_line_threshold_value()
-        self.start__trame_s(10, ["clearance"])
+        self.start_trame_s(10, ["clearance"])
     
         if not matplotlib.get_backend().lower().startswith("tk"):
             matplotlib.use("tkagg")
@@ -3402,7 +3218,7 @@ class robot(object):
             while True:
                 if not plt.get_fignums():
                     time.sleep(0.1)
-                    self.stop__trame_s()
+                    self.stop_trame_s()
                     break
     
                 val_map = {
@@ -3435,18 +3251,5 @@ class robot(object):
             plt.ioff()
             plt.show()
             plt.close()
-            self.stop__trame_s()
-    # -----------------------------------------------------------------------------
-    def debugPrint(self, msg):
-        """
-        Print debug message
-        """
-        if self._debug:
-            print(msg)
-
-    def setDebug(self, debug: bool):
-        """
-        Set the debug mode
-        """
-        self._debug = debug
-
+            self.stop_trame_s()
+    
