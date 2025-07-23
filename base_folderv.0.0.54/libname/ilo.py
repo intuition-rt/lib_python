@@ -492,7 +492,7 @@ def check_robot_on_wifi(ap_mode = True):
                             parts = content.split(",")
                             if len(parts) == 3:
                                 IP = addr[0]
-                                product_id = ilo_ID + 1
+                                product_id = ilo_ID
                                 hostname = parts[1]
                                 _tab_IP.append([IP, product_id, hostname])
                                 ilo_ID += 1;
