@@ -671,8 +671,8 @@ def _get_ID_from_NAME(name):
     '''
     global _tab_IP, _tab_PORT, _tab_ADDRESS, _connection_type
     
-    if _connection_type == 0:  # WiFi
-        for item in _tab_IP:    # Wifi
+    if _connection_type == 0:   # WiFi
+        for item in _tab_IP:
             if item[2] == name:
                 return item[1]
     elif _connection_type == 1:  # Serial
