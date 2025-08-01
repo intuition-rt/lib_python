@@ -245,7 +245,7 @@ class _IloUpdater:
         except Exception as e:
             print(f"⚠️ Impossible to check for updates :,(")
 
-version = "0.53"
+version = "0.54"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
@@ -665,6 +665,26 @@ def _get_PORT_from_ID(ID):
             return item[0]
     return None
 
+def _get_ID_from_NAME(name):
+    '''
+    Get the ID of the robot from its NAME
+    '''
+    global _tab_IP, _tab_PORT, _tab_ADDRESS, _connection_type
+    
+    if _connection_type == 0:   # WiFi
+        for item in _tab_IP:
+            if item[2] == name:
+                return item[1]
+    elif _connection_type == 1:  # Serial
+        for item in _tab_PORT:
+            if item[2] == name:
+                return item[1]
+    elif _connection_type == 2:  # Bluetooth
+        for item in _tab_ADDRESS:
+            if item[0] == name:  # for BLE, item[0] is the name
+                return _tab_ADDRESS.index(item) + 1
+    return None
+
 # def get_ADDRESS_from_ID(ID):
 #     '''
 #     Get the ADDRESS of the robot from its ID
@@ -680,25 +700,31 @@ class robot(object):
     global _connection_type
     _robots_connected = {}  # Variable de classe pour garder une trace des connexions actives
 
-    def __init__(self, ID):
-        self._ID = ID
+    def __init__(self, user_ID):
+        if isinstance(user_ID, str):
+            robot_id = _get_ID_from_NAME(user_ID)
+            if robot_id is None:
+                raise ValueError(f"Robot with name '{user_ID}' not found.")
+            self._ID = robot_id
+        else:
+            self._ID = user_ID
 
         pyperclip.copy('''my_ilo.step('front')''')
 
         # if _connection_type == 0:
-        if ID in robot._robots_connected:  # Vérification si un robot avec cet ID est déjà connecté
-            print(f"Un robot avec l'ID {ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
-            old_robot = robot._robots_connected[ID]
+        if self._ID in robot._robots_connected:  # Vérification si un robot avec cet ID est déjà connecté
+            print(f"Un robot avec l'ID {self._ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
+            _old_robot = robot._robots_connected[self._ID]
             # Arrêter le thread mais sans déconnexion immédiate
             if _connection_type == 0:
-                old_robot.recv_thread_running = False
+                _old_robot.recv_thread_running = False
             elif _connection_type == 1:
                 pass
             elif _connection_type == 2:
                 # print("Disconnecting from the BLE device...")
-                ble_lib.disconnect(old_robot.ble_device)
+                ble_lib.disconnect(_old_robot.ble_device)
                 
-                old_robot.connect = False
+                _old_robot.connect = False
 
             else:
                 pass
