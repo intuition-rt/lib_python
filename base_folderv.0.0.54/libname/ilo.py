@@ -722,7 +722,7 @@ class robot(object):
                 pass
             elif _connection_type == 2:
                 # print("Disconnecting from the BLE device...")
-                ble_lib.disconnect(_old_robot.ble_device)
+                ble_lib.disconnect(_old_robot._ble_device)
                 
                 _old_robot.connect = False
 
@@ -1331,7 +1331,7 @@ class robot(object):
         """
         self.direct_control(200, 128, 128, 128)
 
-    def step(self, direction, step=None, finish_state=None):
+    def step(self, direction, step=1, finish_state=True):
         """
         Move ilo in the selected direction 
 
@@ -1376,15 +1376,18 @@ class robot(object):
         elif (direction == 'rot_trigo' or direction == 'rot_clock'):
 
             if step is None:
-                step = 90
+                step = 1
 
             if not isinstance(step, (int, float)):
                 print("[ERROR] 'step' should be an integer or a float")
                 return None
 
-            if step < 1:
-                print("[ERROR] 'step' should be more than 1 for rotation")
+            if step < 0.01:
+                print("[ERROR] 'step' should be more than 0.01 for rotation")
                 return None
+
+            # Convertir step en angle : step=1 → 90°, step=1.5 → 135°, etc.
+            step = int(step * 90)
 
         else:
             print("[ERROR] 'step' unknow name")
@@ -1415,11 +1418,10 @@ class robot(object):
             msg = '<a60vpxyr1' + str(step) + '>'
             self._send_msg(msg)
         else:
-            print(
-                "[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'")
+            print("[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'")
             
         if finish_state == True:
-            print("Finish state is True")
+            print("Waiting end of movement...")
             # self._response_event.wait(timeout=5)
             # return (self._version)
 
@@ -1727,29 +1729,65 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._tempo_pos)
 
-    def rotation(self, angle: int):
+    def rotation(self, angle):
         """
         Rotate ilo with selected angle
 
         Parameters:
-            angle (int): The rotation angle
+            angle (int, float, or str): The rotation angle in degrees, or 'pi' for 180°, 'pi/2' for 90°, etc.
 
         Raises:
-            TypeError: If 'angle' is not an integer or a float
+            TypeError: If 'angle' is not an integer, float, or string
 
         Examples:
             my_ilo.rotation(90)
             my_ilo.rotation(-50.3)
+            my_ilo.rotation('pi')      # 180 degrés
+            my_ilo.rotation('pi/2')    # 90 degrés
+            my_ilo.rotation(math.pi)   # 180 degrés
         """
+        
+        # Check if angle contains pi (string)
+        if isinstance(angle, str):
+            if 'pi' in angle.lower():
+                print(f"[INFO] Détection de pi dans l'angle: {angle}")
+                try:
+                    # Evaluates the expression with pi (e.g., “pi/2,” “2*pi,” etc.)
+                    angle_value = eval(angle.lower().replace('pi', str(math.pi)))
+                    # Convert radians to degrees
+                    angle = int(math.degrees(angle_value))
+                    print(f"[INFO] Conversion: {angle}°")
+                except:
+                    print("[ERROR] Impossible d'évaluer l'expression avec pi")
+                    return None
+            else:
+                try:
+                    angle = int(angle)
+                except:
+                    print("[ERROR] 'angle' doit être un nombre ou une expression avec pi")
+                    return None
+        
+        # Check if angle is close to pi (float)
+        elif isinstance(angle, float):
+            # Tolerance to detect if it is a multiple of pi
+            if abs(angle - math.pi) < 0.01 or abs(angle % math.pi) < 0.01:
+                print(f"[INFO] Détection d'une valeur proche de pi: {angle}")
+                # Convert radians to degrees if it's a multiple of pi
+                angle = int(math.degrees(angle))
+                print(f"[INFO] Conversion: {angle}°")
+            else:
+                # Assume it's already in degrees
+                angle = int(angle)
+                angle = int(angle)
 
-        if not isinstance(angle, int):
-            print("[ERROR] 'angle' should be an integer")
+        elif not isinstance(angle, int):
+            print("[ERROR] 'angle' should be an integer, float, or string")
             return None
 
         if angle > 0:
-            indice = 1
-        else:
             indice = 0
+        else:
+            indice = 1
 
         command = ("<avpxyr" + str(indice) + str(abs(angle)) + ">")
         self._send_msg(command)
@@ -1838,7 +1876,7 @@ class robot(object):
 
         return (self._red_color_right, self._green_color_right, self._blue_color_right)
 
-    def set_led_captor(self, state: bool):
+    def set_led_captor(self, luminosity=200):
         """
         Turns on/off the lights under ilo
 
@@ -1852,14 +1890,15 @@ class robot(object):
             my_ilo.set_led_captor(True)
         """
 
-        if not isinstance(state, bool):
-            print("[ERROR] 'state' parameter must be a bool")
+        if not isinstance(luminosity, int):
+            print("[ERROR] 'luminosity' parameter must be a integer")
+            return None
+        
+        if luminosity < 0 or luminosity > 255:
+            print("[ERROR] 'luminosity' parameter must be include between 0 to 255")
             return None
 
-        if (state == True):
-            msg = "<54l1>"
-        elif (state == False):
-            msg = "<54l0>"
+        msg = "<54l" + str(luminosity) + ">"
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
     def get_color_clear(self):
@@ -2137,25 +2176,35 @@ class robot(object):
         msg = "<52v"+str(value)+">"
         self._send_msg(msg)
 
-    def set_led_anim(self, value: str):
+    def set_led_anim(self, value: str, repeat=1):
         """
         Starting an animation with LEDs
 
         Parameters:
             value (str): led animation name
+            repeat (int): number of times the animation will be repeated
 
         Raises:
             TypeError: If value is not a string
+            TypeError: If repeat is not an integer
+            ValueError: If repeat is not more than 0
 
         Examples:
             my_ilo.set_led_anim("wave")
+            my_ilo.set_led_anim("wave", 3)
         """
 
         if not isinstance(value, str):
             print("[ERROR] 'value' parameter must be a string")
             return None
+        if not isinstance(repeat, int):
+            print("[ERROR] 'repeat' parameter must be a integer")
+            return None
+        if repeat < 1:
+            print("[ERROR] 'repeat' parameter must be more than 0")
+            return None
 
-        msg = "<53"+str(value)+">"
+        msg = "<53"+str(value)+"/"+str(repeat)+">"
         self._send_msg(msg)
 
     def set_led_single(self, type: str, id: int, red: int, green: int, blue: int, luminosity=None):

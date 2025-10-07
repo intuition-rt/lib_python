@@ -21,7 +21,7 @@ setup(
         "pyperclip",
         "pyserial",
         "websocket-client",
-        "bleak",
+        "bleak==0.22.3",
         "prettytable",
         "keyboard_crossplatform",
         "requests",
