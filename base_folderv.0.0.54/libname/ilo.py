@@ -1438,12 +1438,12 @@ class robot(object):
             elif (direction == 'rot_trigo' or direction == 'rot_clock'):
                 # step was multiplied by 90 earlier for rotation
                 # Consider rotation angle: base timeout for 90° (step=1)
-                actual_steps = step / 90
+                actual_steps = step / 45
             else:
                 actual_steps = 1
                 
             # Base timeout: 2.5s per step + 1s margin
-            timeout = (2.5 * actual_steps) + 1.0
+            timeout = (2.5 * actual_steps) + 3.0
             
             # print(f"Waiting for end of movement (timeout: {timeout:.2f}s)...")
             
@@ -1807,8 +1807,8 @@ class robot(object):
             # Calculate timeout based on rotation angle
             # Base timeout: 2.459s for 90° rotation, scale proportionally
             # Formula: timeout = (2.459 * angle / 90) + 1.0
-            actual_angle = abs(angle)
-            timeout = (2.459 * actual_angle / 90.0) + 1.0
+            actual_angle = abs(angle) / 45
+            timeout = (2.5 * actual_angle) + 3.0
             
             if self._debug:
                 print(f"Waiting for end of rotation (angle: {angle}°, timeout: {timeout:.2f}s)...")
