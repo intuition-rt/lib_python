@@ -82,7 +82,7 @@ class _SyncBleak:
     async def _subscribe(self, char_uuid, callback):
         if self.client and self.client.is_connected:
             await self.client.start_notify(char_uuid, callback)
-            print(f"🔔 Abonné aux notifications sur {char_uuid}")
+            # print(f"🔔 Abonné aux notifications sur {char_uuid}")
 
     def unsubscribe_from_notifications(self, char_uuid):
         """Se désabonne des notifications."""
@@ -928,12 +928,12 @@ class robot(object):
                     self._process_received_data(decoded_data)
                 except UnicodeDecodeError:
                     print(f"Received non-UTF-8 data: {data}")
-            print("Connecting to the BLE device...")
+            # print("Connecting to the BLE device...")
             try:
                 self._ble_device = ble_lib.connect(_tab_ADDRESS[self._ID - 1][1])
                 ble_lib.subscribe_to_notifications(CHARACTERISTIC_UUID, notification_handler)
                 self._connect = True
-                print("Connected to the BLE device.")
+                # print("Connected to the BLE device.")
                 self._send_msg("<ilo>")
                 self._send_msg("<500y>")
                 time.sleep(0.2)
