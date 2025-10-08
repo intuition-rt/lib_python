@@ -1538,13 +1538,15 @@ class robot(object):
         Parameters:
             direction (str): The direction in which the robot is moving
             speed (int): The speed of the robot, as a percentage
-            acceleration (int): Between 1 to 200
+            acceleration (int): Between 1 to 100, the higher the value, the faster the robot will reach the selected speed
 
         Raises:
             TypeError: If the direction is not a string
             ValueError: If the direction is not one of the following: front, back, left, right, rot_trigo, rot_clock or stop
             TypeError: If the speed is not an integer
             ValueError: If the speed is not between 0 and 100
+            TypeError: If the acc is not an integer
+            ValueError: If the acc is not between 1 and 100
 
         Examples:
             my_ilo.move("front", 50, 100)
@@ -1569,10 +1571,11 @@ class robot(object):
             print("[ERROR] 'speed' parameter must be include between 0 to 100")
             return None
 
-        if acc > 200 or acc < 1:
-            print("[ERROR] 'acc' parameter must be include between 1 to 200 ")
+        if acc > 100 or acc < 1:
+            print("[ERROR] 'acc' parameter must be include between 1 to 100 ")
             return None
 
+        acc = acc * 2
         self.set_acc_motor(acc)
 
         if direction == 'front':
