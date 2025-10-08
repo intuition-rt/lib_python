@@ -242,7 +242,7 @@ class _IloUpdater:
         except Exception as e:
             print(f"⚠️ Impossible to check for updates :,(")
 
-version = "0.54"
+version = "0.55"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
@@ -703,10 +703,10 @@ class robot(object):
             if robot_id is None:
                 raise ValueError(f"Robot with name '{user_ID}' not found.")
             self._ID = robot_id
-            self._debug = debug
         else:
             self._ID = user_ID
 
+        self._debug = debug
         pyperclip.copy('''my_ilo.step('front')''')
 
         # if _connection_type == 0:
