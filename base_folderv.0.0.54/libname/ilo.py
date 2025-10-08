@@ -1207,7 +1207,6 @@ class robot(object):
                 print(f"Version: {self._version}")
             
             elif str(data[1:5]) == "avp0":  # step movement complete
-                print("Movement complete")
                 self._movement_complete.set()
 
             self._response_event.set()
