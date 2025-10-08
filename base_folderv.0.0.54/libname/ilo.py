@@ -1764,7 +1764,7 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._tempo_pos)
 
-    def rotation(self, angle: int | float):
+    def rotation(self, angle: int | float, finish_state=True):
         """
         Rotate ilo with selected angle
 
@@ -1799,6 +1799,30 @@ class robot(object):
 
         command = ("<avpxyr" + str(indice) + str(abs(angle)) + ">")
         self._send_msg(command)
+
+        if finish_state == True:
+            # Clear the event before waiting
+            self._movement_complete.clear()
+            
+            # Calculate timeout based on rotation angle
+            # Base timeout: 2.459s for 90° rotation, scale proportionally
+            # Formula: timeout = (2.459 * angle / 90) + 1.0
+            actual_angle = abs(angle)
+            timeout = (2.459 * actual_angle / 90.0) + 1.0
+            
+            if self._debug:
+                print(f"Waiting for end of rotation (angle: {angle}°, timeout: {timeout:.2f}s)...")
+            
+            # Wait for the "avp0" frame indicating movement completion
+            movement_finished = self._movement_complete.wait(timeout=timeout)
+            
+            if self._debug:
+                if movement_finished:
+                    print("Rotation completed successfully.")
+                else:
+                    print("[WARNING] Rotation completion timeout - frame may have been lost.")
+            
+            return movement_finished
 
     def set_pid(self, kp: int, ki: int, kd: int):
         """
