@@ -1,4 +1,4 @@
-# This python script is the library for using the robot ilo with python command on WiFi
+# This python library is for using the robot ilo with python command on WiFi or Bluetooth
 # INTUITION ROBOTIQUE ET TECHNOLOGIES ALL RIGHT RESERVED
 # 21/03/2025
 # -----------------------------------------------------------------------------
@@ -22,9 +22,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 # -----------------------------------------------------------------------------
-
-
-
 
 class _SyncBleak:
     """
@@ -830,6 +827,8 @@ class robot(object):
 
         self._response_event = threading.Event()
         self._response_value = None
+        
+        self._movement_complete = threading.Event()
 
         # -- marin add all other data of the robot
         # -- thinking to a solution to get data from additional captor connected on the top of the robot via accessory PCB
@@ -945,7 +944,6 @@ class robot(object):
             except Exception as e:
                 print(f"Error connecting to the BLE device: {e}")
                 self._connect = False
-
     # -----------------------------------------------------------------------------
     def _send_msg(self, message):
         self._response_event.clear()
@@ -1059,7 +1057,7 @@ class robot(object):
         # print(f"[process_received_data] Received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
-
+        print(f"Received: {data}")
         try:
 
             if str(data[1:4]) == "10c":  # get_color_rgb_center
@@ -1204,6 +1202,10 @@ class robot(object):
             elif str(data[1:4]) == "500":  # get_global_trame
                 self._version = str(data[data.find('y')+1: data.find('>')])
                 print(f"Version: {self._version}")
+            
+            elif str(data[1:5]) == "avp0":  # step movement complete
+                print("Movement complete")
+                self._movement_complete.set()
 
             self._response_event.set()
 
@@ -1331,19 +1333,21 @@ class robot(object):
         """
         self.direct_control(200, 128, 128, 128)
 
-    def step(self, direction, step=1, finish_state=True):
+    def step(self, direction: str, step=1, finish_state=True):
         """
         Move ilo in the selected direction 
 
         Parameters:
             direction (str): The direction in which the robot is moving
             step (int): The number of steps the robot will do
+            finish_state (bool): If True, wait for the end of the movement before returning
 
         Raises:
             TypeError: If the direction is not a string
             ValueError: If the direction is not one of the following: front, back, left, right, rot_trigo or rot_clock
             TypeError: If the step is not an integer or a float
             ValueError: If value is not between 0.01 and 100
+            TypeError: If finish_state is not a boolean
 
         Examples:
             my_ilo.step("front", 10.5)\n
@@ -1421,11 +1425,37 @@ class robot(object):
             print("[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'")
             
         if finish_state == True:
-            print("Waiting end of movement...")
-            # self._response_event.wait(timeout=5)
-            # return (self._version)
+            # Clear the event before waiting
+            self._movement_complete.clear()
+            
+            # Calculate timeout based on number of steps
+            # Base timeout: 2.459s for 1 step, add margin for safety
+            if (direction == 'front' or direction == 'back' or direction == 'left' or direction == 'right'):
+                # step was multiplied by 100 earlier, so divide to get actual steps
+                actual_steps = step / 100
+            elif (direction == 'rot_trigo' or direction == 'rot_clock'):
+                # step was multiplied by 90 earlier for rotation
+                # Consider rotation angle: base timeout for 90° (step=1)
+                actual_steps = step / 90
+            else:
+                actual_steps = 1
+                
+            # Base timeout: 2.5s per step + 1s margin
+            timeout = (2.5 * actual_steps) + 1.0
+            
+            # print(f"Waiting for end of movement (timeout: {timeout:.2f}s)...")
+            
+            # Wait for the "avp0" frame indicating movement completion
+            movement_finished = self._movement_complete.wait(timeout=timeout)
+            return True
+            
+            # if movement_finished:
 
-    def flat_movement(self, angle, distance):
+            #     print("Movement completed successfully.")
+            # else:
+            #     print("[WARNING] Movement completion timeout - frame may have been lost.")
+
+    def flat_movement(self, angle: int, distance: int):
         """
         Move ilo in the selected direction in angle for a selected distance
 
@@ -1477,7 +1507,7 @@ class robot(object):
                "y" + str(indice_y) + str(distance_y) + ">")
         self._send_msg(msg)
 
-    def list_order(self, ilo_list):
+    def list_order(self, ilo_list: list):
         """
         ilo will execute a list of successive moves defined in ilo_list
 
@@ -1729,59 +1759,32 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._tempo_pos)
 
-    def rotation(self, angle):
+    def rotation(self, angle: int | float):
         """
         Rotate ilo with selected angle
 
         Parameters:
-            angle (int, float, or str): The rotation angle in degrees, or 'pi' for 180°, 'pi/2' for 90°, etc.
+            angle (int): The rotation angle in degrees, positive for clockwise, negative for counterclockwise
+                        (or in radians if a float is provided)
 
         Raises:
-            TypeError: If 'angle' is not an integer, float, or string
+            TypeError: If 'angle' is not an integer or a float
 
         Examples:
-            my_ilo.rotation(90)
-            my_ilo.rotation(-50.3)
-            my_ilo.rotation('pi')      # 180 degrés
-            my_ilo.rotation('pi/2')    # 90 degrés
-            my_ilo.rotation(math.pi)   # 180 degrés
+            my_ilo.rotation(90) \n
+            my_ilo.rotation(-50)\n
+            my_ilo.rotation('pi/2')    # 90 degrés\n
+            my_ilo.rotation(math.pi)   # 180 degrés\n
+            my_ilo.rotation(3.14)      # 180 degrés\n
         """
-        
-        # Check if angle contains pi (string)
-        if isinstance(angle, str):
-            if 'pi' in angle.lower():
-                print(f"[INFO] Détection de pi dans l'angle: {angle}")
-                try:
-                    # Evaluates the expression with pi (e.g., “pi/2,” “2*pi,” etc.)
-                    angle_value = eval(angle.lower().replace('pi', str(math.pi)))
-                    # Convert radians to degrees
-                    angle = int(math.degrees(angle_value))
-                    print(f"[INFO] Conversion: {angle}°")
-                except:
-                    print("[ERROR] Impossible d'évaluer l'expression avec pi")
-                    return None
-            else:
-                try:
-                    angle = int(angle)
-                except:
-                    print("[ERROR] 'angle' doit être un nombre ou une expression avec pi")
-                    return None
-        
-        # Check if angle is close to pi (float)
-        elif isinstance(angle, float):
-            # Tolerance to detect if it is a multiple of pi
-            if abs(angle - math.pi) < 0.01 or abs(angle % math.pi) < 0.01:
-                print(f"[INFO] Détection d'une valeur proche de pi: {angle}")
-                # Convert radians to degrees if it's a multiple of pi
-                angle = int(math.degrees(angle))
-                print(f"[INFO] Conversion: {angle}°")
-            else:
-                # Assume it's already in degrees
-                angle = int(angle)
-                angle = int(angle)
+    
+        # Check if angle is in radians
+        if isinstance(angle, float):
+            angle = int(math.degrees(angle))
+            print(f"[INFO] Conversion: {angle}°")
 
         elif not isinstance(angle, int):
-            print("[ERROR] 'angle' should be an integer, float, or string")
+            print("[ERROR] 'angle' should be an integer or a float")
             return None
 
         if angle > 0:
@@ -1792,7 +1795,7 @@ class robot(object):
         command = ("<avpxyr" + str(indice) + str(abs(angle)) + ">")
         self._send_msg(command)
 
-    def set_pid(self, kp, ki, kd):
+    def set_pid(self, kp: int, ki: int, kd: int):
         """
         Set the new value of the proportional gain, the integral gain and the derivative gain
 
@@ -1876,6 +1879,98 @@ class robot(object):
 
         return (self._red_color_right, self._green_color_right, self._blue_color_right)
 
+    def get_color_card(self, return_type: str="rgb"):
+        """
+        Detects the color of a card placed under ilo
+
+        Parameters:
+            return_type (str): "rgb" to get RGB values, "color" to get color name
+        """
+
+        rgb = self.get_color_rgb_center()
+        r   = rgb[0]
+        g   = rgb[1]
+        b   = rgb[2]
+
+        white_val  = abs(r - 190) + abs(g - 255) + abs(b - 252)
+        orange_val = abs(r - 255) + abs(g - 234) + abs(b -  168)
+        purple_val = abs(r - 250) + abs(g - 182) + abs(b - 255)
+        light_blue_val  = abs(r - 86) + abs(g - 148) + abs(b -  255)
+        yellow_val = abs(r - 220) + abs(g - 255) + abs(b -  165)
+        green_val  = abs(r - 148) + abs(g - 255) + abs(b - 214)
+        blue_val   = abs(r - 115) + abs(g - 140) + abs(b - 240)
+        red_val    = abs(r - 255) + abs(g - 167) + abs(b -  163)
+        black_val   = abs (r - 56) + abs(g - 73) + abs(g - 73)
+
+        color = "white"
+        mini_val = white_val
+
+        if orange_val <= mini_val:
+            mini_val = orange_val
+            color = "orange"
+        if purple_val <= mini_val:
+            mini_val = purple_val
+            color = "purple"
+        if light_blue_val <= mini_val:
+            mini_val = light_blue_val
+            color = "light_blue"
+        if yellow_val <= mini_val:
+            mini_val = yellow_val
+            color = "yellow"
+        if green_val <= mini_val:
+            mini_val = green_val
+            color = "green"
+        if blue_val <= mini_val:
+            mini_val = blue_val
+            color = "blue"
+        if red_val <= mini_val:
+            mini_val = red_val
+            color = "red"
+        if black_val <= mini_val:
+            mini_val = black_val
+            color = "black"
+
+        if mini_val > 150:
+            color = "None"
+
+        if color == "white":
+            rgb = (255, 255, 255)
+        
+        if color == "orange":
+            rgb = (255, 76, 0)
+
+        elif color == "purple":
+            rgb = (182, 0, 255)
+
+        elif color == "light_blue":
+            rgb = (0, 255, 250)
+
+        elif color == "yellow":
+            rgb = (255, 255, 0)
+
+        elif color == "green":
+            rgb = (12, 255, 0)
+
+        elif color == "blue":
+            rgb = (0, 18, 255)
+
+        elif color == "red":
+            rgb = (255, 0, 3)
+            
+        elif color == "black":
+            rgb = (0, 0, 0)
+        
+        elif color == "None":
+            rgb = (0, 0, 0)
+
+        if return_type == "rgb":
+            return rgb
+        elif return_type == "color":
+            return color
+        else:
+            print("[ERROR] 'return_type' must be 'rgb' or 'color'")
+            return None
+
     def set_led_captor(self, luminosity=200):
         """
         Turns on/off the lights under ilo
@@ -1887,7 +1982,7 @@ class robot(object):
             TypeError: If state is not a bool
 
         Examples:
-            my_ilo.set_led_captor(True)
+            my_ilo.set_led_captor(True)\n
         """
 
         if not isinstance(luminosity, int):
@@ -1976,8 +2071,8 @@ class robot(object):
             TypeError: If value is not an integer
 
         Examples:
-            my_ilo.set_line_treshold_value()
-            my_ilo.set_line_treshold_value(40)
+            my_ilo.set_line_threshold_value()\n
+            my_ilo.set_line_threshold_value(40)
         """
 
         if value is not None:
@@ -2190,7 +2285,7 @@ class robot(object):
             ValueError: If repeat is not more than 0
 
         Examples:
-            my_ilo.set_led_anim("wave")
+            my_ilo.set_led_anim("wave")\n
             my_ilo.set_led_anim("wave", 3)
         """
 
@@ -2293,7 +2388,7 @@ class robot(object):
             TypeError: If word is not a string
 
         Examples:
-            my_ilo.set_led_word("reveal", "Hello")
+            my_ilo.set_led_word("reveal", "Hello")\n
             my_ilo.set_led_word("slide", "robot", 300)
         """
 
@@ -2790,7 +2885,7 @@ class robot(object):
             ValueError: If 'mode' is not "position" or "speed"
 
         Examples:
-            my_ilo.set_motor_mode(5, "position")
+            my_ilo.set_motor_mode(5, "position")\n
             my_ilo.set_motor_mode(6, "speed")
         """
 
@@ -2932,7 +3027,7 @@ class robot(object):
 
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
-    def start_trame_s(self, hertz : int, param_list: list):
+    def start_trame_s(self, hertz: int, param_list: list):
         """
         Start the global trame of ilo
 
@@ -3095,7 +3190,7 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._version)
     
-    def draw_distance(self, distance = "front", xmax=100, ymax=600):
+    def draw_distance(self, distance="front", xmax=100, ymax=600):
         """
         draw_distance("front", "Distance Front", 100, 650):
         """
