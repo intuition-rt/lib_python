@@ -697,12 +697,13 @@ class robot(object):
     global _connection_type
     _robots_connected = {}  # Variable de classe pour garder une trace des connexions actives
 
-    def __init__(self, user_ID):
+    def __init__(self, user_ID, debug=False):
         if isinstance(user_ID, str):
             robot_id = _get_ID_from_NAME(user_ID)
             if robot_id is None:
                 raise ValueError(f"Robot with name '{user_ID}' not found.")
             self._ID = robot_id
+            self._debug = debug
         else:
             self._ID = user_ID
 
@@ -788,6 +789,7 @@ class robot(object):
 
         self._battery_status = 0
         self._battery_pourcentage = 0
+        self._battery_voltage = 0
 
         self._red_led = 0
         self._green_led = 0
@@ -923,7 +925,6 @@ class robot(object):
                     decoded_data = data.decode('utf-8')
                     if suspend_receive_msg:
                         return
-                    print(f"Received: {decoded_data}")
                     self._process_received_data(decoded_data)
                 except UnicodeDecodeError:
                     print(f"Received non-UTF-8 data: {data}")
@@ -951,7 +952,8 @@ class robot(object):
             if self._ws and self._connect:
                 try:
                     self._ws.send(message)
-                    print(f"Sent:     {message}")
+                    if self._debug:
+                        print(f"Sent:     {message}")
                 except websocket.WebSocketException as e:
                     print(f"Error sending message: {e}")
             else:
@@ -961,6 +963,7 @@ class robot(object):
             if self._ser and self._connect:
                 try:
                     self._ser.write(message.encode())
+                    
                     print(f"Sent:     {message}")
 
                     invalid_prefixes = ("<a", "<i", "<13", "<31", "<51", "<52", "<53", "<54", "<55", "<56", "<57", "<58",
@@ -982,7 +985,8 @@ class robot(object):
             if self._ble_device and self._connect:
                 try:
                     ble_lib.write_characteristic(self._ble_device, CHARACTERISTIC_UUID, message.encode())
-                    print(f"Sent:     {message}")
+                    if self._debug:
+                        print(f"Sent:     {message}")
                 except Exception as e:
                     print(f"Error sending message: {e}")
         else:
@@ -1054,10 +1058,10 @@ class robot(object):
         """
         Process the data received from the WebSocket or Serial and update the robot's attributes
         """
-        # print(f"[process_received_data] Received: {data}")
+        if self._debug:
+            print(f"Data received: {data}")
         # Here you can parse the received data and update relevant attributes
         # Example: Update distance values
-        print(f"Received: {data}")
         try:
 
             if str(data[1:4]) == "10c":  # get_color_rgb_center
@@ -1121,7 +1125,8 @@ class robot(object):
 
             elif str(data[1:4]) == "40s":  # get_battery
                 self._battery_status = int(data[data.find('s')+1: data.find('p')])
-                self._battery_pourcentage = int(data[data.find('p')+1: data.find('>')])
+                self._battery_pourcentage = int(data[data.find('p')+1: data.find('v')])
+                self._battery_voltage = float(data[data.find('v')+1: data.find('>')])
 
             elif str(data[1:4]) == "50r":  # get_led_color
                 self._red_led = int(data[data.find('r')+1: data.find('g')])
@@ -1976,13 +1981,13 @@ class robot(object):
         Turns on/off the lights under ilo
 
         Parameters:
-            state (bool): allows you to turn on or off the leds
+            state (int): allows you to turn on or off the leds
 
         Raises:
-            TypeError: If state is not a bool
+            TypeError: If state is not a int
 
         Examples:
-            my_ilo.set_led_captor(True)\n
+            my_ilo.set_led_captor(200)\n
         """
 
         if not isinstance(luminosity, int):
@@ -2430,7 +2435,6 @@ class robot(object):
         Stop the led word
         """
         self._send_msg("<58>")
-
     # -----------------------------------------------------------------------------
     def get_acc_motor(self):
         """
@@ -2908,7 +2912,6 @@ class robot(object):
         if mode == "speed":
             msg = "<72"+str(motor_id)+"m1>"
         self._send_msg(msg)
-        
     # -----------------------------------------------------------------------------
     def set_autonomous_mode(self, value: str):
         """
