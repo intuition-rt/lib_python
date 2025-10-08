@@ -1060,8 +1060,6 @@ class robot(object):
         """
         if self._debug:
             print(f"Data received: {data}")
-        # Here you can parse the received data and update relevant attributes
-        # Example: Update distance values
         try:
 
             if str(data[1:4]) == "10c":  # get_color_rgb_center
@@ -1987,8 +1985,13 @@ class robot(object):
             TypeError: If state is not a int
 
         Examples:
+            my_ilo.set_led_captor(0) \n
             my_ilo.set_led_captor(200)\n
         """
+
+        if isinstance(luminosity, bool):
+            print("[ERROR] 'luminosity' parameter must be an integer, not a boolean")
+            return None
 
         if not isinstance(luminosity, int):
             print("[ERROR] 'luminosity' parameter must be a integer")
