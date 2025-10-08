@@ -242,7 +242,7 @@ class _IloUpdater:
         except Exception as e:
             print(f"⚠️ Impossible to check for updates :,(")
 
-version = "0.55"
+version = "0.54"
 
 print("ilo robot library version: ", version)
 print("For more information about the library use ilo.info() command line")
@@ -1790,9 +1790,9 @@ class robot(object):
             return None
 
         if angle > 0:
-            indice = 0
-        else:
             indice = 1
+        else:
+            indice = 0
 
         command = ("<avpxyr" + str(indice) + str(abs(angle)) + ">")
         self._send_msg(command)
@@ -1881,7 +1881,7 @@ class robot(object):
 
         return (self._red_color_right, self._green_color_right, self._blue_color_right)
 
-    def get_color_card(self, return_type: str="rgb"):
+    def get_color_card(self, return_type: str="name"):
         """
         Detects the color of a card placed under ilo
 
@@ -1967,10 +1967,10 @@ class robot(object):
 
         if return_type == "rgb":
             return rgb
-        elif return_type == "color":
+        elif return_type == "name":
             return color
         else:
-            print("[ERROR] 'return_type' must be 'rgb' or 'color'")
+            print("[ERROR] 'return_type' must be 'rgb' or 'name'")
             return None
 
     def set_led_captor(self, luminosity=200):
