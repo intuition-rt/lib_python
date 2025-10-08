@@ -954,6 +954,7 @@ class robot(object):
                     self._ws.send(message)
                     if self._debug:
                         print(f"Sent:     {message}")
+                    time.sleep(0.1)  # Small delay to ensure the message is sent
                 except websocket.WebSocketException as e:
                     print(f"Error sending message: {e}")
             else:
@@ -987,6 +988,7 @@ class robot(object):
                     ble_lib.write_characteristic(self._ble_device, CHARACTERISTIC_UUID, message.encode())
                     if self._debug:
                         print(f"Sent:     {message}")
+                    time.sleep(0.1)  # Small delay to ensure the message is sent
                 except Exception as e:
                     print(f"Error sending message: {e}")
         else:
