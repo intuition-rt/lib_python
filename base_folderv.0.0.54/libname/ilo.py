@@ -1335,7 +1335,7 @@ class robot(object):
         """
         Stop ilo and block its motors for a selected duration in seconds
         """
-        self._send_msg("<691t+" + str(duration) + ">")
+        self._send_msg("<avp" + str(duration*1000) + "xyr>")
 
     def step(self, direction: str, step=1, finish_state=True):
         """
@@ -1465,7 +1465,7 @@ class robot(object):
 
         Parameters:
             angle (int): The direction in which the robot is moving
-            distance (int): The distance the robot will travel
+            distance (int): The distance the robot will travel in centimeters
 
         Raises:
             TypeError: If angle is not an integer
