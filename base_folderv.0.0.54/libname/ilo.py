@@ -1331,11 +1331,11 @@ class robot(object):
         """
         self._send_msg("<>")
 
-    def pause(self):
+    def pause(self, duration=1):
         """
-        Stop ilo and block its motors
+        Stop ilo and block its motors for a selected duration in seconds
         """
-        self.direct_control(200, 128, 128, 128)
+        self._send_msg("<691t+" + str(duration) + ">")
 
     def step(self, direction: str, step=1, finish_state=True):
         """
