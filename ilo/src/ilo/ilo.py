@@ -1,5 +1,8 @@
+# MIT License
+# Copyright (c) 2025 Intuition Robotique & Technologique
+# See the LICENSE file in the project root for full license information.
+# -----------------------------------------------------------------------------
 # This python library is for using the robot ilo with python command on WiFi or Bluetooth
-# INTUITION ROBOTIQUE ET TECHNOLOGIES ALL RIGHT RESERVED
 # 21/03/2025
 # -----------------------------------------------------------------------------
 import pyperclip
@@ -9,6 +12,7 @@ import socket
 import math
 import threading
 import websocket
+from typing import Union
 from keyboard_crossplatform import KeyBordCrossPlatform
 import time
 import re
@@ -1337,7 +1341,7 @@ class robot(object):
         """
         self._send_msg("<avp" + str(duration*1000) + "xyr>")
 
-    def step(self, direction: str, step=1, finish_state=True):
+    def step(self, direction: str, step=1, finish_state=True, display_led: bool=True):
         """
         Move ilo in the selected direction 
 
@@ -1402,29 +1406,57 @@ class robot(object):
             return None
         
         if finish_state != None:
-
             if not isinstance(finish_state, bool):
                 print ("[ERROR] 'finish_state' should be a boolean")
                 return None
+        
+        if not isinstance(display_led, bool):
+            print ("[ERROR] 'display_led' should be a boolean")
+            return None
+
 
         if direction == 'front':
-            msg = '<a60vpx1' + str(step) + 'yr>'
-            self._send_msg(msg)
+            if display_led:
+                self._send_msg('<a60vpx1' + str(step) + 'yrt>')  # Blue LED during movement
+            else:
+                self._send_msg('<a60vpx1' + str(step) + 'yrf>')
+            # msg = '<a60vpx1' + str(step) + 'yr>'
+            # self._send_msg(msg)
         elif direction == 'back':
-            msg = '<a60vpx0' + str(step) + 'yr>'
-            self._send_msg(msg)
+            if display_led:
+                self._send_msg('<a60vpx0' + str(step) + 'yrt>')  # Blue LED during movement
+            else:
+                self._send_msg('<a60vpx0' + str(step) + 'yrf>')
+            # msg = '<a60vpx0' + str(step) + 'yr>'
+            # self._send_msg(msg)
         elif direction == 'left':
-            msg = '<a60vpxy0' + str(step) + 'r>'
-            self._send_msg(msg)
+            if display_led:
+                self._send_msg('<a60vpxy0' + str(step) + 'rt>')  # Blue LED during movement
+            else:
+                self._send_msg('<a60vpxy0' + str(step) + 'rf>')
+            # msg = '<a60vpxy0' + str(step) + 'r>'
+            # self._send_msg(msg)
         elif direction == 'right':
-            msg = '<a60vpxy1' + str(step) + 'r>'
-            self._send_msg(msg)
+            if display_led:
+                self._send_msg('<a60vpxy1' + str(step) + 'rt>')  # Blue LED during movement
+            else:
+                self._send_msg('<a60vpxy1' + str(step) + 'rf>')
+            # msg = '<a60vpxy1' + str(step) + 'r>'
+            # self._send_msg(msg)
         elif direction == 'rot_trigo':
-            msg = '<a60vpxyr0' + str(step) + '>'
-            self._send_msg(msg)
+            if display_led:
+                self._send_msg('<a60vpxyr0' + str(step) + 't>')  # Blue LED during movement
+            else:
+                self._send_msg('<a60vpxyr0' + str(step) + 'f>')
+            # msg = '<a60vpxyr0' + str(step) + '>'
+            # self._send_msg(msg)
         elif direction == 'rot_clock':
-            msg = '<a60vpxyr1' + str(step) + '>'
-            self._send_msg(msg)
+            if display_led:
+                self._send_msg('<a60vpxyr1' + str(step) + 't>')  # Blue LED during movement
+            else:
+                self._send_msg('<a60vpxyr1' + str(step) + 'f>')
+            # msg = '<a60vpxyr1' + str(step) + '>'
+            # self._send_msg(msg)
         else:
             print("[ERROR] 'Direction' should be 'front', 'back', 'left', 'rot_trigo', 'rot_clock'")
             
@@ -1766,7 +1798,7 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._tempo_pos)
 
-    def rotation(self, angle: int | float, finish_state=True):
+    def rotation(self, angle: Union[int, float], finish_state=True):
         """
         Rotate ilo with selected angle
 
