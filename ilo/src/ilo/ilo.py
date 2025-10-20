@@ -1798,7 +1798,7 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._tempo_pos)
 
-    def rotation(self, angle: Union[int, float], finish_state=True):
+    def rotation(self, angle: Union[int, float], finish_state=True, display_led: bool=True):
         """
         Rotate ilo with selected angle
 
@@ -1831,8 +1831,17 @@ class robot(object):
         else:
             indice = 0
 
-        command = ("<avpxyr" + str(indice) + str(abs(angle)) + ">")
-        self._send_msg(command)
+        if not isinstance(display_led, bool):
+            print ("[ERROR] 'display_led' should be a boolean")
+            return None
+
+        if display_led:
+            self._send_msg("<avpxyr" + str(indice) + str(abs(angle)) + "t>")
+        else:
+            self._send_msg("<avpxyr" + str(indice) + str(abs(angle)) + "f>")
+
+        # command = ("<avpxyr" + str(indice) + str(abs(angle)) + ">")
+        # self._send_msg(command)
 
         if finish_state == True:
             # Clear the event before waiting
