@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=77", "wheel>=0.43"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ilo"
+version = "0.0.54"
+description = "Control ilo robot using python command."
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["python", "education", "robot", "ilo"]
+authors = [
+    {name = "intuition RT (SLB)", email = "contact@ilorobot.com"}
+]
+maintainers = [
+    {name = "intuition RT (SLB)", email = "contact@ilorobot.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: OS Independent",
+    "Topic :: Education",
+]
+
+dependencies = [
+    "pyperclip>=1.8.0,<2.0.0",
+    "pyserial>=3.4,<4.0",
+    "websocket-client>=1.0.0,<1.9.0",  # <1.9.0 required for Python 3.8
+    "bleak>=0.22.0,<0.23.0",
+    "prettytable>=2.0.0,<3.12.0",  # <3.12.0 required for Python 3.8
+    "keyboard_crossplatform>=0.1.0,<1.0.0",
+    "requests>=2.25.0,<2.33.0",  # <2.33.0 required for Python 3.8
+    "numpy>=1.20.0,<2.0.0",
+    "matplotlib>=3.3.0,<3.8.0",  # <3.8.0 required for Python 3.8
+]
+
+[project.urls]
+Homepage = "https://ilorobot.com"
+Documentation = "https://ilorobot.com"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
