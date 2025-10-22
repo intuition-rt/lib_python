@@ -246,9 +246,9 @@ class _IloUpdater:
         except Exception as e:
             print(f"⚠️ Impossible to check for updates :,(")
 
-version = "0.54"
+_version = "0.0.56"
 
-print("ilo robot library version: ", version)
+print("ilo robot library version: ", _version)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 # -----------------------------------------------------------------------------
@@ -272,7 +272,7 @@ def info():
     """
     print("ilo robot is an education robot controlable by direct python command")
     print("To know every fonction available with ilo,  use ilo.list_function() command line")
-    print("You are using the version ", version)
+    print("You are using the version ", _version)
 # -----------------------------------------------------------------------------
 
 def list_function():
