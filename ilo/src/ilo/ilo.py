@@ -1180,8 +1180,10 @@ class robot(object):
                 self._ki = float(data[data.find('i')+1: data.find('d')])
                 self._kd = float(data[data.find('d')+1: data.find('>')])
 
-            elif str(data[1:4]) == "92s":  # get_wifi_credentials
-                self._ssid = str(data[data.find('s')+1: data.find('p')])
+            elif str(data[1:3]) == "92":  # get_wifi_credentials
+
+                self._ssid, self._password = self._parse_credentials(data)
+                self._ssid, = str(data[data.find('s')+1: data.find('p')])
                 self._password = str(data[data.find('p')+1: data.find('>')])
 
             elif str(data[1:4]) == "93n":  # get_name
@@ -3030,10 +3032,9 @@ class robot(object):
             print("[ERROR] 'password' parameter must be a string")
             return None
 
-        msg = "<90s"+str(ssid)+">"
-        self._send_msg(msg)
+        msg 
 
-        msg = "<91p"+str(password)+">"
+        msg = "<90"+str(ssid)+"{|||}"+str(password)+">"
         self._send_msg(msg)
 
     def get_wifi_credentials(self):
@@ -3043,6 +3044,26 @@ class robot(object):
         self._send_msg("<92>")
         self._response_event.wait(timeout=5)
         return (self._ssid, self._password)
+    
+    def _parse_credentials(self, data: str):
+        """
+        Parse the wifi credentials from the response data
+
+        Parameters:
+            data (str): the response data from ilo
+
+        Returns:
+            tuple: a tuple containing the ssid and password
+        """
+        try:
+            inner = data[3:-1]
+            ssid, password = inner.split("{|||}")
+            ssid = ssid.strip()
+            password = password.strip()
+            return ssid, password
+        except ValueError:
+            print("[ERROR] Failed to parse wifi credentials")
+            return None, None
     # -----------------------------------------------------------------------------
     def set_name(self, name: str):  # going to be change by <93n>
         """
