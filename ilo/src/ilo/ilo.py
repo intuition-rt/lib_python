@@ -246,7 +246,7 @@ class _IloUpdater:
         except Exception as e:
             print(f"⚠️ Impossible to check for updates :,(")
 
-_version = "0.0.56"
+_version = "0.0.57"
 
 print("ilo robot library version: ", _version)
 print("For more information about the library use ilo.info() command line")
@@ -1183,8 +1183,6 @@ class robot(object):
             elif str(data[1:3]) == "92":  # get_wifi_credentials
 
                 self._ssid, self._password = self._parse_credentials(data)
-                self._ssid, = str(data[data.find('s')+1: data.find('p')])
-                self._password = str(data[data.find('p')+1: data.find('>')])
 
             elif str(data[1:4]) == "93n":  # get_name
                 self._hostname = str(data[data.find('n')+1: data.find('>')])
@@ -3032,8 +3030,6 @@ class robot(object):
             print("[ERROR] 'password' parameter must be a string")
             return None
 
-        msg 
-
         msg = "<90"+str(ssid)+"{|||}"+str(password)+">"
         self._send_msg(msg)
 
@@ -3102,11 +3098,19 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._hostname)
     # -----------------------------------------------------------------------------
+    def get_accessory_data(self):
+        """
+        Get data from the accessory connected to ilo
+        """
+        self._send_msg("<100>")
+        self._response_event.wait(timeout=5)
+        return (self._accessory)
+    
     def get_accessory(self):
         """
         Get information about the accessory connected to ilo
         """
-        self._send_msg("<100>")
+        self._send_msg("<101>")
         self._response_event.wait(timeout=5)
         return (self._accessory)
     # -----------------------------------------------------------------------------
