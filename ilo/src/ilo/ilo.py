@@ -5,14 +5,15 @@
 # This python library is for using the robot ilo with python command on WiFi or Bluetooth
 # 21/03/2025
 # -----------------------------------------------------------------------------
-import pyperclip
 import serial.tools.list_ports
 import serial
 import socket
 import math
 import threading
 import websocket
+from functools import wraps
 from typing import Union
+import types
 from keyboard_crossplatform import KeyBordCrossPlatform
 import time
 import re
@@ -26,6 +27,21 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 # -----------------------------------------------------------------------------
+
+
+try:
+    import pyperclip
+except ImportError:
+    pyperclip = types.SimpleNamespace(copy=lambda _: ..., is_available=False)
+
+
+@wraps(pyperclip.copy)
+def copy_to_clipboard(*args, **kwargs):
+    if not pyperclip.is_available:
+        return
+
+    pyperclip.copy(*args, **kwargs)
+
 
 class _SyncBleak:
     """
@@ -253,7 +269,7 @@ print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 # -----------------------------------------------------------------------------
 
-pyperclip.copy("""ilo.check_robot_on_bluetooth()""")
+copy_to_clipboard("""ilo.check_robot_on_bluetooth()""")
 
 _connection_type = 0
 # WiFi
@@ -447,7 +463,7 @@ def check_robot_on_wifi(ap_mode = True, timeout = 5):
     """
     Check the presence of the ilo(s) on the network
     """
-    pyperclip.copy("""my_ilo = ilo.robot(1)""")
+    copy_to_clipboard("""my_ilo = ilo.robot(1)""")
     try:
         print("Looking for ilo on your network ...")
         global _tab_IP
@@ -524,7 +540,7 @@ def check_robot_on_serial(COM=None):
     """
     Check the connection to ilo in serial
     """
-    pyperclip.copy("""my_ilo = ilo.robot(1)""")
+    copy_to_clipboard("""my_ilo = ilo.robot(1)""")
     global _connection_type
     global _tab_PORT
 
@@ -613,7 +629,7 @@ def check_robot_on_serial(COM=None):
             return None
 
 def check_robot_on_bluetooth():
-    pyperclip.copy('''my_ilo = ilo.robot(1)''')
+    copy_to_clipboard('''my_ilo = ilo.robot(1)''')
     global _tab_ADDRESS
     global _connection_type
 
@@ -711,7 +727,7 @@ class robot(object):
             self._ID = user_ID
 
         self._debug = debug
-        pyperclip.copy('''my_ilo.step('front')''')
+        copy_to_clipboard('''my_ilo.step('front')''')
 
         # if _connection_type == 0:
         if self._ID in robot._robots_connected:  # Vérification si un robot avec cet ID est déjà connecté
