@@ -36,7 +36,6 @@ classifiers = [
 ]
 
 dependencies = [
-  "pyperclip>=1.8.0,<2.0.0",
   "pyserial>=3.4,<4.0",
   "websocket-client>=1.0.0,<1.9.0",
   "bleak>=0.22.0,<0.23.0",
@@ -52,6 +51,11 @@ dependencies = [
   # Cas Python 3.13 : versions récentes, roues binaires dispo
   'numpy>=2.1; python_version >= "3.13"',
   'matplotlib>=3.10; python_version >= "3.13"',
+]
+
+[project.optional-dependencies]
+extras = [
+  "pyperclip>=1.8.0,<2.0.0"
 ]
 
 [project.urls]
