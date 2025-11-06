@@ -5,6 +5,9 @@
 # This python library is for using the robot ilo with python command on WiFi or Bluetooth
 # 21/03/2025
 # -----------------------------------------------------------------------------
+
+import psutil
+import ipaddress
 import pyperclip
 import serial.tools.list_ports
 import serial
@@ -443,6 +446,30 @@ def _co_send_msg(ws, message):
         print(f"Error sending message: {e}")
         return "..."
 
+
+def get_broadcast_ip():
+    yield "<broadcast>"
+
+    for iface_name, addrs in psutil.net_if_addrs().items():
+        stats = psutil.net_if_stats().get(iface_name)
+        if not stats or not stats.isup:
+            continue
+
+        for addr in addrs:
+            if addr.family.name == "AF_INET":
+                ip = addr.address
+                netmask = addr.netmask
+
+                if ip.startswith("127."):
+                    continue
+
+                iface = ipaddress.IPv4Interface(f"{ip}/{netmask}")
+                broadcast = str(iface.network.broadcast_address)
+
+                if ipaddress.ip_address(ip).is_private:
+                    yield broadcast
+
+
 def check_robot_on_wifi(ap_mode = True, timeout = 5):
     """
     Check the presence of the ilo(s) on the network
@@ -480,7 +507,8 @@ def check_robot_on_wifi(ap_mode = True, timeout = 5):
             s.settimeout(timeout)
 
             try:
-                s.sendto(DISCOVERY_MESSAGE.encode(), ("<broadcast>", BROADCAST_PORT))
+                for addr in get_broadcast_ip():
+                    s.sendto(DISCOVERY_MESSAGE.encode(), (addr, BROADCAST_PORT))
 
                 start = time.time()
                 while time.time() - start < timeout:

@@ -38,6 +38,7 @@ classifiers = [
 dependencies = [
   "pyperclip>=1.8.0,<2.0.0",
   "pyserial>=3.4,<4.0",
+  "psutil>=7.0.0",
   "websocket-client>=1.0.0,<1.9.0",
   "bleak>=0.22.0,<0.23.0",
   "prettytable>=2.0.0,<3.12.0",
