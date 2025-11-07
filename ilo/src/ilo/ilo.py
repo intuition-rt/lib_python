@@ -2663,7 +2663,7 @@ class robot(object):
         msg = "<610i"+str(id)+"a"+str(acc)+"v"+str(vel)+">"
         self._send_msg(msg)
 
-    def drive_single_motor_speed_front_left(self, value: int):  # de -100 à 100
+    def drive_single_motor_speed_front_left(self, value: int, vel: int):  # de -100 à 100
         """
         Control the front left motor
 
@@ -2680,9 +2680,9 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a integer")
             return None
 
-        self.drive_single_motor_speed(1, value)
+        self.drive_single_motor_speed(1, value, vel)
 
-    def drive_single_motor_speed_front_right(self, value: int):
+    def drive_single_motor_speed_front_right(self, value: int, vel: int):
         """
         Control the front right motor
 
@@ -2699,9 +2699,9 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a integer")
             return None
 
-        self.drive_single_motor_speed(2, value)
+        self.drive_single_motor_speed(2, value, vel)
 
-    def drive_single_motor_speed_back_left(self, value: int):
+    def drive_single_motor_speed_back_left(self, value: int, vel: int):
         """
         Control the back left motor
 
@@ -2719,9 +2719,9 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a integer")
             return None
 
-        self.drive_single_motor_speed(4, value)
+        self.drive_single_motor_speed(4, value, vel)
 
-    def drive_single_motor_speed_back_right(self, value: int):
+    def drive_single_motor_speed_back_right(self, value: int, vel: int):
         """
         Control the back right motor
 
@@ -2739,7 +2739,7 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a integer")
             return None
 
-        self.drive_single_motor_speed(3, value)
+        self.drive_single_motor_speed(3, value, vel)
     # <611i1s3000>
     def get_single_motor_speed(self, id: int):
         """
