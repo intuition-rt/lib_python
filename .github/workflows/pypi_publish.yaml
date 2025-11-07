@@ -1,0 +1,55 @@
+name: Upload Python Package
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Determine package to release
+      id: package
+      run: |
+        echo "Release name: ${{ github.event.release.name }}"
+        RELEASE_NAME="${{ github.event.release.name }}"
+
+        if [[ "$RELEASE_NAME" == *"ilo"* ]]; then
+          echo "package=ilo" >> $GITHUB_OUTPUT
+          echo "token_name=PYPI_API_TOKEN_ILO" >> $GITHUB_OUTPUT
+        elif [[ "$RELEASE_NAME" == *"plottica"* ]]; then
+          echo "package=plottica" >> $GITHUB_OUTPUT
+          echo "token_name=PYPI_API_TOKEN_PLITTICA" >> $GITHUB_OUTPUT
+        else
+          exit 1
+        fi
+
+    - name: Install build dependencies
+      run: |
+        pip install build twine
+
+    - name: Build package
+      working-directory: ${{ steps.package.outputs.package }}
+      run: |
+        if [[ -f "pyproject.toml" ]]; then
+          python -m build
+        else
+          exit 1
+        fi
+
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+      with:
+        user: __token__
+        password: ${{ secrets[steps.package.outputs.token_name] }}
+        packages_dir: ${{ steps.package.outputs.package }}/dist
