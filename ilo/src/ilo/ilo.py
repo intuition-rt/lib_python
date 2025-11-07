@@ -2649,8 +2649,8 @@ class robot(object):
         if not isinstance(vel, int):
             print("[ERROR] 'vel' parameter must be a integer")
             return None
-        if vel > 7000 or vel < -7000:
-            print("[ERROR] 'value' parameter must be include between -100 and 100")
+        if vel > 100 or vel < -100:
+            print("[ERROR] 'vel' parameter must be include between -100 and 100")
             return None
 
         if not isinstance(acc, int):
