@@ -1148,12 +1148,12 @@ class robot(object):
                 self._yaw = float(data[data.find('y')+1: data.find('>')])
 
             elif str(data[1:4]) == "32x":  # get_raw_imu
-                self._accX = int(data[data.find('x')+1: data.find('y')])
-                self._accY = int(data[data.find('y')+1: data.find('z')])
-                self._accZ = int(data[data.find('z')+1: data.find('r')])
-                self._gyroX = int(data[data.find('r')+1: data.find('p')])
-                self._gyroY = int(data[data.find('p')+1: data.find('g')])
-                self._gyroZ = int(data[data.find('g')+1: data.find('>')])
+                self._accX = float(data[data.find('x')+1: data.find('y')])
+                self._accY = float(data[data.find('y')+1: data.find('z')])
+                self._accZ = float(data[data.find('z')+1: data.find('r')])
+                self._gyroX = float(data[data.find('r')+1: data.find('p')])
+                self._gyroY = float(data[data.find('p')+1: data.find('g')])
+                self._gyroZ = float(data[data.find('g')+1: data.find('>')])
 
             elif str(data[1:4]) == "40s":  # get_battery
                 self._battery_status = int(data[data.find('s')+1: data.find('p')])
