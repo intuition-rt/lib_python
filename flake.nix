@@ -14,26 +14,21 @@
     devShells = forAllSystems (pkgs: {
       default = pkgs.mkShell {
         hardeningDisable = ["fortify"];
+        buildInputs = with pkgs; [
+          stdenv.cc.cc.lib
+        ];
+
+        env.LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
+          pkgs.stdenv.cc.cc
+        ];
+
         packages = with pkgs; [
-              clang-tools
-              compiledb
-              gcovr
-              hl-log-viewer
-              pkg-config
-              SDL2
-              SDL2_image
-              libGL
-              libGLU
-              valgrind
+          stdenv.cc.cc.lib
+          xclip
         ];
       };
     });
 
     formatter = forAllSystems (pkgs: pkgs.alejandra);
-
-    packages = forAllSystems (pkgs: {
-      default = self.packages.${pkgs.system}._42sh;
-      _42sh = pkgs.callPackage ./42sh.nix { };
-    });
   };
 }
