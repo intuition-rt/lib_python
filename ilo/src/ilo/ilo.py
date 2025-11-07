@@ -14,7 +14,7 @@ import math
 import threading
 import websocket
 from functools import wraps
-from typing import Union
+from typing import Dict, Union
 import types
 from keyboard_crossplatform import KeyBordCrossPlatform
 import time
@@ -214,8 +214,10 @@ class _IloUpdater:
         print("🟢 Sending the firmware via WebSocket.")
         self._run_update()
 
-    def download_firmware(self, firmware_id):
-        url = f"http://51.210.150.191:8001/api/firmwares/download/{firmware_id}/"
+    def download_firmware(self, data: Dict[str, str]):
+        filepath = data.get("file")
+
+        url = f"https://api.ilorobot.com/{filepath}"
         try:
             response = requests.get(url)
             if response.status_code == 200:
@@ -240,7 +242,7 @@ class _IloUpdater:
             print("No network connection. Skipping update check.")
             return
         try:
-            req = requests.get("http://51.210.150.191:8001/api/firmwares/latest/", timeout=3)
+            req = requests.get("https://api.ilorobot.com/firmwares/latest", timeout=3)
             if req.status_code == 200:
                 data = req.json()
                 latest_version = data["version"]
@@ -250,7 +252,7 @@ class _IloUpdater:
                     print("A new update is available!")
                     update = input("Do you want to update your robot? (yes/no): ").strip().lower()
                     if update == "y" or update == "yes":
-                        if self.download_firmware(data["id"]):
+                        if self.download_firmware(data):
                             if self.use_ble:
                                 self.updateWithBT()
                             else:
