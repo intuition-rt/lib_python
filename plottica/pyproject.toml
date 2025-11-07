@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "plottica"
+version = "0.0.2"
+description = "A lightweight plotting library for visualizing real-time data from ESP32 over Wi-Fi."
+readme = "README.md"
+authors = [
+    { name = "intuition RT (SLB)", email = "contact@ilorobot.com" }
+]
+keywords = ["python", "plotter"]
+requires-python = ">=3.7"
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "websocket-client",
+    "prettytable",
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://ilorobot.com"
+
+[tool.setuptools]
+py-modules = ["plottica"]
