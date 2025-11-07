@@ -470,7 +470,7 @@ def get_broadcast_ip():
                     yield broadcast
 
 
-def check_robot_on_wifi(ap_mode = True, timeout = 5):
+def check_robot_on_wifi(ap_mode = True, timeout = 1):
     """
     Check the presence of the ilo(s) on the network
     """
@@ -485,7 +485,7 @@ def check_robot_on_wifi(ap_mode = True, timeout = 5):
             try:
                 ws_url = "ws://192.168.4.1:4583"
                 print(f"Checking {ws_url}")
-                ws = websocket.create_connection(ws_url, timeout=1.3)
+                ws = websocket.create_connection(ws_url, timeout=timeout)
                 if _co_send_msg(ws, "<ilo>") == "ilo":
                     _tab_IP.append(["192.168.4.1", 1, _co_send_msg(ws, "<930>")])
 
