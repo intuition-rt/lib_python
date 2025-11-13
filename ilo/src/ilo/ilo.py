@@ -2802,7 +2802,7 @@ class robot(object):
         if not isinstance(acc, int):
             print("[ERROR] 'acc' parameter must be a integer")
             return None
-        if acc >= 200 or acc < 0:
+        if acc > 200 or acc < 0:
             print("[ERROR] 'acc' parameter must be include between 0 and 200")
             return None
 
