@@ -747,11 +747,13 @@ class robot(object):
     _robots_connected = {}  # Variable de classe pour garder une trace des connexions actives
 
     def __init__(self, user_ID, debug=False):
+        self._ws = None
+
         if isinstance(user_ID, str):
             robot_id = _get_ID_from_NAME(user_ID)
+            self._ID = robot_id
             if robot_id is None:
                 raise ValueError(f"Robot with name '{user_ID}' not found.")
-            self._ID = robot_id
         else:
             self._ID = user_ID
 
@@ -777,7 +779,6 @@ class robot(object):
                 pass
 
         self._Port = 4583
-        self._ws = None
         self._connect = False
         self._IP = _get_IP_from_ID(self._ID)
 
@@ -1279,7 +1280,8 @@ class robot(object):
 
         if self._ws:
             try:
-                self._ws.close()
+                if self._ws is not None:
+                    self._ws.close()
                 self._connect = False  # Mettre à jour l'état de connexion après la fermeture de WebSocket
                 print("WebSocket successfully closed")
             except Exception as e:
@@ -1302,7 +1304,8 @@ class robot(object):
         """
         print(f"Destruction de l'objet robot avec l'ID {self._ID}")
         if _connection_type == 0:
-            self._ws.close()
+            if self._ws is not None:
+                self._ws.close()
         
         elif _connection_type == 1:
             pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
