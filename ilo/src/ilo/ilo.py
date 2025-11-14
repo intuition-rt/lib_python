@@ -2991,44 +2991,10 @@ class robot(object):
     def set_vmax(vmax):
         pass
 
-    def set_motor_mode(self, motor_id:int, mode:str):
-        """
-        Set the mode of a single motor with is id
+    def set_motor_mode(self, motor_id, mode):
+        """This legacy function has been removed."""
+        pass
 
-        Parameters:
-            motor_id (int): the motor id
-            mode (str): the mode you want to set
-
-        Raises:
-            TypeError: If 'motor_id' is not an integer
-            ValueError: If 'motor_id' is not between 5 and 255
-            TypeError: If 'mode' is not a string
-            ValueError: If 'mode' is not "position" or "speed"
-
-        Examples:
-            my_ilo.set_motor_mode(5, "position")\n
-            my_ilo.set_motor_mode(6, "speed")
-        """
-
-        if not isinstance(motor_id, int):
-            print("[ERROR] 'motor_id' parameter must be a integer")
-            return None
-        if motor_id > 255 or motor_id < 5:
-            print("[ERROR] 'motor_id' parameter must be include between 5 and 255")
-            return None
-        
-        if not isinstance(mode, str):
-            print("[ERROR] 'mode' parameter must be a string")
-            return None
-        if mode != "position" and mode != "speed":
-            print("[ERROR] 'mode' parameter must be 'position' or 'speed'")
-            return None
-        
-        if mode == "position":
-            msg = "<72"+str(motor_id)+"m0>"
-        if mode == "speed":
-            msg = "<72"+str(motor_id)+"m1>"
-        self._send_msg(msg)
     # -----------------------------------------------------------------------------
     def set_autonomous_mode(self, value: str):
         """
