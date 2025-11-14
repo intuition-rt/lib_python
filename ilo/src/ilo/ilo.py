@@ -2652,8 +2652,8 @@ class robot(object):
         if not isinstance(vel, int):
             print("[ERROR] 'vel' parameter must be a integer")
             return None
-        if vel > 7000 or vel < -7000:
-            print("[ERROR] 'value' parameter must be include between -100 and 100")
+        if vel > 100 or vel < -100:
+            print("[ERROR] 'vel' parameter must be include between -100 and 100")
             return None
 
         if not isinstance(acc, int):
@@ -2666,7 +2666,7 @@ class robot(object):
         msg = "<610i"+str(id)+"a"+str(acc)+"v"+str(vel)+">"
         self._send_msg(msg)
 
-    def drive_single_motor_speed_front_left(self, value: int):  # de -100 à 100
+    def drive_single_motor_speed_front_left(self, value: int, vel: int):  # de -100 à 100
         """
         Control the front left motor
 
@@ -2683,9 +2683,9 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a integer")
             return None
 
-        self.drive_single_motor_speed(1, value)
+        self.drive_single_motor_speed(1, value, vel)
 
-    def drive_single_motor_speed_front_right(self, value: int):
+    def drive_single_motor_speed_front_right(self, value: int, vel: int):
         """
         Control the front right motor
 
@@ -2702,9 +2702,9 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a integer")
             return None
 
-        self.drive_single_motor_speed(2, value)
+        self.drive_single_motor_speed(2, value, vel)
 
-    def drive_single_motor_speed_back_left(self, value: int):
+    def drive_single_motor_speed_back_left(self, value: int, vel: int):
         """
         Control the back left motor
 
@@ -2722,9 +2722,9 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a integer")
             return None
 
-        self.drive_single_motor_speed(4, value)
+        self.drive_single_motor_speed(4, value, vel)
 
-    def drive_single_motor_speed_back_right(self, value: int):
+    def drive_single_motor_speed_back_right(self, value: int, vel: int):
         """
         Control the back right motor
 
@@ -2742,7 +2742,7 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a integer")
             return None
 
-        self.drive_single_motor_speed(3, value)
+        self.drive_single_motor_speed(3, value, vel)
     # <611i1s3000>
     def get_single_motor_speed(self, id: int):
         """
@@ -2805,7 +2805,7 @@ class robot(object):
         if not isinstance(acc, int):
             print("[ERROR] 'acc' parameter must be a integer")
             return None
-        if acc >= 200 or acc < 0:
+        if acc > 200 or acc < 0:
             print("[ERROR] 'acc' parameter must be include between 0 and 200")
             return None
 
@@ -2994,44 +2994,10 @@ class robot(object):
     def set_vmax(vmax):
         pass
 
-    def set_motor_mode(self, motor_id:int, mode:str):
-        """
-        Set the mode of a single motor with is id
+    def set_motor_mode(self, motor_id, mode):
+        """This legacy function has been removed."""
+        pass
 
-        Parameters:
-            motor_id (int): the motor id
-            mode (str): the mode you want to set
-
-        Raises:
-            TypeError: If 'motor_id' is not an integer
-            ValueError: If 'motor_id' is not between 5 and 255
-            TypeError: If 'mode' is not a string
-            ValueError: If 'mode' is not "position" or "speed"
-
-        Examples:
-            my_ilo.set_motor_mode(5, "position")\n
-            my_ilo.set_motor_mode(6, "speed")
-        """
-
-        if not isinstance(motor_id, int):
-            print("[ERROR] 'motor_id' parameter must be a integer")
-            return None
-        if motor_id > 255 or motor_id < 5:
-            print("[ERROR] 'motor_id' parameter must be include between 5 and 255")
-            return None
-        
-        if not isinstance(mode, str):
-            print("[ERROR] 'mode' parameter must be a string")
-            return None
-        if mode != "position" and mode != "speed":
-            print("[ERROR] 'mode' parameter must be 'position' or 'speed'")
-            return None
-        
-        if mode == "position":
-            msg = "<72"+str(motor_id)+"m0>"
-        if mode == "speed":
-            msg = "<72"+str(motor_id)+"m1>"
-        self._send_msg(msg)
     # -----------------------------------------------------------------------------
     def set_autonomous_mode(self, value: str):
         """
