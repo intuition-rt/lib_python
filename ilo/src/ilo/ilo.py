@@ -5,6 +5,8 @@
 # This python library is for using the robot ilo with python command on WiFi or Bluetooth
 # 21/03/2025
 # -----------------------------------------------------------------------------
+from __future__ import annotations
+
 import psutil
 import ipaddress
 import serial.tools.list_ports
@@ -28,6 +30,8 @@ import concurrent.futures
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import signal
+import sys
 # -----------------------------------------------------------------------------
 
 
@@ -450,15 +454,18 @@ def list_function():
     print("If the table does not display correctly, expand your terminal.")
 # -----------------------------------------------------------------------------
 
-def _co_send_msg(ws, message):
+def _co_send_msg(ws: websocket.WebSocket, message: str) -> str:
     '''
     Send a message over the WebSocket connection
     '''
+    if not ws.connected:
+        return "..."
+
     try:
         ws.send(message)
         response = ws.recv()
         print(f"Sent: {message}, Received: {response}")  # Debugging line
-        return response  # Adjusted to match the expected response
+        return str(response)
     except Exception as e:
         print(f"Error sending message: {e}")
         return "..."
@@ -744,10 +751,10 @@ def _get_ID_from_NAME(name):
 
 class robot(object):
     global _connection_type
-    _robots_connected = {}  # Variable de classe pour garder une trace des connexions actives
+    _robots_connected: Dict[int, robot] = {}  # Variable de classe pour garder une trace des connexions actives
 
     def __init__(self, user_ID, debug=False):
-        self._ws = None
+        self._ws: websocket.WebSocket | None = None
 
         if isinstance(user_ID, str):
             robot_id = _get_ID_from_NAME(user_ID)
@@ -779,7 +786,6 @@ class robot(object):
                 pass
 
         self._Port = 4583
-        self._connect = False
         self._IP = _get_IP_from_ID(self._ID)
 
         self._recv_thread = None
@@ -896,6 +902,10 @@ class robot(object):
             print("You have to run the command [ilo.check_ilo_on_network()] to know if there are robots present on your network")
             print("or")
             print("Run the command [ilo.check_ilo_on_serial()] to know if there are robots connected to your computer")
+
+    def __repr__(self) -> str:
+        return f"<Ilo name={self.get_name()} id={self.get_product_id()}>"
+
     # -----------------------------------------------------------------------------
     def _connection(self):
         """
@@ -995,6 +1005,21 @@ class robot(object):
             except Exception as e:
                 print(f"Error connecting to the BLE device: {e}")
                 self._connect = False
+
+    def disconnect(self):
+        if _connection_type == 0:
+            if self._ws is not None:
+                _co_send_msg(self._ws, "<>")
+        elif _connection_type == 1:
+            pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
+        elif _connection_type == 2:
+            ble_lib.disconnect(self._ble_device)
+        else:
+            pass
+
+        self._stop_reception()
+
+
     # -----------------------------------------------------------------------------
     def _send_msg(self, message):
         self._response_event.clear()
@@ -1280,7 +1305,7 @@ class robot(object):
 
         if self._ws:
             try:
-                if self._ws is not None:
+                if self._ws is not None and self._ws.connected:
                     self._ws.close()
                 self._connect = False  # Mettre à jour l'état de connexion après la fermeture de WebSocket
                 print("WebSocket successfully closed")
@@ -1302,7 +1327,6 @@ class robot(object):
         Destructor to ensure the WebSocket connection is closed gracefully
         and the ID is removed from the list of connected robots
         """
-        print(f"Destruction de l'objet robot avec l'ID {self._ID}")
         if _connection_type == 0:
             if self._ws is not None:
                 self._ws.close()
@@ -1313,6 +1337,8 @@ class robot(object):
             ble_lib.disconnect(self._ble_device)
         else:
             pass  
+        self.disconnect()
+
     # -----------------------------------------------------------------------------
     def test_connection(self):
         """
@@ -3536,4 +3562,23 @@ class robot(object):
             plt.show()
             plt.close()
             self.stop_trame_s()
-    
+
+
+_is_handling_sigint = False
+
+def handle_sigint(signal_number, frame):
+    global _is_handling_sigint
+
+    if _is_handling_sigint:
+        return
+
+    _is_handling_sigint = True
+    print("Stopping all robot before quitting...")
+
+    for r in robot._robots_connected.copy().values():
+        print(f"stopping {r}")
+        r.disconnect()
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, handle_sigint)
