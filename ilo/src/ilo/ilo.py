@@ -34,6 +34,36 @@ import signal
 import sys
 # -----------------------------------------------------------------------------
 
+COLOR_NAMES = [
+    "Red",
+    "Blue",
+    "Yellow",
+    "Magenta",
+    "Cyan",
+    "Orange",
+    "Purple",
+    "Pink",
+    "Dark Green",
+    "White",
+    "Deep Pink",
+    "Cornflower Blue",
+]
+
+COLOR_TABLE = [
+    (225,   0,   0),   # Red
+    (0,     0, 255),   # Blue
+    (255, 255,   0),   # Yellow
+    (255,   0, 255),   # Magenta
+    (0,   255, 255),   # Cyan
+    (255, 128,   0),   # Orange
+    (128,   0, 128),   # Purple
+    (255, 192, 203),   # Pink
+    (0,   128,   0),   # Dark Green
+    (255, 255, 255),   # White
+    (255,  20, 147),   # Deep Pink
+    (100, 149, 237),   # Cornflower Blue
+]
+
 
 try:
     import pyperclip
@@ -280,6 +310,7 @@ print("For any help or support contact us on our website, ilorobot.com")
 copy_to_clipboard("""ilo.check_robot_on_bluetooth()""")
 
 _connection_type = 0
+
 # WiFi
 _tab_IP = []
 # Serial
@@ -521,6 +552,8 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
 
         if not ilo_AP:
             _tab_IP = []
+            _seen_ids = set()
+
             ilo_ID = 1
             DISCOVERY_MESSAGE = "DISCOVER_ROBOT"
             BROADCAST_PORT = 12345
@@ -542,12 +575,28 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
                         if msg.startswith("<") and msg.endswith(">"):
                             content = msg[1:-1]
                             parts = content.split(",")
+
+                            # old version without color pairs
                             if len(parts) == 3:
-                                IP = addr[0]
-                                product_id = ilo_ID
-                                hostname = parts[1]
-                                _tab_IP.append([IP, product_id, hostname])
-                                ilo_ID += 1
+                                hostname, hostname, product_id = parts
+                                color_pair = f"Ilo blue"
+
+                            elif len(parts) == 4:
+                                hostname, hostname, product_id, colors = parts
+
+                                color_circle, color_center = [COLOR_NAMES[int(p)] for p in colors.split("/")]
+                                color_pair = f"{color_circle}, {color_center}"
+                            else:
+                                continue
+
+                            if product_id in _seen_ids:
+                                continue
+
+                            _seen_ids.add(product_id)
+
+                            IP = addr[0]
+                            _tab_IP.append([IP, ilo_ID, hostname, color_pair])
+                            ilo_ID += 1
                     except socket.timeout:
                         break
             except Exception as e:
@@ -555,8 +604,10 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
             finally:
                 s.close()
 
+            _seen_ids.clear()
+
             table = PrettyTable()
-            table.field_names = ["IP Address", "ID of ilo", "Name of ilo"]
+            table.field_names = ["IP Address", "ID of ilo", "Name of ilo", "Colors"]
             for row in _tab_IP:
                 table.add_row(row)
 
