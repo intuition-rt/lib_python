@@ -9,14 +9,18 @@
       nixpkgs.lib.genAttrs [
         "x86_64-linux"
         "aarch64-linux"
-      ] (system: function nixpkgs.legacyPackages.${system});
+      ] (system:
+        function {
+          inherit system;
+          pkgs = nixpkgs.legacyPackages.${system};
+        });
   in {
-    devShells = forAllSystems (pkgs: {
+    devShells = forAllSystems ({
+      pkgs,
+      system,
+    }: {
       default = pkgs.mkShell {
-        hardeningDisable = ["fortify"];
-        buildInputs = with pkgs; [
-          stdenv.cc.cc.lib
-        ];
+        inputsFrom = [self.packages.${system}.ilo];
 
         env.LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
           pkgs.stdenv.cc.cc
@@ -25,10 +29,24 @@
         packages = with pkgs; [
           stdenv.cc.cc.lib
           xclip
+          scom
         ];
       };
     });
 
-    formatter = forAllSystems (pkgs: pkgs.alejandra);
+    formatter = forAllSystems ({pkgs, ...}: pkgs.alejandra);
+
+    packages = forAllSystems ({
+      pkgs,
+      system,
+    }: {
+      ilo = pkgs.python3.pkgs.callPackage ./nix/ilo.nix {
+        inherit (self.packages.${system}) keyboard-crossplatform;
+      };
+
+      keyboard-crossplatform =
+        pkgs.python3.pkgs.callPackage
+        ./nix/keyboard-crossplatform.nix {};
+    });
   };
 }
