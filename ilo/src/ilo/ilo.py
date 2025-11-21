@@ -584,7 +584,11 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
                             elif len(parts) == 4:
                                 hostname, hostname, product_id, colors = parts
 
-                                color_circle, color_center = [COLOR_NAMES[int(p)] for p in colors.split("/")]
+                                color_circle, color_center = [
+                                    "Unkown" if p == "?" else COLOR_NAMES[int(p)]
+                                    for p in colors.split("/")
+                                ]
+
                                 color_pair = f"{color_circle}, {color_center}"
                             else:
                                 continue
