@@ -2954,12 +2954,6 @@ class robot(object):
         self._response_event.wait(timeout=5)
         return (self._motor_id, self.motor_moving)
 
-    def get_vmax():
-        pass
-
-    def set_vmax(vmax):
-        pass
-
     def set_motor_mode(self, motor_id, mode):
         """This legacy function has been removed."""
         pass
