@@ -16,7 +16,7 @@ import math
 import threading
 import websocket
 from functools import wraps
-from typing import Dict, Union
+from typing import Any, Dict, Union
 import types
 from keyboard_crossplatform import KeyBordCrossPlatform
 import time
@@ -347,139 +347,23 @@ def list_function():
         ["ilo.list_function", "Print the list of all the functions available in the library"], divider=True)
     print(ilo_table)
     print("")
+
     my_ilo_table = PrettyTable()
     my_ilo_table.field_names = [
-        "Object methods (example: my_ilo.test_connection())", "Description"]
-    my_ilo_table.align["Object methods (example: my_ilo.test_connection())"] = "l"
+        "Object methods (example: my_ilo.game())", "Description"]
+    my_ilo_table.align["Object methods (example: my_ilo.game())"] = "l"
     my_ilo_table.align["Description"] = "l"
-    my_ilo_table.add_row(
-        ["test_connection()", "Test the connection to the robot via a try of stop method"], divider=True)
-    my_ilo_table.add_row(
-        ["stop_reception()", "Stop the WebSocket reception thread and close the connection"], divider=True)
-    my_ilo_table.add_row(
-        ["stop()", "Stop the robots and free the engines"], divider=True)
-    my_ilo_table.add_row(
-        ["pause()", "Stop the robot and block engines"], divider=True)
-    my_ilo_table.add_row(
-        ["step(direction, step)", "Move by step ilorobot with selected direction during 2 seconds"], divider=True)
-    my_ilo_table.add_row(["flat_movement(angle, distance)",
-                         "Move ilo in the selected direction in angle for a selected distance"], divider=True)
-    my_ilo_table.add_row(
-        ["list_order(ilo_list)", "ilo will execute a list of successive displacment define in ilo_list"], divider=True)
-    my_ilo_table.add_row(
-        ["move(direction, speed)", "Move ilo with selected direction and speed"], divider=True)
-    my_ilo_table.add_row(["direct_control(acc, axial, radial, rotation)",
-                         "Control ilorobot with full control"], divider=True)
-    my_ilo_table.add_row(
-        ["game()", "Control ilo using arrow or numb pad of your keyboard"], divider=True)
-    my_ilo_table.add_row(
-        ["set_tempo_pos(value)", "Set the tempo of the position control"], divider=True)
-    my_ilo_table.add_row(
-        ["get_tempo_pos()", "Get the tempo of the position control"], divider=True)
-    my_ilo_table.add_row(
-        ["rotation(angle)", "Rotate ilo with selected angle"], divider=True)
-    my_ilo_table.add_row(
-        ["set_pid(kp, ki, kd)", "Set the new value of the proportional gain, the integral gain and the derivative gain"], divider=True)
-    my_ilo_table.add_row(
-        ["get_pid()", "Get the actual value of the proportional gain, the integral gain and the derivative gain"], divider=True)
-    my_ilo_table.add_row(
-        ["get_color_rgb()", "Displays the color below ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["set_led_captor(bool)", "Turns on/off the lights under ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["get_color_clear()", "Displays the brightness below ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["get_color_clear_left()", "Displays the brightness below ilo only with left sensor"], divider=True)
-    my_ilo_table.add_row(["get_color_clear_center()",
-                         "Displays the brightness below ilo only with central sensor"], divider=True)
-    my_ilo_table.add_row(["get_color_clear_right()",
-                         "Displays the brightness below ilo only with right sensor"], divider=True)
-    my_ilo_table.add_row(
-        ["get_line()", "Detects whether ilo is on a line or not"], divider=True)
-    my_ilo_table.add_row(
-        ["get_line_left()", "Detects whether ilo is on a line or not according to the left sensor"], divider=True)
-    my_ilo_table.add_row(
-        ["get_line_center()", "Detects whether ilo is on a line or not according to the central sensor"], divider=True)
-    my_ilo_table.add_row(
-        ["get_line_right()", "Detects whether ilo is on a line or not according to the right sensor"], divider=True)
-    my_ilo_table.add_row(["set_line_threshold_value(value)",
-                         "Set the new threshold value for the line detection"], divider=True)
-    my_ilo_table.add_row(["get_line_treshold_value()",
-                         "Get the actual value of the threshold value for the line detection"], divider=True)
-    my_ilo_table.add_row(
-        ["get_distance()", "Get the distance around ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["get_distance_front()", "Get the distance in front of ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["get_distance_right()", "Get the distance on the right of ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["get_distance_back()", "Get the distance behind ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["get_distance_left()", "Get the distance on the left of ilo"], divider=True)
-    my_ilo_table.add_row(["get_angle()", "Get the angle of ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["get_roll()", "Get the roll angle of ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["get_pitch()", "Get the pitch angle of ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["get_yaw()", "Get the yaw angle of ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["reset_angle()", "Reset the angle of ilo"], divider=True)
-    my_ilo_table.add_row(["get_raw_imu()", "Get IMU raw data"], divider=True)
-    my_ilo_table.add_row(
-        ["get_battery()", "Get battery status (charged or not) and percentage"], divider=True)
-    my_ilo_table.add_row(
-        ["get_led_color()", "Get ilo LEDS color"], divider=True)
-    my_ilo_table.add_row(["set_led_color(red, green, blue)",
-                         "Set ilo LEDS color"], divider=True)
-    my_ilo_table.add_row(
-        ["set_led_shape(value)", "Show designs on LEDS"], divider=True)
-    my_ilo_table.add_row(
-        ["set_led_anim(value)", "Starting an animation with LEDs"], divider=True)
-    my_ilo_table.add_row(["set_led_single(bool, id, r, g, b)",
-                         "Lights up an individual led in the led matrix"], divider=True)
-    my_ilo_table.add_row(
-        ["get_acc_motor()", "Get the acceleration of all motors"], divider=True)
-    my_ilo_table.add_row(
-        ["set_acc_motor(val)", "Set the acceleration of all motors"], divider=True)
-    my_ilo_table.add_row(
-        ["ping_single_motor(id)", "Ping a single motor with is id"], divider=True)
-    my_ilo_table.add_row(["drive_single_motor_speed(id, value)",
-                         "Drive a single motor in speed with is id"], divider=True)
-    my_ilo_table.add_row(["drive_single_motor_speed_front_left(value)",
-                         "Control the front left motor"], divider=True)
-    my_ilo_table.add_row(["drive_single_motor_speed_front_right(value)",
-                         "Control the front right motor"], divider=True)
-    my_ilo_table.add_row(["drive_single_motor_speed_back_left(value)",
-                         "Control the back left motor"], divider=True)
-    my_ilo_table.add_row(["drive_single_motor_speed_back_right(value)",
-                         "Control the back right motor"], divider=True)
-    my_ilo_table.add_row(["get_single_motor_speed(id)",
-                         "Get the speed of a single motor with is id"], divider=True)
-    my_ilo_table.add_row(["drive_single_motor_angle(id, value)",
-                         "Drive a single motor in angle with is id"], divider=True)
-    my_ilo_table.add_row(["get_single_motor_angle(id)",
-                         "Get the angle of a single motor with is id"], divider=True)
-    my_ilo_table.add_row(["get_temp_single_motor(id)",
-                         "Get the temperature of a single motor with is id"], divider=True)
-    my_ilo_table.add_row(["get_volt_single_motor(id)",
-                         "Get the voltage of a single motor with is id"], divider=True)
-    my_ilo_table.add_row(["get_torque_single_motor(id)",
-                         "Get the torque of a single motor with is id"], divider=True)
-    my_ilo_table.add_row(["get_current_single_motor(id)",
-                         "Get the current of a single motor with is id"], divider=True)
-    my_ilo_table.add_row(["get_motor_is_moving(id)",
-                         "Get the state of a single motor with is id"], divider=True)
-    my_ilo_table.add_row(["set_autonomous_mode(number)",
-                         "Launch ilo in an autonomous mode"], divider=True)
-    my_ilo_table.add_row(["set_wifi_credentials(ssid, password)",
-                         "Enter your wifi details to enable ilo to connect to your network"], divider=True)
-    my_ilo_table.add_row(
-        ["get_wifi_credentials()", "Get wifi credentials registered on ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["set_name()", "Set a new name for your ilo"], divider=True)
-    my_ilo_table.add_row(
-        ["get_name()", "Get the name you have given to your ilo"], divider=True)
+
+    for entry_name in dir(robot):
+        entry: Any = getattr(robot, entry_name)
+        if not callable(entry) or entry_name.startswith("_"):
+            continue
+
+        if entry.__doc__ is None:
+            continue
+
+        desc = entry.__doc__.lstrip("\n").splitlines()[0]
+        my_ilo_table.add_row([entry.__name__, desc], divider=False)
 
     print(my_ilo_table)
     print("If the table does not display correctly, expand your terminal.")
@@ -1397,7 +1281,8 @@ class robot(object):
     # -----------------------------------------------------------------------------
     def test_connection(self):
         """
-        Test the connection to the robot via a try of stop method
+        Test the connection to the robot via a try of stop method.
+
         :return: True or False
         """
         if _connection_type == 0:
@@ -1460,7 +1345,7 @@ class robot(object):
     # -----------------------------------------------------------------------------
     def stop(self):
         """
-        Stop ilo and free its engines
+        Stop the robots and free the engines.
         """
         self._send_msg("<>")
 
