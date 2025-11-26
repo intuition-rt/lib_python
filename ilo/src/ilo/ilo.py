@@ -1554,7 +1554,7 @@ class robot(object):
         distance_x = abs(int(math.cos(radian) * distance))
         distance_y = abs(int(math.sin(radian) * distance))
         msg = ("<avpx" + str(indice_x) + str(distance_x) +
-               "y" + str(indice_y) + str(distance_y) + ">")
+               "y" + str(indice_y) + str(distance_y) + "r>")
         self._send_msg(msg)
 
     def list_order(self, ilo_list: list):
