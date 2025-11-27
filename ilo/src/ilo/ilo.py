@@ -116,8 +116,9 @@ class _SyncBleak:
 
     async def _connect(self, address):
         self.client = BleakClient(address)
-        connected = await self.client.connect()
-        if connected:
+        await self.client.connect()
+
+        if self.client.is_connected:
             return self.client
         return None
 
@@ -733,7 +734,7 @@ class robot(object):
         # elif _connection_type == 1:
         self._port = _get_PORT_from_ID(self._ID)
         self._ser = None
-        # self._connect = False
+        self._connect = False
 
 
         self._version = ""
@@ -929,7 +930,9 @@ class robot(object):
                     print(f"Received non-UTF-8 data: {data}")
             # print("Connecting to the BLE device...")
             try:
-                self._ble_device = ble_lib.connect(_tab_ADDRESS[self._ID - 1][1])
+                address = _tab_ADDRESS[self._ID - 1][1]
+                self._ble_device = ble_lib.connect(address)
+
                 ble_lib.subscribe_to_notifications(CHARACTERISTIC_UUID, notification_handler)
                 self._connect = True
                 # print("Connected to the BLE device.")
