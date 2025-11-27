@@ -615,7 +615,7 @@ def check_robot_on_bluetooth():
         table.field_names = ["Device adress", "ID of ilo", "Name of ilo"]
         i = 1
         for device in devices:
-            if str(device[0]).startswith("ilo_BLE_"):
+            if str(device[0]).startswith("ilo_"):
                 table.add_row([device[1], i, device[0]])
                 _tab_ADDRESS.append(device)
                 i += 1
