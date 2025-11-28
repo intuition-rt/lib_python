@@ -17,7 +17,6 @@ import threading
 import websocket
 from functools import wraps
 from typing import Any, Dict, Union
-import types
 from keyboard_crossplatform import KeyboardCrossplatform
 import time
 import re
@@ -32,6 +31,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import signal
 import sys
+
+import sys
+# https://stackoverflow.com/questions/2356399/tell-if-python-is-in-interactive-mode
+IS_INTERACTIVE = hasattr(sys, 'ps1')
+
 # -----------------------------------------------------------------------------
 
 COLOR_NAMES = [
@@ -3515,4 +3519,6 @@ def handle_sigint(signal_number, frame):
     sys.exit(0)
 
 
-signal.signal(signal.SIGINT, handle_sigint)
+
+if not IS_INTERACTIVE:
+    signal.signal(signal.SIGINT, handle_sigint)
