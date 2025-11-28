@@ -54,10 +54,7 @@ dependencies = [
   # Cas Python 3.13 : versions récentes, roues binaires dispo
   'numpy>=2.1; python_version >= "3.13"',
   'matplotlib>=3.10; python_version >= "3.13"',
-]
 
-[project.optional-dependencies]
-extras = [
   "pyperclip>=1.8.0,<2.0.0"
 ]
 
