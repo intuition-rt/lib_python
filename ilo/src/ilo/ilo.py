@@ -36,6 +36,12 @@ import sys
 # https://stackoverflow.com/questions/2356399/tell-if-python-is-in-interactive-mode
 IS_INTERACTIVE = hasattr(sys, 'ps1')
 
+__version__ = "0.0.60"
+
+print("ilo robot library version: ", __version__)
+print("For more information about the library use ilo.info() command line")
+print("For any help or support contact us on our website, ilorobot.com")
+
 # -----------------------------------------------------------------------------
 
 COLOR_NAMES = [
@@ -305,11 +311,6 @@ class _IloUpdater:
         except Exception as e:
             print(f"⚠️ Impossible to check for updates :,(")
 
-_version = "0.0.60"
-
-print("ilo robot library version: ", _version)
-print("For more information about the library use ilo.info() command line")
-print("For any help or support contact us on our website, ilorobot.com")
 # -----------------------------------------------------------------------------
 
 copy_to_clipboard("""ilo.check_robot_on_bluetooth()""")
@@ -332,7 +333,7 @@ def info():
     """
     print("ilo robot is an education robot controlable by direct python command")
     print("To know every fonction available with ilo,  use ilo.list_function() command line")
-    print("You are using the version ", _version)
+    print("You are using the version ", __version__)
 # -----------------------------------------------------------------------------
 
 def list_function():
