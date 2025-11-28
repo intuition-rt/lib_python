@@ -36,7 +36,7 @@ import sys
 # https://stackoverflow.com/questions/2356399/tell-if-python-is-in-interactive-mode
 IS_INTERACTIVE = hasattr(sys, 'ps1')
 
-__version__ = "0.0.60"
+__version__ = "0.0.61"
 
 print("ilo robot library version: ", __version__)
 print("For more information about the library use ilo.info() command line")

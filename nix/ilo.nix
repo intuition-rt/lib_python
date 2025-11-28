@@ -7,6 +7,7 @@
   websocket-client,
   bleak,
   prettytable,
+  pyperclip,
   keyboard-crossplatform,
   requests,
   keyboard,
@@ -16,7 +17,7 @@
 }:
 buildPythonPackage {
   pname = "ilo";
-  version = "0.0.60";
+  version = "0.0.61";
   pyproject = true;
 
   src = ./../ilo;
@@ -29,6 +30,7 @@ buildPythonPackage {
     psutil
     websocket-client
     prettytable
+    pyperclip
     keyboard-crossplatform
     requests
     keyboard
