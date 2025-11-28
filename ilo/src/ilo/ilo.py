@@ -65,18 +65,18 @@ COLOR_TABLE = [
 ]
 
 
-try:
-    import pyperclip
-except ImportError:
-    pyperclip = types.SimpleNamespace(copy=lambda _: ..., is_available=False)
+import pyperclip
 
 
 @wraps(pyperclip.copy)
-def copy_to_clipboard(*args, **kwargs):
+def copy_to_clipboard(text: str) -> None:
     if not pyperclip.is_available:
         return
 
-    pyperclip.copy(*args, **kwargs)
+    copy, _ = pyperclip.determine_clipboard()
+
+    if copy:
+        pyperclip.copy(text)
 
 
 class _SyncBleak:
