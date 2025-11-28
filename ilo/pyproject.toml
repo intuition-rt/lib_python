@@ -41,7 +41,7 @@ dependencies = [
   "websocket-client>=1.0.0,<1.9.0",
   "bleak>=1.1.1,<2.0.0",
   "prettytable>=3.17.0,<4.0.0",
-  "keyboard_crossplatform>=0.1.0,<1.0.0",
+  "keyboard-crossplatform==0.2.0",
   "requests>=2.25.0,<2.33.0",
   "keyboard>=0.13.4", # https://github.com/boppreh/keyboard/blob/v0.13.5/keyboard/__init__.py#L82
   "packaging>=24.2",

@@ -7,13 +7,13 @@
 }:
 buildPythonPackage rec {
   pname = "keyboard-crossplatform";
-  version = "0.1.0";
+  version = "0.2.0";
   pyproject = true;
 
   src = fetchPypi {
     pname = "keyboard_crossplatform";
     inherit version;
-    hash = "sha256-UWP9VZQbVyp7hoRS9qxUf4fmm8tIR3LeD3S+eTCnmho=";
+    hash = "sha256-9OLjpN0uspAdlKNCV8wnK+SxehcZ4R/K8/MtgfoI+uU=";
   };
 
   build-system = [setuptools];
