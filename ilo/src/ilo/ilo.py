@@ -18,7 +18,7 @@ import websocket
 from functools import wraps
 from typing import Any, Dict, Union
 import types
-from keyboard_crossplatform import KeyBordCrossPlatform
+from keyboard_crossplatform import KeyboardCrossplatform
 import time
 import re
 import unicodedata
@@ -1725,57 +1725,54 @@ class robot(object):
             self.stop()
             new_keyboard_instruction = False
 
-            keylogger = KeyBordCrossPlatform()
+            kb = KeyboardCrossplatform()
             print('Game mode start, use keyboard arrow to control ilo')
             print("Press echap to leave the game mode")
+            kb.start()
 
-            while (True):
-                key = keylogger.getKey()
+            while True:
+                key = kb.get_key()
+                print("->", key)
+
                 if key == "8" or key == "f7":
                     new_keyboard_instruction = True
-                    time.sleep(0.05)
                     axial_value = axial_value + 5
                     if axial_value > 255:
                         axial_value = 255
                 elif key == "2" or key == "f20":
                     new_keyboard_instruction = True
-                    time.sleep(0.05)
                     axial_value = axial_value - 5
                     if axial_value < 1:
                         axial_value = 0
                 elif key == "6" or key == "kp_add":
                     new_keyboard_instruction = True
-                    time.sleep(0.05)
                     radial_value = radial_value + 5
                     if radial_value > 255:
                          radial_value = 255
                 elif key == "4" or key == "kp_multiply":
                     new_keyboard_instruction = True
-                    time.sleep(0.05)
                     radial_value = radial_value - 5
                     if radial_value < 1:
                         radial_value = 0
                 elif key == "3" or key == "kp_divide":
                     new_keyboard_instruction = True
-                    time.sleep(0.05)
                     rotation_value = rotation_value + 5
                     if rotation_value > 255:
                         rotation_value = 255
                 elif key == "1" or key == "f19":
                     new_keyboard_instruction = True
-                    time.sleep(0.05)
                     rotation_value = rotation_value - 5
                     if rotation_value < 1:
                         rotation_value = 0
                 elif key == "5" or key == "kp_subtract":
                     new_keyboard_instruction = True
-                    time.sleep(0.05)
                     axial_value = 128
                     radial_value = 128
                     rotation_value = 128
                 elif key == "esc":
                     print("Game mode stop")
                     self.stop()
+                    kb.stop()
                     break
                 #else:
                     #print("Invalid key", key)
