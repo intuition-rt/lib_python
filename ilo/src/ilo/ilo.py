@@ -1806,7 +1806,7 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a integer")
             return None
 
-        msg = "<690t"+str(value)+">"
+        msg = f"<690t{value}>"
         self._send_msg(msg)
 
     def get_tempo_pos(self):
@@ -1932,7 +1932,7 @@ class robot(object):
         ki = int(ki * 100)
         kd = int(kd * 100)
 
-        msg = "<70p"+str(kp)+"i" + str(ki) + "d" + str(kd) + ">"
+        msg = f"<70p{kp}i{ki}d{kd}>"
         self._send_msg(msg)
 
     def get_pid(self):
@@ -2188,7 +2188,7 @@ class robot(object):
             print(f"La nouvelle valeur de seuil est: {value}")
             self.set_led_captor(False)
 
-        msg = "<13t"+str(value)+">"
+        msg = f"<13tf{value}>"
         self._send_msg(msg)
 
     def get_line_threshold_value(self):
@@ -2343,7 +2343,7 @@ class robot(object):
             print("[ERROR] 'blue' parameter must be include between 0 and 255")
             return None
 
-        msg = "<51r"+str(red)+"g"+str(green)+"b"+str(blue)+">"
+        msg = f"<51r{red}g{green}b{blue}>"
         self._send_msg(msg)
 
     def set_led_shape(self, value: str):
@@ -2364,7 +2364,7 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a string")
             return None
 
-        msg = "<52v"+str(value)+">"
+        msg = f"<52v{value}>"
         self._send_msg(msg)
 
     def set_led_anim(self, value: str, repeat=1):
@@ -2395,7 +2395,7 @@ class robot(object):
             print("[ERROR] 'repeat' parameter must be more than 0")
             return None
 
-        msg = "<53"+str(value)+"/"+str(repeat)+">"
+        msg =f"<53{value}/{repeat}>"
         self._send_msg(msg)
 
     def set_led_single(self, type: str, id: int, red: int, green: int, blue: int, luminosity=None):
@@ -2465,8 +2465,7 @@ class robot(object):
         else:
             luminosity = 100
 
-        msg = "<55t"+str(type)+"d"+str(id)+"r"+str(red)+"g" + \
-            str(green)+"b"+str(blue)+"l"+str(luminosity)+">"
+        msg = f"<55t{type}d{id}r{red}g{green}b{blue}l{luminosity}>"
         self._send_msg(msg)
     
     def set_led_word(self, type: str, word: str, delay=None):
@@ -2516,9 +2515,9 @@ class robot(object):
             return None
 
         if type == "reveal":
-            msg = "<56w"+str(word.upper())+"d"+ str(delay)+">"
+            msg = f"<56w{word.upper()}d{delay}>"
         else:
-            msg = "<57w"+str(word.upper())+"d"+ str(delay)+">"
+            msg = f"<57w{word.upper()}d{delay}>"
         self._send_msg(msg)
     
     def stop_led_word(self):
@@ -2561,7 +2560,7 @@ class robot(object):
             acc = 1
         elif acc > 200:
             acc = 200
-        msg = "<680a"+str(acc)+">"
+        msg = f"<680a{acc}>"
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
     # <60i1s1>
@@ -2587,7 +2586,7 @@ class robot(object):
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = "<60i"+str(id)+">"
+        msg = f"<60i{id}>"
         self._send_msg(msg)
         self._response_event.wait(timeout=5)
         return (self._motor_id, self._motor_ping)
@@ -2634,7 +2633,7 @@ class robot(object):
             print("[ERROR] 'acc' parameter must be include between 1 and 200")
             return None
 
-        msg = "<610i"+str(id)+"a"+str(acc)+"v"+str(vel)+">"
+        msg = f"<610i{id}a{acc}v{vel}>"
         self._send_msg(msg)
 
     def drive_single_motor_speed_front_left(self, value: int, vel: int):  # de -100 à 100
@@ -2737,7 +2736,7 @@ class robot(object):
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = "<611i"+str(id)+">"
+        msg = f"<611i{id}>"
         self._send_msg(msg)
         self._response_event.wait(timeout=5)
         return (self._motor_id, self._motor_speed)
@@ -2794,7 +2793,7 @@ class robot(object):
             print("[ERROR] 'pos' parameter must be include between 0 and 4096")
             return None
 
-        msg = "<620i"+str(id)+"a"+str(acc)+"v"+str(vel)+"p"+str(pos)+">"
+        msg = f"<620i{id}a{acc}v{vel}p{pos}>"
         self._send_msg(msg)
     # <621i6a90>
     def get_single_motor_angle(self, id: int):
@@ -2819,7 +2818,7 @@ class robot(object):
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = "<621i"+str(id)+">"
+        msg = f"<621i{id}>"
         self._send_msg(msg)
         self._response_event.wait(timeout=5)
         return (self._motor_id, self._motor_angle)
@@ -2846,7 +2845,7 @@ class robot(object):
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = "<63i"+str(id)+">"
+        msg = f"<63i{id}>"
         self._send_msg(msg)
         self._response_event.wait(timeout=5)
         return (self._motor_id, self._temp_motor)
@@ -2873,7 +2872,7 @@ class robot(object):
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = "<64i"+str(id)+">"
+        msg = f"<64i{id}>"
         self._send_msg(msg)
         self._response_event.wait(timeout=5)
         return (self._motor_id, self.volt_motor)
@@ -2900,7 +2899,7 @@ class robot(object):
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = "<65i"+str(id)+">"
+        msg = f"<65i{id}>"
         self._send_msg(msg)
         self._response_event.wait(timeout=5)
         return (self._motor_id, self._motor_torque)
@@ -2927,7 +2926,7 @@ class robot(object):
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = "<66i"+str(id)+">"
+        msg = f"<66i{id}>"
         self._send_msg(msg)
         self._response_event.wait(timeout=5)
         return (self._motor_id, self.current_motor)
@@ -2954,7 +2953,7 @@ class robot(object):
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = "<67i"+str(id)+">"
+        msg = f"<67i{id}>"
         self._send_msg(msg)
         self._response_event.wait(timeout=5)
         return (self._motor_id, self.motor_moving)
@@ -2982,7 +2981,7 @@ class robot(object):
             print("[ERROR] 'value' parameter must be a string")
             return None
 
-        msg = "<80"+str(value)+">"
+        msg = f"<80{value}>"
         self._send_msg(msg)
     # -----------------------------------------------------------------------------
     def set_wifi_credentials(self, ssid: str, password: str):
@@ -3009,7 +3008,7 @@ class robot(object):
             print("[ERROR] 'password' parameter must be a string")
             return None
 
-        msg = "<90"+str(ssid)+"{|||}"+str(password)+">"
+        msg = f"<90{ssid}{{|||}}{password}>"
         self._send_msg(msg)
 
     def get_wifi_credentials(self):
@@ -3065,7 +3064,7 @@ class robot(object):
         name = name.replace(" ", "_")
         name = re.sub(r"[^a-z0-9_]", "", name)
 
-        msg = "<94n"+str(name)+">"
+        msg = f"<94n{name}>"
         self._send_msg(msg)
 
     def get_name(self):
@@ -3165,7 +3164,7 @@ class robot(object):
             print(f"[ERROR] 'param_list' contains invalid parameters: {invalid_params}")
             return None
 
-        msg = "<0h" +str(hertz)+"z/"
+        msg = f"<0h{hertz}z/"
 
         if "color" in param_list:
             msg = msg + "10/"
@@ -3205,7 +3204,7 @@ class robot(object):
         """
         Set the manufacturing date of ilo
         """
-        msg = "<121s"+str(date)+">"
+        msg = f"<121s{date}>"
         self._send_msg(msg)
 
     def get_manufacturing_date(self):
@@ -3220,7 +3219,7 @@ class robot(object):
         """
         Set the first use date of ilo
         """
-        msg = "<131s"+str(date)+">"
+        msg = f"<131s{date}>"
         self._send_msg(msg)
 
     def get_first_use_date(self):
@@ -3235,7 +3234,7 @@ class robot(object):
         """
         Set the version of the product
         """
-        msg = "<141s"+str(version)+">"
+        msg = f"<141s{version}>"
         self._send_msg(msg)
 
     def get_product_version(self):
@@ -3250,7 +3249,7 @@ class robot(object):
         """
         Set the id of the product
         """
-        msg = "<151s"+str(id)+">"
+        msg = f"<151s{id}>"
         self._send_msg(msg)
 
     def get_product_id(self):
