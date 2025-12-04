@@ -45,7 +45,6 @@ print("For any help or support contact us on our website, ilorobot.com")
 # -----------------------------------------------------------------------------
 
 COLOR_NAMES = [
-    "Red",
     "Blue",
     "Yellow",
     "Magenta",
@@ -60,7 +59,6 @@ COLOR_NAMES = [
 ]
 
 COLOR_TABLE = [
-    (225,   0,   0),   # Red
     (0,     0, 255),   # Blue
     (255, 255,   0),   # Yellow
     (255,   0, 255),   # Magenta
