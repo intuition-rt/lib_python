@@ -532,7 +532,6 @@ def check_robot_on_serial(COM=None):
                 ser.reset_output_buffer()
                 time.sleep(1)
 
-                ser.write(("<ilo>").encode())
                 ser.write(("<930>").encode())
                 time.sleep(1)
 
@@ -570,7 +569,6 @@ def check_robot_on_serial(COM=None):
                         ser.reset_output_buffer()
                         time.sleep(0.2)
 
-                        ser.write(("<ilo>").encode())
                         ser.write(("<930>").encode())
                         time.sleep(1)
 
@@ -855,8 +853,6 @@ class robot(object):
         Connection of your machine to robot object 
         """
 
-        self._send_msg("<ilo>")
-
         #if self._hostname != "":
 
             #self._send_msg("<ilo>")
@@ -884,7 +880,6 @@ class robot(object):
                 self._recv_thread.start()
 
                 self._connect = True
-                self._send_msg("<ilo>")
                 self._send_msg("<500y>")
                 time.sleep(0.2)
                 self.get_name()
@@ -907,7 +902,6 @@ class robot(object):
                 self._ser = serial.Serial(self._port, 115200)
 
                 self._connect = True
-                self._send_msg("<ilo>")
                 
                 time.sleep(0.2)
                 self.get_name()
