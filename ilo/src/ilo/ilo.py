@@ -412,6 +412,35 @@ def get_broadcast_ip():
                 if ipaddress.ip_address(ip).is_private:
                     yield broadcast
 
+def expand_4bit(v: int) -> int:
+    return (v * 255 + 7) // 15
+
+
+def base62_value(c: str) -> int:
+    if '0' <= c <= '9':
+        return ord(c) - ord('0')
+    if 'A' <= c <= 'Z':
+        return ord(c) - ord('A') + 10
+    if 'a' <= c <= 'z':
+        return ord(c) - ord('a') + 36
+    return 0
+
+
+def base62_to_rgb(s: str):
+    index = base62_value(s[0]) * 62 + base62_value(s[1])
+    if index >= 3844:
+        index = 3843
+
+    rq = (index >> 8) & 0x0F
+    gq = (index >> 4) & 0x0F
+    bq = index & 0x0F
+
+    r = expand_4bit(rq)
+    g = expand_4bit(gq)
+    b = expand_4bit(bq)
+
+    return r, g, b
+
 
 def check_robot_on_wifi(ap_mode = True, timeout = 1):
     """
@@ -472,10 +501,19 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
                             elif len(parts) == 4:
                                 hostname, hostname, product_id, colors = parts
 
-                                color_circle, color_center = [
-                                    "Unkown" if p == "?" else COLOR_NAMES[int(p)]
-                                    for p in colors.split("/")
-                                ]
+                                # New "XX/XX" color encoding
+                                if len(colors) == 5:
+                                    color_circle, color_center = [
+                                        base62_to_rgb(p)
+                                        for p in colors.split("/")
+                                    ]
+
+                                # Legacy 1 letter encoding
+                                else:
+                                    color_circle, color_center = [
+                                        "Unkown" if p == "?" else COLOR_NAMES[int(p)]
+                                        for p in colors.split("/")
+                                    ]
 
                                 color_pair = f"{color_circle}, {color_center}"
                             else:
