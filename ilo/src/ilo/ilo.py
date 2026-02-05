@@ -996,10 +996,12 @@ class robot(object):
         if _connection_type == 0:
             if self._ws is not None:
                 _co_send_msg(self._ws, "<>")
+                self._ws.close()
         elif _connection_type == 1:
             pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
         elif _connection_type == 2:
-            ble_lib.disconnect(self._ble_device)
+            if hasattr(self, "_ble_device"): # TODO: cleanup this
+                ble_lib.disconnect(self._ble_device)
         else:
             pass
 
@@ -1313,16 +1315,6 @@ class robot(object):
         Destructor to ensure the WebSocket connection is closed gracefully
         and the ID is removed from the list of connected robots
         """
-        if _connection_type == 0:
-            if self._ws is not None:
-                self._ws.close()
-        
-        elif _connection_type == 1:
-            pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
-        elif _connection_type == 2:
-            ble_lib.disconnect(self._ble_device)
-        else:
-            pass  
         self.disconnect()
 
     # -----------------------------------------------------------------------------
