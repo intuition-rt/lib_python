@@ -569,6 +569,43 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
     except Exception as e:
         print(f"WebSocket error: {e}")
 
+
+def _attempt_connection_on_serial(com: str):
+    try:
+        ser = serial.Serial(com, 115200, timeout=1)
+    except (serial.SerialException, OSError) as e:
+        # Silent connection attempt
+        return
+
+    try:
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
+        time.sleep(1)
+
+        ser.write(b"<930>")
+        time.sleep(1)
+
+        while True:
+            response = ser.readline().decode(errors="ignore").strip()
+            if not response:
+                print(f"No valid response received on {com}")
+                break
+
+            # skip debug logs
+            # TODO: a proper wrapper to handle this transparently
+            if response.startswith("["):
+                continue
+
+            print(f"Robot {response} detected on port {com}")
+            _tab_PORT.append([com, _generate_new_ilo_id(), response])
+            break
+
+        ser.close()
+
+    except (serial.SerialException, OSError) as e:
+        print(f"Error with port {com}: {e}")
+
+
 def check_robot_on_serial(COM=None):
     """
     Check the connection to ilo in serial
@@ -577,85 +614,48 @@ def check_robot_on_serial(COM=None):
     global _connection_type
     global _tab_PORT
 
+    _connection_type = 1
+
     if COM:
         try:
             print("Check that ilo is properly connected ...")
-            with serial.Serial(COM, 115200, timeout=1) as ser:
-                # with serial.Serial(port.device, 115200, timeout=1, dsrdtr=False, rtscts=False) as ser:
-                ser.reset_input_buffer()
-                ser.reset_output_buffer()
-                time.sleep(1)
-
-                ser.write(("<930>").encode())
-                time.sleep(1)
-
-                response = ser.readline().decode().strip()
-                ser.close()
-
-                if response:
-                    print(f"Robot {response} detected on port {COM}")
-                    _tab_PORT = [[COM, _generate_new_ilo_id(), response]]
-                    table = PrettyTable()
-                    table.field_names = ["Device port","ID of ilo", "Name of ilo"]
-                    table.add_row([COM, _generate_new_ilo_id(), response])
-                    print(table)
-                    print("")
-                    print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-                    _connection_type = 1
-                else:
-                    print(f"No valid response received on {COM}")
+            _attempt_connection_on_serial(COM)
         except (serial.SerialException, OSError) as e:
             print(f"Error with port {COM} : {e}")
 
     else:
+        _tab_PORT = []
+        print("Check that ilo is properly connected ...")
+
         try:
-            _tab_PORT = []
-
-            print("Check that ilo is properly connected ...")
             ports = serial.tools.list_ports.comports()
-            for port in ports:
-                print(f"Testing port: {port.device}")
-                try:
-                    with serial.Serial(port.device, 115200, timeout=1, write_timeout=1) as ser:
-                        # with serial.Serial(port.device, 115200, timeout=1, dsrdtr=False, rtscts=False) as ser:
-                        ser.reset_input_buffer()
-                        ser.reset_output_buffer()
-                        time.sleep(0.2)
-
-                        ser.write(("<930>").encode())
-                        time.sleep(1)
-
-                        response = ser.readline().decode().strip()
-                        ser.close()
-
-                        if response:
-                            print(f"Robot {response} detected on port {port.device}")
-                            _tab_PORT.append([port.device, _generate_new_ilo_id(), response])
-                        else:
-                            print(f"No valid response received on {port.device}")
-                except (serial.SerialException, OSError) as e:
-                    print(f"Error with port {port.device} : {e}")
-                    continue
-
-            table = PrettyTable()
-            table.field_names = ["Device port", "ID of ilo", "Name of ilo"]
-
-            for row in _tab_PORT:
-                table.add_row(row)
-
-            if len(_tab_PORT) != 0:
-                print(table)
-                print("")
-                print(
-                    "Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-                _connection_type = 1
-            else:
-                print(
-                    "Unfortunately, no ilo is connected to your computer. Check your connection.")
-
         except Exception as e:
             print(f"Serial error: {e}")
             return None
+
+        for port in ports:
+            print(f"Testing port: {port.device}")
+            _attempt_connection_on_serial(port.device)
+
+    table = PrettyTable()
+    table.field_names = ["Device port", "ID of ilo", "Name of ilo"]
+
+    for row in _tab_PORT:
+        table.add_row(row)
+
+    if len(_tab_PORT) != 0:
+        print(table)
+        print("")
+        print(
+            "Use for example: my_ilo = ilo.robot(1)"
+            " to create an object my_ilo with the ID = 1"
+        )
+    else:
+        print(
+            "Unfortunately, no ilo is connected to your computer."
+            " Check your connection."
+        )
+
 
 def check_robot_on_bluetooth():
     copy_to_clipboard('''my_ilo = ilo.robot(1)''')
@@ -849,6 +849,7 @@ class robot(object):
             self._ID = robot_id
             if robot_id is None:
                 raise ValueError(f"Robot with name '{user_ID}' not found.")
+            self._hostname = user_ID
         else:
             self._ID = user_ID
 
