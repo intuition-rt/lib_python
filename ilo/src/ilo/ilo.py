@@ -744,46 +744,8 @@ class robot(object):
     def __init__(self, user_ID, debug=False):
         self._ws: websocket.WebSocket | None = None
 
-        if isinstance(user_ID, str):
-            robot_id = _get_ID_from_NAME(user_ID)
-            self._ID = robot_id
-            if robot_id is None:
-                raise ValueError(f"Robot with name '{user_ID}' not found.")
-        else:
-            self._ID = user_ID
-
-        self._debug = debug
-        copy_to_clipboard('''my_ilo.step('front')''')
-
-        # if _connection_type == 0:
-        if self._ID in robot._robots_connected:  # Vérification si un robot avec cet ID est déjà connecté
-            print(f"Un robot avec l'ID {self._ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
-            _old_robot = robot._robots_connected[self._ID]
-            # Arrêter le thread mais sans déconnexion immédiate
-            if _connection_type == 0:
-                _old_robot.recv_thread_running = False
-            elif _connection_type == 1:
-                pass
-            elif _connection_type == 2:
-                # print("Disconnecting from the BLE device...")
-                ble_lib.disconnect(_old_robot._ble_device)
-                
-                _old_robot.connect = False
-
-            else:
-                pass
-
-        self._Port = 4583
-        self._IP = _get_IP_from_ID(self._ID)
-
-        self._recv_thread = None
-        self._recv_thread_running = False
-
-        # elif _connection_type == 1:
-        self._port = _get_PORT_from_ID(self._ID)
         self._ser = None
         self._connect = False
-
 
         self._version = ""
 
@@ -876,8 +838,43 @@ class robot(object):
         
         self._movement_complete = threading.Event()
 
-        # -- marin add all other data of the robot
-        # -- thinking to a solution to get data from additional captor connected on the top of the robot via accessory PCB
+        self._recv_thread = None
+        self._recv_thread_running = False
+
+        if isinstance(user_ID, str):
+            robot_id = _get_ID_from_NAME(user_ID)
+            self._ID = robot_id
+            if robot_id is None:
+                raise ValueError(f"Robot with name '{user_ID}' not found.")
+        else:
+            self._ID = user_ID
+
+        self._debug = debug
+        copy_to_clipboard('''my_ilo.step('front')''')
+
+        # if _connection_type == 0:
+        if self._ID in robot._robots_connected:  # Vérification si un robot avec cet ID est déjà connecté
+            print(f"Un robot avec l'ID {self._ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
+            _old_robot = robot._robots_connected[self._ID]
+            # Arrêter le thread mais sans déconnexion immédiate
+            if _connection_type == 0:
+                _old_robot.recv_thread_running = False
+            elif _connection_type == 1:
+                pass
+            elif _connection_type == 2:
+                # print("Disconnecting from the BLE device...")
+                ble_lib.disconnect(_old_robot._ble_device)
+
+                _old_robot.connect = False
+
+            else:
+                pass
+
+        self._Port = 4583
+        self._IP = _get_IP_from_ID(self._ID)
+
+        # elif _connection_type == 1:
+        self._port = _get_PORT_from_ID(self._ID)
 
         # Ajouter ce robot à la liste des robots connectés
         robot._robots_connected[self._ID] = self
@@ -1000,7 +997,7 @@ class robot(object):
         elif _connection_type == 1:
             pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
         elif _connection_type == 2:
-            if hasattr(self, "_ble_device"): # TODO: cleanup this
+            if self._ble_device is not None:
                 ble_lib.disconnect(self._ble_device)
         else:
             pass
