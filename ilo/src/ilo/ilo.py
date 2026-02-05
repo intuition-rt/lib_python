@@ -42,6 +42,12 @@ print("ilo robot library version: ", __version__)
 print("For more information about the library use ilo.info() command line")
 print("For any help or support contact us on our website, ilorobot.com")
 
+# This is used for development purpose in order to rapidly test scripts
+# on custom firmware, that is not synced with the API.
+
+# Keep you robot up to date if possible!
+_skip_update = False
+
 # -----------------------------------------------------------------------------
 
 COLOR_NAMES = [
@@ -276,6 +282,9 @@ class _IloUpdater:
             return False
 
     def check_update(self):
+        if _skip_update:
+            return
+
         global suspend_receive_msg
         print("Checking for online updates... Please wait.")
         
