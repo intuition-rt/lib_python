@@ -451,6 +451,15 @@ def base62_to_rgb(s: str):
     return r, g, b
 
 
+__last_ilo_id = 1
+
+def _generate_new_ilo_id() -> int:
+    global __last_ilo_id
+
+    __last_ilo_id += 1
+    return __last_ilo_id - 1
+
+
 def check_robot_on_wifi(ap_mode = True, timeout = 1):
     """
     Check the presence of the ilo(s) on the network
@@ -468,7 +477,7 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
                 print(f"Checking {ws_url}")
                 ws = websocket.create_connection(ws_url, timeout=timeout)
                 if _co_send_msg(ws, "<ilo>") == "ilo":
-                    _tab_IP.append(["192.168.4.1", 1, _co_send_msg(ws, "<930>")])
+                    _tab_IP.append(["192.168.4.1", _generate_new_ilo_id(), _co_send_msg(ws, "<930>")])
 
                     ilo_AP = True
                     ws.close()
@@ -480,7 +489,6 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
             _tab_IP = []
             _seen_ids = set()
 
-            ilo_ID = 1
             DISCOVERY_MESSAGE = "DISCOVER_ROBOT"
             BROADCAST_PORT = 12345
             BUFFER_SIZE = 1024
@@ -534,8 +542,7 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
                             _seen_ids.add(product_id)
 
                             IP = addr[0]
-                            _tab_IP.append([IP, ilo_ID, hostname, color_pair])
-                            ilo_ID += 1
+                            _tab_IP.append([IP, _generate_new_ilo_id(), hostname, color_pair])
                     except socket.timeout:
                         break
             except Exception as e:
@@ -587,10 +594,10 @@ def check_robot_on_serial(COM=None):
 
                 if response:
                     print(f"Robot {response} detected on port {COM}")
-                    _tab_PORT = [[COM, 1, response]]
+                    _tab_PORT = [[COM, _generate_new_ilo_id(), response]]
                     table = PrettyTable()
                     table.field_names = ["Device port","ID of ilo", "Name of ilo"]
-                    table.add_row([COM, 1, response])
+                    table.add_row([COM, _generate_new_ilo_id(), response])
                     print(table)
                     print("")
                     print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
@@ -603,7 +610,6 @@ def check_robot_on_serial(COM=None):
     else:
         try:
             _tab_PORT = []
-            ilo_ID = 1
 
             print("Check that ilo is properly connected ...")
             ports = serial.tools.list_ports.comports()
@@ -624,8 +630,7 @@ def check_robot_on_serial(COM=None):
 
                         if response:
                             print(f"Robot {response} detected on port {port.device}")
-                            _tab_PORT.append([port.device, ilo_ID, response])
-                            ilo_ID += 1
+                            _tab_PORT.append([port.device, _generate_new_ilo_id(), response])
                         else:
                             print(f"No valid response received on {port.device}")
                 except (serial.SerialException, OSError) as e:
@@ -662,12 +667,10 @@ def check_robot_on_bluetooth():
         devices = ble_lib.scan_devices()
         table = PrettyTable()
         table.field_names = ["Device adress", "ID of ilo", "Name of ilo"]
-        i = 1
         for device in devices:
             if str(device[0]).startswith("ilo_"):
-                table.add_row([device[1], i, device[0]])
+                table.add_row([device[1], _generate_new_ilo_id(), device[0]])
                 _tab_ADDRESS.append(device)
-                i += 1
         if len(_tab_ADDRESS) == 0:
             print("No ilo found.")
             return False
