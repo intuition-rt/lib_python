@@ -31,8 +31,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import signal
 import sys
+import webcolors
 
-import sys
 # https://stackoverflow.com/questions/2356399/tell-if-python-is-in-interactive-mode
 IS_INTERACTIVE = hasattr(sys, 'ps1')
 
@@ -449,6 +449,33 @@ def base62_to_rgb(s: str):
     return r, g, b
 
 
+def closest_color_name(rgb: tuple[int, int, int]) -> str:
+    min_distance = float("inf")
+    closest_name = "black"
+
+    colors = webcolors.names()
+
+    for name in colors:
+        r, g, b = webcolors.name_to_rgb(name)
+
+        distance = math.sqrt(
+            (r - rgb[0]) ** 2 +
+            (g - rgb[1]) ** 2 +
+            (b - rgb[2]) ** 2
+        )
+
+        if distance < min_distance:
+            min_distance = distance
+            closest_name = name
+
+    return closest_name
+
+
+def base62_to_name(c: str) -> str:
+    rgb = base62_to_rgb(c)
+    return closest_color_name(rgb)
+
+
 __last_ilo_id = 1
 
 def _generate_new_ilo_id() -> int:
@@ -519,7 +546,7 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
                                 # New "XX/XX" color encoding
                                 if len(colors) == 5:
                                     color_circle, color_center = [
-                                        base62_to_rgb(p)
+                                        base62_to_name(p)
                                         for p in colors.split("/")
                                     ]
 
@@ -675,12 +702,12 @@ def check_robot_on_bluetooth():
                 _, hostname, colors = parts
 
                 if len(colors) == 4:
-                    center = base62_to_rgb(colors[:2])
-                    circle = base62_to_rgb(colors[2:])
+                    center = base62_to_name(colors[:2])
+                    circle = base62_to_name(colors[2:])
                     color_pair = f"{center}, {circle}"
                 elif len(colors) == 5:
-                    center = base62_to_rgb(colors[:2])
-                    circle = base62_to_rgb(colors[3:])
+                    center = base62_to_name(colors[:2])
+                    circle = base62_to_name(colors[3:])
                     color_pair = f"{center}, {circle}"
                 else:
                     color_pair = "unknown"

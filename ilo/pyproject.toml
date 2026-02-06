@@ -55,7 +55,8 @@ dependencies = [
   'numpy>=2.1; python_version >= "3.13"',
   'matplotlib>=3.10; python_version >= "3.13"',
 
-  "pyperclip>=1.8.0,<2.0.0"
+  "pyperclip>=1.8.0,<2.0.0",
+  "webcolors"
 ]
 
 [project.urls]
