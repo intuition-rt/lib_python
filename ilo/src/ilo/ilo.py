@@ -664,10 +664,28 @@ def check_robot_on_bluetooth():
     try:    
         devices = ble_lib.scan_devices()
         table = PrettyTable()
-        table.field_names = ["Device adress", "ID of ilo", "Name of ilo"]
+        table.field_names = ["Device adress", "ID of ilo", "Name of ilo", "Colors"]
         for device in devices:
             if str(device[0]).startswith("ilo_"):
-                table.add_row([device[1], _generate_new_ilo_id(), device[0]])
+                parts = str(device[0]).split("_")
+
+                if len(parts) != 3:
+                    continue
+
+                _, hostname, colors = parts
+
+                if len(colors) == 4:
+                    center = base62_to_rgb(colors[:2])
+                    circle = base62_to_rgb(colors[2:])
+                    color_pair = f"{center}, {circle}"
+                elif len(colors) == 5:
+                    center = base62_to_rgb(colors[:2])
+                    circle = base62_to_rgb(colors[3:])
+                    color_pair = f"{center}, {circle}"
+                else:
+                    color_pair = "unknown"
+
+                table.add_row([device[1], _generate_new_ilo_id(), hostname, color_pair])
                 _tab_ADDRESS.append(device)
         if len(_tab_ADDRESS) == 0:
             print("No ilo found.")
