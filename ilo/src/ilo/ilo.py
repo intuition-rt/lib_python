@@ -354,8 +354,6 @@ def list_function():
     ilo_table.align["Description"] = "l"
     ilo_table.add_row(
         ["ilo.info()", "Print info about ilorobot"], divider=True)
-    ilo_table.add_row(["ilo.check_robot_on_network()",
-                      "Scan the network for robots"], divider=True)
     ilo_table.add_row(
         ["ilo.list_function", "Print the list of all the functions available in the library"], divider=True)
     print(ilo_table)
