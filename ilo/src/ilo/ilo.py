@@ -7,6 +7,7 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
+import colorsys
 import psutil
 import ipaddress
 import serial.tools.list_ports
@@ -420,7 +421,7 @@ def get_broadcast_ip():
                     yield broadcast
 
 def expand_4bit(v: int) -> int:
-    return (v * 255 + 7) // 15
+    return (v * 255 + 7) // 14
 
 
 def base62_value(c: str) -> int:
@@ -435,8 +436,6 @@ def base62_value(c: str) -> int:
 
 def base62_to_rgb(s: str):
     index = base62_value(s[0]) * 62 + base62_value(s[1])
-    if index >= 3844:
-        index = 3843
 
     rq = (index >> 8) & 0x0F
     gq = (index >> 4) & 0x0F
@@ -450,6 +449,12 @@ def base62_to_rgb(s: str):
 
 
 def closest_color_name(rgb: tuple[int, int, int]) -> str:
+    def convert(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
+        r, g, b = rgb
+        return colorsys.rgb_to_hsv(r / 256, g / 256, b / 256)
+
+    target_col = convert(rgb)
+
     min_distance = float("inf")
     closest_name = "black"
 
@@ -457,11 +462,12 @@ def closest_color_name(rgb: tuple[int, int, int]) -> str:
 
     for name in colors:
         r, g, b = webcolors.name_to_rgb(name)
+        col = convert((r, g, b))
 
         distance = math.sqrt(
-            (r - rgb[0]) ** 2 +
-            (g - rgb[1]) ** 2 +
-            (b - rgb[2]) ** 2
+            sum(
+                (b - a) ** 2 for a, b in zip(col, target_col)
+            )
         )
 
         if distance < min_distance:
