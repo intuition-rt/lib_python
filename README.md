@@ -1,290 +1,103 @@
-# lib-python
 
-## Liste des évolutions souhaitées:
+<p align="center">
+  <img alt="Ilo robot" src="https://images.squarespace-cdn.com/content/v1/6312fe2115db3003bd2ec2f1/546df043-e044-4003-867b-802738eb1332/LOGO+ILO+PYTHON.png" width="400">
+</p>
 
-- Gérer l’accès aux capteurs I2C de la carte accessoire
-  - Via une trame spécifique i9c’data’c’data’c’data’c’data’o
-- Mettre à jour list_function
-- Clear tous les débugs : 
-  - check_robot_on_network()
-  - sent / received
+# ilo
 
-## Version 44:
+![Python](https://img.shields.io/pypi/pyversions/ilo.svg?style=for-the-badge&color=%233776AB&)
+[![PyPI](https://img.shields.io/pypi/v/ilo.svg?style=for-the-badge&color=%23FFD343&)](https://pypi.org/project/ilo/)
+[![Downloads](https://img.shields.io/pypi/dm/ilo.svg?style=for-the-badge&color=%2328A745&)](https://pypi.org/project/ilo/)
+[![License](https://img.shields.io/pypi/l/ilo.svg?style=for-the-badge&color=%234A75A0)](https://github.com/marinchl/ilo/blob/main/LICENSE)
 
-Date de publication: 05/12/2024
+---
 
-Ajout par rapport à la version précédente:
-```
-• Add serial
-• Add pyperclip (for ctrl + v)
-```
+**ilo** is a powerful Python package to control **ilo** the new **educational robot** directly from your computer.  
+It allows you to move the robot, read sensors, interact with LEDs, and create autonomous behaviors — all in just a few lines of Python.
 
+---
 
-## Version 41:
+## Features
 
-Date de publication: 25/09/2024
+- Move the robot in multiple directions with Python commands  
+- Create complex **movement loops**  
+- Draw and animate using the robot's **LED matrix**  
+- Play with the robot **in real time** using your keyboard  
+- Use **colored cards** to trigger autonomous modes  
+- Control and read sensors over **Wi-Fi** or **Bluetooth**
 
-Ajout par rapport à la version précédente:
-```
-• Fix set_led_single()
-```
+---
 
-## Version 40:
+## Installation
 
-Date de publication: 25/09/2024
-
-Ajout par rapport à la version précédente:
-```
-• Fix rotation()
+```bash
+pip install ilo
 ```
 
-## Version 39:
-
-Date de publication: 24/09/2024
-
-Ajout par rapport à la version précédente:
-```
-• Add set_pid, get_pid, rotation
+To update:
+```bash
+pip install ilo --upgrade
 ```
 
-## Version 38:
+---
 
-Date de publication: 23/09/2024
+## Quick Example
 
-Ajout par rapport à la version précédente:
-```
-• Fix step()
-```
+Here’s a simple example to get started:
 
-## Version 37:
+```python
+import ilo, time
 
-Date de publication: 23/09/2024
+ilo.check_robot_on_bluetooth()
+# ilo.check_robot_on_wifi()  # Make sure you are connected to the robot's Wi-Fi AP
 
-Ajout par rapport à la version précédente:
-```
-• Fix step() error
-```
+my_ilo = ilo.robot(1)
 
-## Version 36:
+# Go forward until an obstacle is close
+while my_ilo.get_distance_front() > 30:
+    my_ilo.move("front", 10, 50) 
+    time.sleep(0.1)
 
-Date de publication: 23/09/2024
-
-Ajout par rapport à la version précédente:
-```
-• Add name feature to ping
-• Add parcing for the trame_s
-• Add get_single_motor_angle, get_temp_single_motor, get_volt_single_motor, get_torque_single_motor, get_current_single_motor, get_motor_is_moving, get_acc_motor, get_tempo_pos
-• Add dosctring
+my_ilo.stop()  # Stop the robot
+my_ilo.step("rot_clock")  # Rotate clockwise
+my_ilo.set_led_color(25, 200, 25)
+my_ilo.step("front", 0.5)
 ```
 
-## Version 35:
+---
 
-Date de publication: 05/09/2024
+## Dependencies
 
-Ajout par rapport à la version précédente:
-```
-• Fix websocket error
-```
+All dependencies are **automatically installed** with `ilo`.  
+Here’s what each one does:
+- [`keyboard-crossplatform`](https://pypi.org/project/keyboard-crossplatform/) – cross-platform keyboard event listener (works on macOS, Windows, and Linux)
+- [`prettytable`](https://pypi.org/project/prettytable/) – generate clean and easy-to-read tables in the terminal
+- [`websocket-client`](https://pypi.org/project/websocket-client/) – communicate with the robot via WebSocket
+- [`bleak`](https://pypi.org/project/bleak/) – Bluetooth Low Energy (BLE) client library for Python
+- [`pyserial`](https://pypi.org/project/pyserial/) – serial communication support (UART)
+- [`pyperclip`](https://pypi.org/project/pyperclip/) – cross-platform clipboard support
+- [`requests`](https://pypi.org/project/requests/) – simple and powerful HTTP client
+- [`numpy`](https://pypi.org/project/numpy/) – fundamental package for scientific computing
+- [`matplotlib`](https://pypi.org/project/matplotlib/) – powerful plotting and visualization library
 
-## Version 34:
+---
 
-Date de publication: 28/08/2024
+## Documentation
 
-Ajout par rapport à la version précédente:
-```
-• Passage de socket a websocket
-• Ajout et fix de nouvelles méthodes
-```
+Full documentation and examples are available on `GitHub`. *(Comming soon)*
 
-## Version 33:
+---
 
-Date de publication: 06/08/2024
+## Contributing
 
-Ajout par rapport à la version précédente:
-```
-• Passage des trames de 'io' à '<<>>'
-```
+Bug reports, patches, and suggestions are welcome!
 
-## Version 32:
+Questions? Contact us via [`our website`](https://ilorobot.com).
 
-Date de publication: 19/06/2024
+---
 
-Ajout par rapport à la version précédente:
-```
-• Fix
-```
-
-## Version 31:
-
-Date de publication: 07/06/2024
-
-Ajout par rapport à la version précédente:
-```
-• Passage du param de drive_single_motor en pourcentage
-```
-
-## Version 30:
-
-Date de publication: 29/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Mise à jour de l'IP
-• Ajout controle_single_motor
-• Adaptation du code pour que plusieurs robots puissent être utilisés en même temps
-```
-
-## Version 29:
-
-Date de publication: 17/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Mise à jour de list_function
-• Ajout set_autonomous_mode
-```
-
-## Version 28:
-
-Date de publication: 16/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Mise à jour des trames
-```
-
-## Version 27:
-
-Date de publication: 16/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Mise à jour des trames
-```
-
-## Version 26:
-
-Date de publication: 16/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Mise à jour de list_function
-• Mise à jour des trames
-• Ajout méthodes
-```
-
-## Version 25:
-
-Date de publication: 15/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Mise à jour de list_function
-• Correction trame imu
-• Correction nom méthode get_acc_motor / set_acc_motor
-• Ajout drive_single_motor
-```
-
-## Version 24:
-
-Date de publication: 10/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Correction trame
-```
-
-## Version 23:
-
-Date de publication: 10/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Ajout de la trame get_imu
-• Mise à jour de sa trame de retour
-```
-
-## Version 22:
-
-Date de publication: 03/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Ajout de la trame set_led_captor
-• Modification game mode : 5 => space
-```
-
-## Version 21:
-
-Date de publication: 02/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Mise à jour des trames
-```
-
-## Version 20:
-
-Date de publication: 02/05/2024
-
-Ajout par rapport à la version précédente:
-```
-• Mise à jour des trames de retour
-```
-
-## Version 19:
-
-Date de publication: 26/04/2024
-
-Ajout par rapport à la version précédente:
-```
-• Mise à jour des trames de retour
-```
-
-## Version 18:
-
-Date de publication: 23/02/2024
-
-Ajout par rapport à la version précédente:
-```
-• Ajout des nouvelle méthode dans list_function()
-• Supprimer trait de séparation du README.md
-```
-
-## Version 17:
-
-Date de publication: 23/02/2024
-
-Ajout par rapport à la version précédente:
-```
-• Corriger bug photo README.md
-```
-
-## Version 16:
-
-Date de publication: 22/02/2024
-
-Ajout par rapport à la version précédente:
-```
-• Gestion des commentaire de paramètre de méthode
-• Ajout d’un read.me
-```
-
-## Version 15:
-
-Date de publication: 21/02/2024
-
-Ajout par rapport à la version précédente:
-```
-• Suppression des display en paramètre
-• Forcer l’installation du la lib keyboard
-```
-
-## Version 14
-
-Date de publication: 21/02/2024
-
-Ajout par rapport à la version précédente:
-```
-• Gestion du token pour la publication
-```
+<p align="center">
+  <a href="https://ilorobot.com">
+    <img src="https://img.shields.io/badge/Powered_by-Intuition_RT-%234A75A0?style=for-the-badge&logo=python&logoColor=white" alt="Powered by Intuition RT">
+  </a>
+</p>

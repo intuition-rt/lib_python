@@ -21,7 +21,7 @@ buildPythonPackage {
   version = "0.0.62";
   pyproject = true;
 
-  src = ./../ilo;
+  src = ./..;
 
   build-system = [setuptools];
 
