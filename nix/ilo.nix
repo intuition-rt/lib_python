@@ -14,10 +14,11 @@
   numpy,
   matplotlib,
   tkinter,
+  webcolors,
 }:
 buildPythonPackage {
   pname = "ilo";
-  version = "0.0.61";
+  version = "0.0.62";
   pyproject = true;
 
   src = ./../ilo;
@@ -37,6 +38,7 @@ buildPythonPackage {
     numpy
     matplotlib
     tkinter
+    webcolors
   ];
 
   meta = {
