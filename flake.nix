@@ -30,6 +30,7 @@
           stdenv.cc.cc.lib
           xclip
           scom
+          (python3.withPackages (p: with p; [ build twine ]))
         ];
       };
     });
