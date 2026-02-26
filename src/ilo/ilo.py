@@ -79,19 +79,7 @@ COLOR_TABLE = [
     (100, 149, 237),   # Cornflower Blue
 ]
 
-
-import pyperclip
-
-
-@wraps(pyperclip.copy)
-def copy_to_clipboard(text: str) -> None:
-    if not pyperclip.is_available:
-        return
-
-    copy, _ = pyperclip.determine_clipboard()
-
-    if copy:
-        pyperclip.copy(text)
+from .copy_to_clipboard import copy_to_clipboard
 
 
 class _SyncBleak:
