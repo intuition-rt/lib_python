@@ -16,7 +16,8 @@ import socket
 import math
 import threading
 import websocket
-from functools import wraps
+from dataclasses import dataclass
+from enum import Enum, auto
 from typing import Any, Dict, Union
 from keyboard_crossplatform import KeyboardCrossplatform
 import time
@@ -313,6 +314,33 @@ copy_to_clipboard("""ilo.check_robot_on_bluetooth()""")
 
 _connection_type = 0
 
+class ConnectionType(Enum):
+    ACCESS_POINT = auto()
+    WIFI = auto()
+    BLUEBOOTH = auto()
+    SERIAL = auto()
+
+
+
+@dataclass
+class DiscoveredRobot:
+    connection_type: ConnectionType
+    uid: str
+    name: str
+    color_pair: str | None
+
+    def __hash__(self) -> int:
+        return hash(self.uid)
+
+    def __gt__(self, other: Any) -> bool:
+        if not isinstance(other, DiscoveredRobot):
+            raise ValueError("Only comparable to the same type.")
+
+        return self.name < other.name
+
+
+__scanned_robots: dict[str, DiscoveredRobot] = {}
+
 # WiFi
 _tab_IP = []
 # Serial
@@ -479,10 +507,42 @@ def _generate_new_ilo_id() -> int:
     return __last_ilo_id - 1
 
 
+
+def show_available_robots(connection_type: ConnectionType):
+    uid_name = {
+        ConnectionType.WIFI: "IP Address",
+        ConnectionType.BLUEBOOTH: "Device ID",
+        ConnectionType.SERIAL: "Port"
+    }
+
+    table = PrettyTable()
+    table.field_names = [
+        uid_name[connection_type],
+        "Name of ilo",
+        "Colors"
+    ]
+
+    any_matches = False
+    for robot in sorted(__scanned_robots.values()):
+        if robot.connection_type == connection_type:
+            any_matches = True
+            table.add_row(
+                [robot.uid, robot.name, robot.color_pair or "-"]
+            )
+
+    if any_matches:
+        print(table)
+    else:
+        print("Unfortunately, no ilo were found.")
+
+
 def check_robot_on_wifi(ap_mode = True, timeout = 1):
     """
     Check the presence of the ilo(s) on the network
     """
+    global _connection_type
+    _connection_type = 0 # TODO: remove
+
     copy_to_clipboard("""my_ilo = ilo.robot(1)""")
     try:
         print("Looking for ilo on your network ...")
@@ -561,6 +621,12 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
 
                             _seen_ids.add(IP)
                             _tab_IP.append([IP, _generate_new_ilo_id(), hostname, color_pair])
+                            __scanned_robots[IP] = DiscoveredRobot(
+                                connection_type=ConnectionType.WIFI,
+                                uid=IP,
+                                name=hostname,
+                                color_pair=color_pair
+                            )
                     except socket.timeout:
                         break
             except Exception as e:
@@ -570,19 +636,7 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
 
             _seen_ids.clear()
 
-            table = PrettyTable()
-            table.field_names = ["IP Address", "ID of ilo", "Name of ilo", "Colors"]
-            for row in _tab_IP:
-                table.add_row(row)
-
-            if len(_tab_IP) != 0:
-                print(table)
-                print("")
-                print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-                global _connection_type
-                _connection_type = 0
-            else:
-                print("Unfortunately, no ilo is present on your current network. Check your connection.")
+            show_available_robots(ConnectionType.WIFI)
 
     except Exception as e:
         print(f"WebSocket error: {e}")
@@ -616,6 +670,13 @@ def _attempt_connection_on_serial(com: str):
 
             print(f"Robot {response} detected on port {com}")
             _tab_PORT.append([com, _generate_new_ilo_id(), response])
+            __scanned_robots[com] = DiscoveredRobot(
+                connection_type=ConnectionType.WIFI,
+                uid=com,
+                name=response,
+                color_pair=None
+            )
+
             break
 
         ser.close()
@@ -632,7 +693,7 @@ def check_robot_on_serial(COM=None):
     global _connection_type
     global _tab_PORT
 
-    _connection_type = 1
+    _connection_type = 1 # TODO: remove
 
     if COM:
         try:
@@ -655,30 +716,15 @@ def check_robot_on_serial(COM=None):
             print(f"Testing port: {port.device}")
             _attempt_connection_on_serial(port.device)
 
-    table = PrettyTable()
-    table.field_names = ["Device port", "ID of ilo", "Name of ilo"]
-
-    for row in _tab_PORT:
-        table.add_row(row)
-
-    if len(_tab_PORT) != 0:
-        print(table)
-        print("")
-        print(
-            "Use for example: my_ilo = ilo.robot(1)"
-            " to create an object my_ilo with the ID = 1"
-        )
-    else:
-        print(
-            "Unfortunately, no ilo is connected to your computer."
-            " Check your connection."
-        )
+    show_available_robots(ConnectionType.SERIAL)
 
 
 def check_robot_on_bluetooth():
     copy_to_clipboard('''my_ilo = ilo.robot(1)''')
     global _tab_ADDRESS
     global _connection_type
+    
+    _connection_type = 2 # TODO: remove
 
     print("[ILO] Scanning for BLE devices...")
     try:    
@@ -707,15 +753,14 @@ def check_robot_on_bluetooth():
 
                 table.add_row([device[1], _generate_new_ilo_id(), hostname, color_pair])
                 _tab_ADDRESS.append(device)
-        if len(_tab_ADDRESS) == 0:
-            print("No ilo found.")
-            return False
-        else:
-            print(table)
-            print("Use for example: my_ilo = ilo.robot(1) to create an object my_ilo with the ID = 1")
-            _connection_type = 2
-            # print("Connection type: BLE")
-            return True
+                __scanned_robots[device[1]] = DiscoveredRobot(
+                    connection_type=ConnectionType.BLUEBOOTH,
+                    uid=device[1],
+                    name=hostname,
+                    color_pair=color_pair
+                )
+
+        show_available_robots(ConnectionType.BLUEBOOTH)
         
     except Exception as e:
         print(f"Error check robot on Bluetooth: {e}")
