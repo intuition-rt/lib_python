@@ -882,8 +882,6 @@ class robot(object):
         self._product_version = ""
         self._product_id = ""
 
-        self._marker = True
-
         self._response_event = threading.Event()
         self._response_value = None
         
@@ -1066,7 +1064,7 @@ class robot(object):
                     self._ws.send(message)
                     if self._debug:
                         print(f"Sent:     {message}")
-                    time.sleep(0.1)  # Small delay to ensure the message is sent
+                    # time.sleep(0.1)  # Small delay to ensure the message is sent
                 except websocket.WebSocketException as e:
                     print(f"Error sending message: {e}")
             else:
@@ -1100,7 +1098,7 @@ class robot(object):
                     ble_lib.write_characteristic(self._ble_device, CHARACTERISTIC_UUID, message.encode())
                     if self._debug:
                         print(f"Sent:     {message}")
-                    time.sleep(0.1)  # Small delay to ensure the message is sent
+                    # time.sleep(0.1)  # Small delay to ensure the message is sent
                 except Exception as e:
                     print(f"Error sending message: {e}")
         else:
@@ -1164,7 +1162,6 @@ class robot(object):
                         break
             if trame:
                 self._process_received_data(trame)
-                self._marker = True
         except serial.SerialException as e:
             print(f"Error: {e}")
     # -----------------------------------------------------------------------------
@@ -3152,7 +3149,6 @@ class robot(object):
         Get the name you have given to your ilo
         """
         self._send_msg("<93>")
-        self._marker = False
         self._response_event.wait(timeout=5)
         return (self._hostname)
     # -----------------------------------------------------------------------------
