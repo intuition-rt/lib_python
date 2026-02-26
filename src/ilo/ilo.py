@@ -567,12 +567,11 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
                             else:
                                 continue
 
-                            if product_id in _seen_ids:
-                                continue
-
-                            _seen_ids.add(product_id)
-
                             IP = addr[0]
+                            if IP in _seen_ids:
+                               continue
+
+                            _seen_ids.add(IP)
                             _tab_IP.append([IP, _generate_new_ilo_id(), hostname, color_pair])
                     except socket.timeout:
                         break
