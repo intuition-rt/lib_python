@@ -1230,7 +1230,7 @@ class Robot:
                 self._product_id = str(data[data.find('s')+1: data.find('>')])
 
             elif str(data[1:5]) == "500y": # get_version
-                self._version = str(data[data.find('y')+1: data.find('>')])
+                self._version = str(data[data.find('y')+1: data.find('>')]).removeprefix("v")
 
             elif str(data[1:4]) == "500":  # get_global_trame
                 self._version = str(data[data.find('y')+1: data.find('>')])
