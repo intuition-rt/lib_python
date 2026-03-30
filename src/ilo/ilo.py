@@ -312,41 +312,50 @@ class _IloUpdater:
 
 copy_to_clipboard("""ilo.check_robot_on_bluetooth()""")
 
-_connection_type = 0
-
 class ConnectionType(Enum):
-    ACCESS_POINT = auto()
-    WIFI = auto()
-    BLUEBOOTH = auto()
-    SERIAL = auto()
+    WIFI = 0
+    BLUETOOTH = 1
+    SERIAL = 2
 
+    def __str__(self) -> str:
+        return self.name.removeprefix("ConnectionType.")
 
 
 @dataclass
-class DiscoveredRobot:
+class RobotCandidate:
+    """
+    Represent the available data about a robot before connexion.
+    This is used for the user to differenciate which robot is their, and
+    connect to it.
+
+    Collect from calls `check_robot_[serial|bluetooth|wifi]`
+    """
     connection_type: ConnectionType
-    uid: str
+    address: str
     name: str
     color_pair: str | None
 
     def __hash__(self) -> int:
-        return hash(self.uid)
+        return hash(self.address)
 
     def __gt__(self, other: Any) -> bool:
-        if not isinstance(other, DiscoveredRobot):
+        if not isinstance(other, RobotCandidate):
             raise ValueError("Only comparable to the same type.")
 
         return self.name < other.name
 
+    def __repr__(self) -> str:
+        return f"<ilo name={self.name} @ {self.address} (via {self.connection_type})>"
 
-__scanned_robots: dict[str, DiscoveredRobot] = {}
 
-# WiFi
-_tab_IP = []
-# Serial
-_tab_PORT = []
-# BLE
-_tab_ADDRESS = []
+__candidate_pool: dict[str, RobotCandidate] = {}
+
+
+def find_in_candidates(name: str) -> RobotCandidate | None:
+    for candidate in __candidate_pool.values():
+        if candidate.name == name:
+            return candidate
+    return None
 
 client = None
 # -----------------------------------------------------------------------------
@@ -382,8 +391,8 @@ def list_function():
     my_ilo_table.align["Object methods (example: my_ilo.game())"] = "l"
     my_ilo_table.align["Description"] = "l"
 
-    for entry_name in dir(robot):
-        entry: Any = getattr(robot, entry_name)
+    for entry_name in dir(Robot):
+        entry: Any = getattr(Robot, entry_name)
         if not callable(entry) or entry_name.startswith("_"):
             continue
 
@@ -511,7 +520,7 @@ def _generate_new_ilo_id() -> int:
 def show_available_robots(connection_type: ConnectionType):
     uid_name = {
         ConnectionType.WIFI: "IP Address",
-        ConnectionType.BLUEBOOTH: "Device ID",
+        ConnectionType.BLUETOOTH: "Device ID",
         ConnectionType.SERIAL: "Port"
     }
 
@@ -523,11 +532,11 @@ def show_available_robots(connection_type: ConnectionType):
     ]
 
     any_matches = False
-    for robot in sorted(__scanned_robots.values()):
+    for robot in sorted(__candidate_pool.values()):
         if robot.connection_type == connection_type:
             any_matches = True
             table.add_row(
-                [robot.uid, robot.name, robot.color_pair or "-"]
+                [robot.address, robot.name, robot.color_pair or "-"]
             )
 
     if any_matches:
@@ -540,14 +549,9 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
     """
     Check the presence of the ilo(s) on the network
     """
-    global _connection_type
-    _connection_type = 0 # TODO: remove
-
     copy_to_clipboard("""my_ilo = ilo.robot(1)""")
     try:
         print("Looking for ilo on your network ...")
-        global _tab_IP
-        _tab_IP = []
         ilo_AP = False
 
         if ap_mode:
@@ -556,8 +560,6 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
                 print(f"Checking {ws_url}")
                 ws = websocket.create_connection(ws_url, timeout=timeout)
                 if _co_send_msg(ws, "<ilo>") == "ilo":
-                    _tab_IP.append(["192.168.4.1", _generate_new_ilo_id(), _co_send_msg(ws, "<930>")])
-
                     ilo_AP = True
                     ws.close()
                     print("Your robot is working as an access point")
@@ -565,7 +567,6 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
                 pass
 
         if not ilo_AP:
-            _tab_IP = []
             _seen_ids = set()
 
             DISCOVERY_MESSAGE = "DISCOVER_ROBOT"
@@ -620,10 +621,9 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
                                continue
 
                             _seen_ids.add(IP)
-                            _tab_IP.append([IP, _generate_new_ilo_id(), hostname, color_pair])
-                            __scanned_robots[IP] = DiscoveredRobot(
+                            __candidate_pool[IP] = RobotCandidate(
                                 connection_type=ConnectionType.WIFI,
-                                uid=IP,
+                                address=IP,
                                 name=hostname,
                                 color_pair=color_pair
                             )
@@ -669,10 +669,9 @@ def _attempt_connection_on_serial(com: str):
                 continue
 
             print(f"Robot {response} detected on port {com}")
-            _tab_PORT.append([com, _generate_new_ilo_id(), response])
-            __scanned_robots[com] = DiscoveredRobot(
-                connection_type=ConnectionType.WIFI,
-                uid=com,
+            __candidate_pool[com] = RobotCandidate(
+                connection_type=ConnectionType.SERIAL,
+                address=com,
                 name=response,
                 color_pair=None
             )
@@ -690,10 +689,6 @@ def check_robot_on_serial(COM=None):
     Check the connection to ilo in serial
     """
     copy_to_clipboard("""my_ilo = ilo.robot(1)""")
-    global _connection_type
-    global _tab_PORT
-
-    _connection_type = 1 # TODO: remove
 
     if COM:
         try:
@@ -703,7 +698,6 @@ def check_robot_on_serial(COM=None):
             print(f"Error with port {COM} : {e}")
 
     else:
-        _tab_PORT = []
         print("Check that ilo is properly connected ...")
 
         try:
@@ -721,10 +715,6 @@ def check_robot_on_serial(COM=None):
 
 def check_robot_on_bluetooth():
     copy_to_clipboard('''my_ilo = ilo.robot(1)''')
-    global _tab_ADDRESS
-    global _connection_type
-    
-    _connection_type = 2 # TODO: remove
 
     print("[ILO] Scanning for BLE devices...")
     try:    
@@ -752,80 +742,23 @@ def check_robot_on_bluetooth():
                     color_pair = "unknown"
 
                 table.add_row([device[1], _generate_new_ilo_id(), hostname, color_pair])
-                _tab_ADDRESS.append(device)
-                __scanned_robots[device[1]] = DiscoveredRobot(
-                    connection_type=ConnectionType.BLUEBOOTH,
-                    uid=device[1],
+                __candidate_pool[device[1]] = RobotCandidate(
+                    connection_type=ConnectionType.BLUETOOTH,
+                    address=device[1],
                     name=hostname,
                     color_pair=color_pair
                 )
 
-        show_available_robots(ConnectionType.BLUEBOOTH)
+        show_available_robots(ConnectionType.BLUETOOTH)
         
     except Exception as e:
         print(f"Error check robot on Bluetooth: {e}")
         return False
 
-# -----------------------------------------------------------------------------
+class Robot:
+    _robots_connected: Dict[str, Robot] = {}
 
-def _get_IP_from_ID(ID):
-    '''
-    Get the IP address of the robot from its ID
-    '''
-    # print(ID)
-    global _tab_IP
-    for item in _tab_IP:
-        # print(item[1])
-        if item[1] == ID:
-            return item[0]
-    return None
-
-def _get_PORT_from_ID(ID):
-    '''
-    Get the PORT of the robot from its ID
-    '''
-    global _tab_PORT
-    for item in _tab_PORT:
-        if item[1] == ID:
-            return item[0]
-    return None
-
-def _get_ID_from_NAME(name):
-    '''
-    Get the ID of the robot from its NAME
-    '''
-    global _tab_IP, _tab_PORT, _tab_ADDRESS, _connection_type
-    
-    if _connection_type == 0:   # WiFi
-        for item in _tab_IP:
-            if item[2] == name:
-                return item[1]
-    elif _connection_type == 1:  # Serial
-        for item in _tab_PORT:
-            if item[2] == name:
-                return item[1]
-    elif _connection_type == 2:  # Bluetooth
-        for item in _tab_ADDRESS:
-            if item[0] == name:  # for BLE, item[0] is the name
-                return _tab_ADDRESS.index(item) + 1
-    return None
-
-# def get_ADDRESS_from_ID(ID):
-#     '''
-#     Get the ADDRESS of the robot from its ID
-#     '''
-#     global _tab_ADDRESS
-#     for item in _tab_ADDRESS:
-#         if item[1] == ID:
-#             return item[0]
-#     return None
-# -----------------------------------------------------------------------------
-
-class robot(object):
-    global _connection_type
-    _robots_connected: Dict[int, robot] = {}  # Variable de classe pour garder une trace des connexions actives
-
-    def __init__(self, user_ID, debug=False):
+    def __init__(self, candidate: RobotCandidate, debug=False):
         self._ws: websocket.WebSocket | None = None
 
         self._ser = None
@@ -833,11 +766,9 @@ class robot(object):
 
         self._version = ""
 
-        #BLE:
-        # self.adress = get_ADDRESS_from_ID(self._ID)
         self._ble_device = None
 
-        self._hostname = ""
+        self._hostname = candidate.name
 
         self._red_color_left   = 0
         self._green_color_left = 0
@@ -923,77 +854,29 @@ class robot(object):
         self._recv_thread = None
         self._recv_thread_running = False
 
-        if isinstance(user_ID, str):
-            robot_id = _get_ID_from_NAME(user_ID)
-            self._ID = robot_id
-            if robot_id is None:
-                raise ValueError(f"Robot with name '{user_ID}' not found.")
-            self._hostname = user_ID
-        else:
-            self._ID = user_ID
-
         self._debug = debug
         copy_to_clipboard('''my_ilo.step('front')''')
 
-        # if _connection_type == 0:
-        if self._ID in robot._robots_connected:  # Vérification si un robot avec cet ID est déjà connecté
-            print(f"Un robot avec l'ID {self._ID} est déjà connecté, déconnexion automatique de l'ancien robot.")
-            _old_robot = robot._robots_connected[self._ID]
-            # Arrêter le thread mais sans déconnexion immédiate
-            if _connection_type == 0:
-                _old_robot.recv_thread_running = False
-            elif _connection_type == 1:
-                pass
-            elif _connection_type == 2:
-                # print("Disconnecting from the BLE device...")
-                ble_lib.disconnect(_old_robot._ble_device)
-
-                _old_robot.connect = False
-
-            else:
-                pass
-
         self._Port = 4583
-        self._IP = _get_IP_from_ID(self._ID)
 
-        # elif _connection_type == 1:
-        self._port = _get_PORT_from_ID(self._ID)
+        self.address = candidate.address
+        self.connection_type = candidate.connection_type
 
-        # Ajouter ce robot à la liste des robots connectés
-        robot._robots_connected[self._ID] = self
+        print("Connnecting to", candidate)
+        self._connection()
 
-        # print(f"Robot with ID {self._ID} will be connected")
-        if self._ID:
-            # print("You are trying to connect to: ", self._IP)
-            self._connection()
-        else:
-            print("You have to run the command [ilo.check_ilo_on_network()] to know if there are robots present on your network")
-            print("or")
-            print("Run the command [ilo.check_ilo_on_serial()] to know if there are robots connected to your computer")
 
     def __repr__(self) -> str:
-        return f"<Ilo name={self.get_name()} id={self.get_product_id()}>"
+        return f"<ilo name={self._hostname} @ {self.address}>"
 
     # -----------------------------------------------------------------------------
     def _connection(self):
         """
         Connection of your machine to robot object 
         """
-
-        #if self._hostname != "":
-
-            #self._send_msg("<ilo>")
-
-            #print('Your robot is already connected to ' + self._hostname)
-            # -- marin check if the websocket is well working (test un envoi de trame ou spécific methode
-
-        #else:
-        # print("Trying to connect to the robot with ID: ", self._ID, " and connection type: ", _connection_type)
-        if _connection_type == 0: 
+        if self.connection_type == ConnectionType.WIFI:
             try:
-                # Start the WebSocket d'envoie de trame
-                self._ws = websocket.create_connection(
-                    f"ws://{self._IP}:{self._Port}")
+                self._ws = websocket.create_connection(f"ws://{self.address}:{self._Port}")
 
                 # Vérifie si un ancien thread de réception est actif et l'arrête avant d'en démarrer un nouveau
                 if self._recv_thread and self._recv_thread.is_alive():
@@ -1005,6 +888,8 @@ class robot(object):
                 self._recv_thread = threading.Thread(
                     target=self._web_socket_receive)
                 self._recv_thread.start()
+
+                self._robots_connected[self.address] = self
 
                 self._connect = True
                 self._send_msg("<500y>")
@@ -1023,12 +908,13 @@ class robot(object):
                 print(f"Error connecting to the robot: {e}")
                 self._connect = False
 
-        elif _connection_type == 1:
+        elif self.connection_type == ConnectionType.SERIAL:
             try:
                 # Start the serial connection
-                self._ser = serial.Serial(self._port, 115200)
+                self._ser = serial.Serial(self.address, 115200)
 
                 self._connect = True
+                self._robots_connected[self.address] = self
                 
                 time.sleep(0.2)
                 self.get_name()
@@ -1042,7 +928,7 @@ class robot(object):
                 print(f"Error connecting to the robot: {e}")
                 self._connect = False
 
-        elif _connection_type == 2:
+        elif self.connection_type == ConnectionType.BLUETOOTH:
             def notification_handler(sender, data):
                 global suspend_receive_msg
                 try:
@@ -1054,11 +940,11 @@ class robot(object):
                     print(f"Received non-UTF-8 data: {data}")
             # print("Connecting to the BLE device...")
             try:
-                address = _tab_ADDRESS[self._ID - 1][1]
-                self._ble_device = ble_lib.connect(address)
+                self._ble_device = ble_lib.connect(self.address)
 
                 ble_lib.subscribe_to_notifications(CHARACTERISTIC_UUID, notification_handler)
                 self._connect = True
+                self._robots_connected[self.address] = self
                 # print("Connected to the BLE device.")
                 self._send_msg("<ilo>")
                 self._send_msg("<500y>")
@@ -1073,13 +959,13 @@ class robot(object):
                 self._connect = False
 
     def disconnect(self):
-        if _connection_type == 0:
+        if self.connection_type == ConnectionType.WIFI:
             if self._ws is not None:
                 _co_send_msg(self._ws, "<>")
                 self._ws.close()
-        elif _connection_type == 1:
+        elif self.connection_type == ConnectionType.SERIAL:
             pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
-        elif _connection_type == 2:
+        elif self.connection_type == ConnectionType.BLUETOOTH:
             if self._ble_device is not None:
                 ble_lib.disconnect(self._ble_device)
         else:
@@ -1091,7 +977,7 @@ class robot(object):
     # -----------------------------------------------------------------------------
     def _send_msg(self, message):
         self._response_event.clear()
-        if _connection_type == 0:
+        if self.connection_type == ConnectionType.WIFI:
             if self._ws and self._connect:
                 try:
                     self._ws.send(message)
@@ -1103,7 +989,7 @@ class robot(object):
             else:
                 print("WebSocket is not connected.")
 
-        elif _connection_type == 1:
+        elif self.connection_type == ConnectionType.SERIAL:
             if self._ser and self._connect:
                 try:
                     self._ser.write(message.encode())
@@ -1125,7 +1011,7 @@ class robot(object):
                     print(f"Error sending message: {e}")
             else:
                 print("Serial is not connected.")
-        elif _connection_type == 2:
+        elif self.connection_type == ConnectionType.BLUETOOTH:
             if self._ble_device and self._connect:
                 try:
                     ble_lib.write_characteristic(self._ble_device, CHARACTERISTIC_UUID, message.encode())
@@ -1384,10 +1270,9 @@ class robot(object):
             print("Waiting for the reception thread to stop...")
             self._recv_thread.join(timeout=2)
 
-        if self._ID in robot._robots_connected:
-            del robot._robots_connected[self._ID]
+        self._robots_connected.pop(self.address)
+        print(f"WebSocket connection closed for the robot {self._hostname}.")
 
-        print(f"WebSocket connection closed for the robot {self._ID}.")
     # -----------------------------------------------------------------------------
     def __del__(self):
         """
@@ -1403,21 +1288,21 @@ class robot(object):
 
         :return: True or False
         """
-        if _connection_type == 0:
+        if self.connection_type == ConnectionType.WIFI:
             try:
                 self._send_msg("<ilo>")
                 return True
             except:
                 print("Error connection to the robot")
                 return False
-        elif _connection_type == 1:
+        elif self.connection_type == ConnectionType.SERIAL:
             try:
                 self._send_msg("<ilo>")
                 return True
             except:
                 print("Error connection to the robot")
                 return False
-        elif _connection_type == 2:
+        elif self.connection_type == ConnectionType.BLUETOOTH:
             try:
                 self._send_msg("<ilo>")
                 return True
@@ -1515,7 +1400,7 @@ class robot(object):
                 print("[ERROR] 'step' should be between 0.01 and 100 for translation")
                 return None
 
-            step = int(step*100)
+            step = int(step*200)
 
         elif (direction == 'rot_trigo' or direction == 'rot_clock'):
 
@@ -2625,9 +2510,9 @@ class robot(object):
             return None
 
         if type == "reveal":
-            msg = f"<56w{word.upper()}d{delay}>"
+            msg = f"<56w{word.upper()}d{delay}/1>"
         else:
-            msg = f"<57w{word.upper()}d{delay}>"
+            msg = f"<57w{word.upper()}d{delay}/1>"
         self._send_msg(msg)
     
     def stop_led_word(self):
@@ -2638,7 +2523,7 @@ class robot(object):
     # -----------------------------------------------------------------------------
     def get_acc_motor(self):
         """
-        Get the acceleration of all motors
+        Get the acceleration of all motors 
         """
         self._send_msg("<681>")
         self._response_event.wait(timeout=5)
@@ -3611,7 +3496,23 @@ class robot(object):
             self.stop_trame_s()
 
 
+def robot(name: str | int, debug=False) -> Robot:
+    if isinstance(name, int):
+        raise ValueError("La création de robot par ID n'est plus possible.")
+
+    candidate = find_in_candidates(name)
+    if candidate is None:
+        raise ValueError("Aucun robot correspondant")
+
+    robot = Robot._robots_connected.get(candidate.address)
+    if robot is not None:
+        return robot
+
+    return Robot(candidate, debug)
+
+
 _is_handling_sigint = False
+
 
 def handle_sigint(signal_number, frame):
     global _is_handling_sigint
@@ -3622,7 +3523,7 @@ def handle_sigint(signal_number, frame):
     _is_handling_sigint = True
     print("Stopping all robot before quitting...")
 
-    for r in robot._robots_connected.copy().values():
+    for r in Robot._robots_connected.copy().values():
         print(f"stopping {r}")
         r.disconnect()
     sys.exit(0)
