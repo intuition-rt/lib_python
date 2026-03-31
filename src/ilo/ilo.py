@@ -351,8 +351,13 @@ class RobotCandidate:
 __candidate_pool: dict[str, RobotCandidate] = {}
 
 
-def find_in_candidates(name: str) -> RobotCandidate | None:
+def find_in_candidates(name: str, use_connection_type = None) -> RobotCandidate | None:
     for candidate in __candidate_pool.values():
+        if (
+            use_connection_type is not None
+            and candidate.connection_type != use_connection_type
+        ):
+            continue
         if candidate.name == name:
             return candidate
     return None
@@ -3496,11 +3501,15 @@ class Robot:
             self.stop_trame_s()
 
 
-def robot(name: str | int, debug=False) -> Robot:
+def robot(
+    name: str | int,
+    connect_with: ConnectionType | None = None,
+    debug=False,
+) -> Robot:
     if isinstance(name, int):
         raise ValueError("La création de robot par ID n'est plus possible.")
 
-    candidate = find_in_candidates(name)
+    candidate = find_in_candidates(name, use_connection_type=connect_with)
     if candidate is None:
         raise ValueError("Aucun robot correspondant")
 

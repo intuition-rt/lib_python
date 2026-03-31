@@ -7,6 +7,7 @@ from .ilo import (
     check_robot_on_wifi,
     check_robot_on_serial,
     check_robot_on_bluetooth,
+    ConnectionType
 )
 
 __all__ = (
@@ -16,4 +17,5 @@ __all__ = (
     'check_robot_on_wifi',
     'check_robot_on_serial',
     'check_robot_on_bluetooth',
+    'ConnectionType'
 )
