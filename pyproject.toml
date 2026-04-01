@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ilo"
-version = "0.0.62"
+version = "0.0.63"
 description = "Control ilo robot using python command."
 readme = "README.md"
 requires-python = ">=3.8"

@@ -38,7 +38,7 @@ import webcolors
 # https://stackoverflow.com/questions/2356399/tell-if-python-is-in-interactive-mode
 IS_INTERACTIVE = hasattr(sys, 'ps1')
 
-__version__ = "0.0.62"
+__version__ = "0.0.63"
 
 print("ilo robot library version: ", __version__)
 print("For more information about the library use ilo.info() command line")
