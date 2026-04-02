@@ -228,22 +228,6 @@ class _IloUpdater:
         except Exception as e:
             print(f"⚠️ Error in _run_update: {e}")
 
-    def updateWithBT(self):
-        """Lance l'update BLE dans un thread sans bloquer la boucle asyncio."""
-        def run_with_priority():
-            try:
-                self._run_update()
-            except Exception as e:
-                print(f"⚠️ ERROR UPDATE WITH BT: {e}")
-
-        thread = threading.Thread(target=run_with_priority, daemon=True)
-        thread.start()
-
-    def updateWithWS(self):
-        """Lance l'update via WebSocket directement."""
-        print("🟢 Sending the firmware via WebSocket.")
-        self._run_update()
-
     def download_firmware(self, data: Dict[str, str]):
         filepath = data.get("file")
 
@@ -286,10 +270,7 @@ class _IloUpdater:
                     update = input("Do you want to update your robot? (yes/no): ").strip().lower()
                     if update == "y" or update == "yes":
                         if self.download_firmware(data):
-                            if self.use_ble:
-                                self.updateWithBT()
-                            else:
-                                self.updateWithWS()
+                            self._run_update()
                     suspend_receive_msg = False
                 else:
                     print("Your ilo is already up to date ;)")
