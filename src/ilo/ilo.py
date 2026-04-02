@@ -214,17 +214,8 @@ class _IloUpdater:
                 print(f"\rSent {i + len(chunk)} / {firmware_size} octets", end="", flush=True)
                 await asyncio.sleep(0.01)
 
-            print("\n[UPDATE] Firmware sent, waiting for robot confirmation...")
-            timeout = 60
-            elapsed_time = 0
-            while not self.update_complete and elapsed_time < timeout:
-                await asyncio.sleep(1)
-                elapsed_time += 1
-
-            if not self.update_complete:
-                print("[ERROR] No confirmation received, update may have failed.")
-            else:
-                print("[SUCCESS] Update successfully completed.")
+            print("\n[UPDATE] Firmware sent\n")
+            # TODO: reintroduce update confirmation
 
         except Exception as e:
             print(f"Error: {e}")
