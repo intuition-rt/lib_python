@@ -7,7 +7,6 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
-from enum import Enum
 import serial
 import math
 import threading
@@ -28,7 +27,6 @@ from .ble_lib import ble_lib, CHARACTERISTIC_UUID
 from .discovery import ConnectionType, RobotCandidate, find_in_candidates
 from .updater import _IloUpdater
 from .ws import _co_send_msg
-
 
 # https://stackoverflow.com/questions/2356399/tell-if-python-is-in-interactive-mode
 IS_INTERACTIVE = hasattr(sys, 'ps1')
@@ -206,6 +204,8 @@ class Robot:
 
         print("Connnecting to", candidate)
         self._connection()
+
+        self.transport = candidate.get_transport()
 
 
     def __repr__(self) -> str:
