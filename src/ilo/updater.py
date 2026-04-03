@@ -95,7 +95,6 @@ class _IloUpdater:
         if _skip_update:
             return
 
-        global suspend_receive_msg
         print("Checking for online updates... Please wait.")
 
         try:
@@ -110,13 +109,11 @@ class _IloUpdater:
                 latest_version = data["version"]
                 print(f"Latest version: {latest_version}")
                 if latest_version != self.version:
-                    suspend_receive_msg = True
                     print("A new update is available!")
                     update = input("Do you want to update your robot? (yes/no): ").strip().lower()
                     if update == "y" or update == "yes":
                         if self.download_firmware(data):
                             self._run_update()
-                    suspend_receive_msg = False
                 else:
                     print("Your ilo is already up to date ;)")
 
