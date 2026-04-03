@@ -7,7 +7,7 @@ class DummyTransport:
     def __init__(self):
         pass
 
-    def connect(self) -> None:
+    def connect(self) -> bool:
         print("Dummy connect")
         raise NotImplementedError
 

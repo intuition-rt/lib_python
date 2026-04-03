@@ -23,7 +23,6 @@ import numpy as np
 import signal
 import sys
 
-from .ble_lib import ble_lib, CHARACTERISTIC_UUID
 from .discovery import ConnectionType, RobotCandidate, find_in_candidates
 from .updater import _IloUpdater
 from .ws import _co_send_msg
@@ -105,8 +104,6 @@ class Robot:
         self._connect = False
 
         self._version = ""
-
-        self._ble_device = None
 
         self._hostname = candidate.name
 
@@ -202,10 +199,10 @@ class Robot:
         self.address = candidate.address
         self.connection_type = candidate.connection_type
 
+        self.transport = candidate.get_transport()
+
         print("Connnecting to", candidate)
         self._connection()
-
-        self.transport = candidate.get_transport()
 
 
     def __repr__(self) -> str:
@@ -271,27 +268,30 @@ class Robot:
                 self._connect = False
 
         elif self.connection_type == ConnectionType.BLUETOOTH:
-            def notification_handler(sender, data):
+            def notification_handler(data: str) -> None:
                 try:
-                    decoded_data = data.decode('utf-8')
-                    self._process_received_data(decoded_data)
+                    print("<-", data)
+                    self._process_received_data(data)
                 except UnicodeDecodeError:
                     print(f"Received non-UTF-8 data: {data}")
-            # print("Connecting to the BLE device...")
-            try:
-                self._ble_device = ble_lib.connect(self.address)
 
-                ble_lib.subscribe_to_notifications(CHARACTERISTIC_UUID, notification_handler)
-                self._connect = True
+            self.transport.on_received = notification_handler
+
+            try:
+                self._connect = self.transport.connect()
+
+                if not self._connect:
+                    raise ValueError
+                print("Connected to the BLE device.")
+
                 self._robots_connected[self.address] = self
-                # print("Connected to the BLE device.")
+
                 self._send_msg("<ilo>")
-                self._send_msg("<500y>")
-                time.sleep(0.2)
-                self.get_name()
-                time.sleep(0.2)
+                self._version = self.get_robot_version()
                 print('Your are connected to ' + self._hostname)
-                updater = _IloUpdater(self._ble_device, self._version)
+
+                # TODO: agnostic layer
+                updater = _IloUpdater(self.transport._client, self._version)
                 updater.check_update()
             except Exception as e:
                 print(f"Error connecting to the BLE device: {e}")
@@ -305,8 +305,7 @@ class Robot:
         elif self.connection_type == ConnectionType.SERIAL:
             pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
         elif self.connection_type == ConnectionType.BLUETOOTH:
-            if self._ble_device is not None:
-                ble_lib.disconnect(self._ble_device)
+            self.transport.disconnect()
         else:
             pass
 
@@ -351,9 +350,9 @@ class Robot:
             else:
                 print("Serial is not connected.")
         elif self.connection_type == ConnectionType.BLUETOOTH:
-            if self._ble_device and self._connect:
+            if self._connect:
                 try:
-                    ble_lib.write_characteristic(self._ble_device, CHARACTERISTIC_UUID, message.encode())
+                    self.transport.send(message)
                     if self._debug:
                         print(f"Sent:     {message}")
                     # time.sleep(0.1)  # Small delay to ensure the message is sent
