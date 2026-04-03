@@ -4,7 +4,7 @@ from typing import Protocol, Callable
 class Transport(Protocol):
     on_received: Callable[[str], None] | None = None
 
-    def connect(self) -> None:
+    def connect(self) -> bool:
         ...
 
     def disconnect(self) -> None:
@@ -15,4 +15,3 @@ class Transport(Protocol):
 
     def poll(self) -> None:
         ...
-

@@ -14,7 +14,7 @@ from .ble_lib import ble_lib
 from .color_encoding import base62_to_name, BASIC_COLOR_NAMES
 from .copy_to_clipboard import copy_to_clipboard
 from .net import get_broadcast_ip
-from .transports import Transport, DummyTransport
+from .transports import Transport, DummyTransport, BLETransport
 from .ws import _co_send_msg
 
 
@@ -58,6 +58,8 @@ class RobotCandidate:
         return f"<ilo name={self.name} @ {self.address} (via {self.connection_type})>"
 
     def get_transport(self) -> Transport:
+        if self.connection_type == ConnectionType.BLUETOOTH:
+            return BLETransport(self.address)
         return DummyTransport()
 
 
