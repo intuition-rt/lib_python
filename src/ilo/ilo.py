@@ -44,9 +44,6 @@ print("For any help or support contact us on our website, ilorobot.com")
 
 from .copy_to_clipboard import copy_to_clipboard
 
-suspend_receive_msg = False # Variable pour suspendre la réception de messages (lorsqu'il y'a des interactions avec l'utilisateur)
-
-
 # -----------------------------------------------------------------------------
 
 copy_to_clipboard("""ilo.check_robot_on_bluetooth()""")
@@ -275,11 +272,8 @@ class Robot:
 
         elif self.connection_type == ConnectionType.BLUETOOTH:
             def notification_handler(sender, data):
-                global suspend_receive_msg
                 try:
                     decoded_data = data.decode('utf-8')
-                    if suspend_receive_msg:
-                        return
                     self._process_received_data(decoded_data)
                 except UnicodeDecodeError:
                     print(f"Received non-UTF-8 data: {data}")
