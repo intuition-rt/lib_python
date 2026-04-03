@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Any
 import serial.tools.list_ports
 import serial
 import socket
