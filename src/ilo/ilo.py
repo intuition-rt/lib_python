@@ -33,6 +33,7 @@ import webcolors
 
 from .ble_lib import ble_lib, CHARACTERISTIC_UUID
 from .updater import _IloUpdater
+from .ws import _co_send_msg
 
 
 # https://stackoverflow.com/questions/2356399/tell-if-python-is-in-interactive-mode
