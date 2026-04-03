@@ -1,14 +1,16 @@
-from functools import wraps, singledispatch
-
-from .ilo import (
-    robot,
-    info,
-    list_function,
+from .discovery import (
     check_robot_on_wifi,
     check_robot_on_serial,
     check_robot_on_bluetooth,
     ConnectionType
 )
+
+from .ilo import (
+    robot,
+    info,
+    list_function
+)
+
 
 __all__ = (
     'robot',
