@@ -95,7 +95,7 @@ class Robot:
     _robots_connected: Dict[str, Robot] = {}
 
     def __init__(self, candidate: RobotCandidate, debug=False):
-        self._connect = False
+        self._is_connected = False
 
         self._version = ""
 
@@ -206,7 +206,7 @@ class Robot:
         """
         if self.connection_type == ConnectionType.WIFI:
             try:
-                self._connect = self.transport.connect()
+                self._is_connected = self.transport.connect()
                 self._robots_connected[self.address] = self
 
                 self._send_msg("<500y>")
@@ -222,11 +222,11 @@ class Robot:
                 print(
                     " --> If the malfunction persists, switch off and switch on ilo")
                 print(f"Error connecting to the robot: {e}")
-                self._connect = False
+                self._is_connected = False
 
         elif self.connection_type == ConnectionType.SERIAL:
             try:
-                self._connect = self.transport.connect()
+                self._is_connected = self.transport.connect()
                 self._robots_connected[self.address] = self
 
                 print('Your are connected to ' + self._hostname)
@@ -236,7 +236,7 @@ class Robot:
                 print(
                     " --> If the malfunction persists, switch off and switch on ilo, or try using another cable")
                 print(f"Error connecting to the robot: {e}")
-                self._connect = False
+                self._is_connected = False
 
         elif self.connection_type == ConnectionType.BLUETOOTH:
             def notification_handler(data: str) -> None:
@@ -249,9 +249,9 @@ class Robot:
             self.transport.on_received = notification_handler
 
             try:
-                self._connect = self.transport.connect()
+                self._is_connected = self.transport.connect()
 
-                if not self._connect:
+                if not self._is_connected:
                     raise ValueError
                 print("Connected to the BLE device.")
 
@@ -266,7 +266,7 @@ class Robot:
                 updater.check_update()
             except Exception as e:
                 print(f"Error connecting to the BLE device: {e}")
-                self._connect = False
+                self._is_connected = False
 
     def disconnect(self):
         if self.connection_type == ConnectionType.WIFI:
@@ -286,7 +286,7 @@ class Robot:
     def _send_msg(self, message):
         self._response_event.clear()
         if self.connection_type == ConnectionType.WIFI:
-            if self._connect:
+            if self._is_connected:
                 try:
                     self.transport.send(message)
                     if self._debug:
@@ -295,7 +295,7 @@ class Robot:
                     print(f"Error sending message: {e}")
 
         elif self.connection_type == ConnectionType.SERIAL:
-            if self._connect:
+            if self._is_connected:
                 try:
                     self.transport.send(message)
                 except Exception as e:
@@ -304,7 +304,7 @@ class Robot:
                 print("Serial is not connected.")
 
         elif self.connection_type == ConnectionType.BLUETOOTH:
-            if self._connect:
+            if self._is_connected:
                 try:
                     self.transport.send(message)
                     if self._debug:
