@@ -4,6 +4,9 @@ from typing import Protocol, Callable
 class Transport(Protocol):
     on_received: Callable[[str], None] | None = None
 
+    def __init__(self, address):
+        ...
+
     def connect(self) -> bool:
         ...
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any
+from typing import Any, Type
 import serial.tools.list_ports
 import serial
 import socket
@@ -16,7 +16,6 @@ from .copy_to_clipboard import copy_to_clipboard
 from .net import get_broadcast_ip
 from .transports import (
     Transport,
-    DummyTransport,
     BLETransport,
     SerialTransport,
     WiFiTransport
@@ -32,6 +31,14 @@ class ConnectionType(Enum):
     WIFI = 0
     BLUETOOTH = 1
     SERIAL = 2
+
+    @property
+    def transport_class(self) -> Type[Transport]:
+        return {
+            ConnectionType.WIFI: WiFiTransport,
+            ConnectionType.SERIAL: SerialTransport,
+            ConnectionType.BLUETOOTH: BLETransport,
+        }[self]
 
     def __str__(self) -> str:
         return self.name.removeprefix("ConnectionType.")
@@ -64,13 +71,7 @@ class RobotCandidate:
         return f"<ilo name={self.name} @ {self.address} (via {self.connection_type})>"
 
     def get_transport(self) -> Transport:
-        if self.connection_type == ConnectionType.WIFI:
-            return WiFiTransport(self.address)
-        if self.connection_type == ConnectionType.SERIAL:
-            return SerialTransport(self.address)
-        if self.connection_type == ConnectionType.BLUETOOTH:
-            return BLETransport(self.address)
-        return DummyTransport()
+        return self.connection_type.transport_class(self.address)
 
 
 def find_in_candidates(name: str, use_connection_type = None) -> RobotCandidate | None:
