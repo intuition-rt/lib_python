@@ -199,129 +199,40 @@ class Robot:
     def __repr__(self) -> str:
         return f"<ilo name={self._hostname} @ {self.address}>"
 
-    # -----------------------------------------------------------------------------
     def _connection(self):
-        """
-        Connection of your machine to robot object 
-        """
-        if self.connection_type == ConnectionType.WIFI:
-            try:
-                self._is_connected = self.transport.connect()
-                self._robots_connected[self.address] = self
+        self.transport.on_received = self._process_received_data
+        self._is_connected = self.transport.connect()
 
-                self._send_msg("<500y>")
-                time.sleep(0.2)
-                print('Your are connected to ' + self._hostname)
-                # TODO: agnostic layer
-                updater = _IloUpdater(self.transport, self._version)
-                updater.check_update()
+        self._robots_connected[self.address] = self
 
-            except Exception as e:
-                print(
-                    "Connection error: you have to be connect to the ilo wifi network")
-                print(
-                    " --> If the malfunction persists, switch off and switch on ilo")
-                print(f"Error connecting to the robot: {e}")
-                self._is_connected = False
+        self._send_msg("<500y>")
+        time.sleep(0.2)
+        self._send_msg("<ilo>")
 
-        elif self.connection_type == ConnectionType.SERIAL:
-            try:
-                self._is_connected = self.transport.connect()
-                self._robots_connected[self.address] = self
-
-                print('Your are connected to ' + self._hostname)
-                
-            except Exception as e:
-                print("Connection error: you must be connected to the ilo robot")
-                print(
-                    " --> If the malfunction persists, switch off and switch on ilo, or try using another cable")
-                print(f"Error connecting to the robot: {e}")
-                self._is_connected = False
-
-        elif self.connection_type == ConnectionType.BLUETOOTH:
-            def notification_handler(data: str) -> None:
-                try:
-                    print("<-", data)
-                    self._process_received_data(data)
-                except UnicodeDecodeError:
-                    print(f"Received non-UTF-8 data: {data}")
-
-            self.transport.on_received = notification_handler
-
-            try:
-                self._is_connected = self.transport.connect()
-
-                if not self._is_connected:
-                    raise ValueError
-                print("Connected to the BLE device.")
-
-                self._robots_connected[self.address] = self
-
-                self._send_msg("<ilo>")
-                self._version = self.get_robot_version()
-                print('Your are connected to ' + self._hostname)
-
-                # TODO: agnostic layer
-                updater = _IloUpdater(self.transport, self._version)
-                updater.check_update()
-            except Exception as e:
-                print(f"Error connecting to the BLE device: {e}")
-                self._is_connected = False
+        print(f"Your are connected to {self._hostname}, v{self._version}")
+        if self.connection_type in (ConnectionType.WIFI, ConnectionType.BLUETOOTH):
+            updater = _IloUpdater(self.transport, self._version)
+            updater.check_update()
 
     def disconnect(self):
-        if self.connection_type == ConnectionType.WIFI:
+        if self._robots_connected.get(self.address):
             self.transport.disconnect()
-        elif self.connection_type == ConnectionType.SERIAL:
-            self.transport.disconnect()
-        elif self.connection_type == ConnectionType.BLUETOOTH:
-            self.transport.disconnect()
-        else:
-            pass
+            self._robots_connected.pop(self.address)
+            self._is_connected = False
+            print(f"Connection closed for the robot {self._hostname}.")
 
-        self._robots_connected.pop(self.address)
-        print(f"Connection closed for the robot {self._hostname}.")
-
-
-    # -----------------------------------------------------------------------------
     def _send_msg(self, message):
+        if self._debug:
+            print(f"[{self._hostname} ~ {self.connection_type}] ->", message)
         self._response_event.clear()
-        if self.connection_type == ConnectionType.WIFI:
-            if self._is_connected:
-                try:
-                    self.transport.send(message)
-                    if self._debug:
-                        print(f"Sent:     {message}")
-                except Exception as e:
-                    print(f"Error sending message: {e}")
-
-        elif self.connection_type == ConnectionType.SERIAL:
-            if self._is_connected:
-                try:
-                    self.transport.send(message)
-                except Exception as e:
-                    print(f"Error sending message: {e}")
-            else:
-                print("Serial is not connected.")
-
-        elif self.connection_type == ConnectionType.BLUETOOTH:
-            if self._is_connected:
-                try:
-                    self.transport.send(message)
-                    if self._debug:
-                        print(f"Sent:     {message}")
-                    # time.sleep(0.1)  # Small delay to ensure the message is sent
-                except Exception as e:
-                    print(f"Error sending message: {e}")
-        else:
-            print("No connection established (error sending message).")
-    # -----------------------------------------------------------------------------
+        self.transport.send(message)
 
     def _process_received_data(self, data):
         """
         Process the data received from the WebSocket or Serial and update the robot's attributes
         """
         if self._debug:
-            print(f"Data received: {data}")
+            print(f"[{self._hostname} ~ {self.connection_type}] <-", data)
         try:
 
             if str(data[1:4]) == "10c":  # get_color_rgb_center
@@ -2736,8 +2647,6 @@ def handle_sigint(signal_number, frame):
     for r in Robot._robots_connected.copy().values():
         print(f"stopping {r}")
         r.disconnect()
-    sys.exit(0)
-
 
 
 if not IS_INTERACTIVE:
