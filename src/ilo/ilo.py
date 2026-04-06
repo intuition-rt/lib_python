@@ -7,6 +7,7 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
+import atexit
 import math
 import threading
 from typing import Any, Dict, Union
@@ -18,7 +19,6 @@ from prettytable import PrettyTable
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import signal
 import sys
 
 from .discovery import ConnectionType, RobotCandidate, find_in_candidates
@@ -392,11 +392,8 @@ class Robot:
 
     # -----------------------------------------------------------------------------
     def __del__(self):
-        """
-        Destructor to ensure the WebSocket connection is closed gracefully
-        and the ID is removed from the list of connected robots
-        """
-        self.disconnect()
+        if self._is_connected:
+            self.disconnect()
 
     # -----------------------------------------------------------------------------
     def test_connection(self):
@@ -2632,22 +2629,12 @@ def robot(
     return Robot(candidate, debug)
 
 
-_is_handling_sigint = False
 
+def cleanup_robots():
+    for r in list(Robot._robots_connected.values()):
+        try:
+            r.disconnect()
+        except:
+            pass
 
-def handle_sigint(signal_number, frame):
-    global _is_handling_sigint
-
-    if _is_handling_sigint:
-        return
-
-    _is_handling_sigint = True
-    print("Stopping all robot before quitting...")
-
-    for r in Robot._robots_connected.copy().values():
-        print(f"stopping {r}")
-        r.disconnect()
-
-
-if not IS_INTERACTIVE:
-    signal.signal(signal.SIGINT, handle_sigint)
+atexit.register(cleanup_robots)
