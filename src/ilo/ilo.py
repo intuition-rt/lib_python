@@ -7,7 +7,6 @@
 # -----------------------------------------------------------------------------
 from __future__ import annotations
 
-import serial
 import math
 import threading
 import websocket
@@ -100,7 +99,6 @@ class Robot:
     def __init__(self, candidate: RobotCandidate, debug=False):
         self._ws: websocket.WebSocket | None = None
 
-        self._ser = None
         self._connect = False
 
         self._version = ""
@@ -236,7 +234,7 @@ class Robot:
                 self.get_name()
                 time.sleep(0.2)
                 print('Your are connected to ' + self._hostname)
-                updater = _IloUpdater(self._ser, self._version, False, self._ws)
+                updater = _IloUpdater(None, self._version, False, self._ws)
                 updater.check_update()
 
             except Exception as e:
@@ -249,15 +247,9 @@ class Robot:
 
         elif self.connection_type == ConnectionType.SERIAL:
             try:
-                # Start the serial connection
-                self._ser = serial.Serial(self.address, 115200)
-
-                self._connect = True
+                self._connect = self.transport.connect()
                 self._robots_connected[self.address] = self
-                
-                time.sleep(0.2)
-                self.get_name()
-                time.sleep(0.2)
+
                 print('Your are connected to ' + self._hostname)
                 
             except Exception as e:
@@ -303,7 +295,7 @@ class Robot:
                 _co_send_msg(self._ws, "<>")
                 self._ws.close()
         elif self.connection_type == ConnectionType.SERIAL:
-            pass   # on ne peut pas paraleléliser les ouverture de port comme les websocket
+            self.transport.disconnect()
         elif self.connection_type == ConnectionType.BLUETOOTH:
             self.transport.disconnect()
         else:
@@ -328,27 +320,14 @@ class Robot:
                 print("WebSocket is not connected.")
 
         elif self.connection_type == ConnectionType.SERIAL:
-            if self._ser and self._connect:
+            if self._connect:
                 try:
-                    self._ser.write(message.encode())
-                    
-                    print(f"Sent:     {message}")
-
-                    invalid_prefixes = ("<a", "<i", "<13", "<31", "<51", "<52", "<53", "<54", "<55", "<56", "<57", "<58",
-                                        "<610", "<620", "<680", "<690", "<70", "<72", "<80", "<90", "<91", "<94", "<103", 
-                                        "<00>", "<>")
-
-                    if message.startswith(invalid_prefixes):
-                        pass
-                    else:
-                        # start_time = time.time()
-                        # while time.time() - start_time < 1:
-                        self._serial_read()
-
+                    self.transport.send(message)
                 except Exception as e:
                     print(f"Error sending message: {e}")
             else:
                 print("Serial is not connected.")
+
         elif self.connection_type == ConnectionType.BLUETOOTH:
             if self._connect:
                 try:
@@ -388,39 +367,6 @@ class Robot:
 
         print("Thread de réception terminé.")
 
-    def _serial_read(self):
-        """
-        Serial function to read data from serial.
-        """
-
-        timeout = 1
-        start_time = time.time()
-        try:
-            trame = ""
-            while True:
-                if time.time() - start_time > timeout:
-                    print("[serial_read] Timeout atteint dans la première boucle")
-                    return
-
-                char = self._ser.read().decode()
-                if char == '<':
-                    trame += char
-                    break
-
-            while True:
-                if time.time() - start_time > timeout:
-                    print("[serial_read] Timeout atteint dans la seconde boucle")
-                    return
-
-                char = self._ser.read().decode()
-                if char:
-                    trame += char
-                    if char == '>':
-                        break
-            if trame:
-                self._process_received_data(trame)
-        except serial.SerialException as e:
-            print(f"Error: {e}")
     # -----------------------------------------------------------------------------
     def _process_received_data(self, data):
         """
