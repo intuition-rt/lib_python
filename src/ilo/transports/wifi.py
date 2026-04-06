@@ -102,3 +102,13 @@ class WiFiTransport:
                 break
 
         print("Thread de réception terminé.")
+
+    def send_binary(self, data: bytes) -> None:
+        if self._ws is None:
+            return
+        self._ws.send(data, opcode=websocket.ABNF.OPCODE_BINARY)
+
+
+    @property
+    def preferred_chunk_size(self) -> int:
+        return 1024

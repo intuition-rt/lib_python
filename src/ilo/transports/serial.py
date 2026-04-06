@@ -74,3 +74,10 @@ class SerialTransport:
                 self.on_received(trame)
         except serial.SerialException as e:
             print(f"Error: {e}")
+
+    def send_binary(self, data: bytes) -> None:
+        raise NotImplementedError
+
+    @property
+    def preferred_chunk_size(self) -> int:
+        return 1024

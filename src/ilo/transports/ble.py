@@ -55,3 +55,11 @@ class BLETransport:
                 self.on_received(decoded_text)
             except UnicodeDecodeError:
                 pass
+
+    def send_binary(self, data: bytes) -> None:
+        ble_lib.write_characteristic(self._client, "c0de", data)
+
+
+    @property
+    def preferred_chunk_size(self) -> int:
+        return 509

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import websocket
 from typing import Dict
 import asyncio
 import requests
 from .ble_lib import ble_lib
+
+from .transports import Transport
 
 
 # This is used for development purpose in order to rapidly test scripts
@@ -15,55 +16,33 @@ _skip_update = False
 
 
 class _IloUpdater:
-    def __init__(self, client, version, use_ble=True, ws=None):
-        self.client = client
+    def __init__(self, transport: Transport, version):
+        self.transport = transport
         self.version = version
-        self.service_uuid = "5f6d"
-        self.data_char_uuid = "c0de"
-        self.size_char_uuid = "dead"
-        self.notify_char_uuid = "1A2B"
-        self.use_ble = use_ble
-        self.ws = ws
-        self.CHUNK_SIZE = 509 if use_ble else 1024
+
         self.update_complete = False
         self.loop = ble_lib.get_loop()
 
     async def send_firmware(self):
-        try:
-            with open("firmware.bin", "rb") as f:
-                firmware_data = f.read()
-            firmware_size = len(firmware_data)
-            print(f"Firmware loaded: {firmware_size} octets")
+        with open("firmware.bin", "rb") as f:
+            firmware_data = f.read()
+        firmware_size = len(firmware_data)
 
-            if self.use_ble and not self.client.is_connected:
-                print("BLE client not connected.")
-                return
-            if not self.use_ble and self.ws is None:
-                print("WebSocket not connected.")
-                return
-            print("\nConnected.")
-            size_bytes = f"<500x{firmware_size}>".encode()
-            if self.use_ble:
-                await self.client.write_gatt_char(self.size_char_uuid, size_bytes, response=False)
-            else:
-                self.ws.send(size_bytes)
-            print("\nFirmware size sent.")
-            await asyncio.sleep(0.1)
-            for i in range(0, firmware_size, self.CHUNK_SIZE):
-                chunk = firmware_data[i:i+self.CHUNK_SIZE]
-                if self.use_ble:
-                    await self.client.write_gatt_char(self.data_char_uuid, chunk, response=False)
-                else:
-                    self.ws.send(bytes(chunk), opcode=websocket.ABNF.OPCODE_BINARY)
+        size_trame = f"<500x{firmware_size}>"
+        self.transport.send(size_trame)
 
-                print(f"\rSent {i + len(chunk)} / {firmware_size} octets", end="", flush=True)
-                await asyncio.sleep(0.01)
+        print(f"Firmware size {firmware_size} sent via standard protocol.")
+        await asyncio.sleep(0.5)
 
-            print("\n[UPDATE] Firmware sent\n")
-            # TODO: reintroduce update confirmation
+        for i in range(0, firmware_size, self.transport.preferred_chunk_size):
+            chunk = firmware_data[i : i + self.transport.preferred_chunk_size]
 
-        except Exception as e:
-            print(f"Error: {e}")
+            self.transport.send_binary(chunk)
+            print(f"\rProgress: {i + len(chunk)} / {firmware_size} bytes", end="")
+
+            await asyncio.sleep(0.01)
+
+        print("\n[UPDATE] Binary transfer complete.")
 
     def _run_update(self):
         """Planifie la coroutine dans la boucle asyncio existante."""

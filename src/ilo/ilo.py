@@ -213,7 +213,7 @@ class Robot:
                 time.sleep(0.2)
                 print('Your are connected to ' + self._hostname)
                 # TODO: agnostic layer
-                updater = _IloUpdater(None, self._version, False, self.transport._ws)
+                updater = _IloUpdater(self.transport, self._version)
                 updater.check_update()
 
             except Exception as e:
@@ -262,7 +262,7 @@ class Robot:
                 print('Your are connected to ' + self._hostname)
 
                 # TODO: agnostic layer
-                updater = _IloUpdater(self.transport._client, self._version)
+                updater = _IloUpdater(self.transport, self._version)
                 updater.check_update()
             except Exception as e:
                 print(f"Error connecting to the BLE device: {e}")
