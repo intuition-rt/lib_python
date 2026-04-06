@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import math
 import threading
-import websocket
 from typing import Any, Dict, Union
 from keyboard_crossplatform import KeyboardCrossplatform
 import time
@@ -24,7 +23,6 @@ import sys
 
 from .discovery import ConnectionType, RobotCandidate, find_in_candidates
 from .updater import _IloUpdater
-from .ws import _co_send_msg
 
 # https://stackoverflow.com/questions/2356399/tell-if-python-is-in-interactive-mode
 IS_INTERACTIVE = hasattr(sys, 'ps1')
@@ -97,8 +95,6 @@ class Robot:
     _robots_connected: Dict[str, Robot] = {}
 
     def __init__(self, candidate: RobotCandidate, debug=False):
-        self._ws: websocket.WebSocket | None = None
-
         self._connect = False
 
         self._version = ""
@@ -186,9 +182,6 @@ class Robot:
         
         self._movement_complete = threading.Event()
 
-        self._recv_thread = None
-        self._recv_thread_running = False
-
         self._debug = debug
         copy_to_clipboard('''my_ilo.step('front')''')
 
@@ -213,28 +206,14 @@ class Robot:
         """
         if self.connection_type == ConnectionType.WIFI:
             try:
-                self._ws = websocket.create_connection(f"ws://{self.address}:{self._Port}")
-
-                # Vérifie si un ancien thread de réception est actif et l'arrête avant d'en démarrer un nouveau
-                if self._recv_thread and self._recv_thread.is_alive():
-                    # print("Stopping the previous reception thread...")
-                    self._stop_reception()
-
-                # Start the WebSocket de reception in a separate thread
-                self._recv_thread_running = True
-                self._recv_thread = threading.Thread(
-                    target=self._web_socket_receive)
-                self._recv_thread.start()
-
+                self._connect = self.transport.connect()
                 self._robots_connected[self.address] = self
 
-                self._connect = True
                 self._send_msg("<500y>")
                 time.sleep(0.2)
-                self.get_name()
-                time.sleep(0.2)
                 print('Your are connected to ' + self._hostname)
-                updater = _IloUpdater(None, self._version, False, self._ws)
+                # TODO: agnostic layer
+                updater = _IloUpdater(None, self._version, False, self.transport._ws)
                 updater.check_update()
 
             except Exception as e:
@@ -291,9 +270,7 @@ class Robot:
 
     def disconnect(self):
         if self.connection_type == ConnectionType.WIFI:
-            if self._ws is not None:
-                _co_send_msg(self._ws, "<>")
-                self._ws.close()
+            self.transport.disconnect()
         elif self.connection_type == ConnectionType.SERIAL:
             self.transport.disconnect()
         elif self.connection_type == ConnectionType.BLUETOOTH:
@@ -301,23 +278,21 @@ class Robot:
         else:
             pass
 
-        self._stop_reception()
+        self._robots_connected.pop(self.address)
+        print(f"Connection closed for the robot {self._hostname}.")
 
 
     # -----------------------------------------------------------------------------
     def _send_msg(self, message):
         self._response_event.clear()
         if self.connection_type == ConnectionType.WIFI:
-            if self._ws and self._connect:
+            if self._connect:
                 try:
-                    self._ws.send(message)
+                    self.transport.send(message)
                     if self._debug:
                         print(f"Sent:     {message}")
-                    # time.sleep(0.1)  # Small delay to ensure the message is sent
-                except websocket.WebSocketException as e:
+                except Exception as e:
                     print(f"Error sending message: {e}")
-            else:
-                print("WebSocket is not connected.")
 
         elif self.connection_type == ConnectionType.SERIAL:
             if self._connect:
@@ -340,34 +315,7 @@ class Robot:
         else:
             print("No connection established (error sending message).")
     # -----------------------------------------------------------------------------
-    def _web_socket_receive(self):
-        """
-        Thread function to continuously receive data from the WebSocket.
-        Stops when recv_thread_running is set to False.
-        """
-        while self._recv_thread_running:
-            try:
-                self._ws.settimeout(1) # Ajout d'un timeout pour que recv() ne bloque pas indéfiniment
-                data = self._ws.recv() # Timeout de 1 seconde pour éviter un blocage sur recv()
-                if data:
-                    if '/' in data:
-                        sub_trames = data.split('/')[1:-1]
-                        for sub_trame in sub_trames:
-                            self._process_received_data(f"<{sub_trame}>")
-                    else:
-                        self._process_received_data(data)
-                        self._marker = True
-            except websocket.WebSocketTimeoutException:
-                # Timeout atteint, continue à boucler pour vérifier recv_thread_running
-                continue
-            except websocket.WebSocketException as e:
-                # Gestion des erreurs de WebSocket, afficher l'erreur pour le débogage
-                print(f"WebSocket error: {e}")
-                break
 
-        print("Thread de réception terminé.")
-
-    # -----------------------------------------------------------------------------
     def _process_received_data(self, data):
         """
         Process the data received from the WebSocket or Serial and update the robot's attributes
@@ -529,33 +477,7 @@ class Robot:
             # -- marin add e to check the error
             print(f'[COMMUNICATION ERROR] data process: {e}')
             return None
-    # -----------------------------------------------------------------------------
-    def _stop_reception(self):
-        """
-        Stop the WebSocket reception thread and close the connection.
-        """
-        if not self._recv_thread_running:
-            return  # Si le thread est déjà arrêté, ne rien faire
 
-        print("Stopping reception thread...")
-        self._recv_thread_running = False  # Arrêter la boucle dans le thread de réception
-
-        if self._ws:
-            try:
-                if self._ws is not None and self._ws.connected:
-                    self._ws.close()
-                self._connect = False  # Mettre à jour l'état de connexion après la fermeture de WebSocket
-                print("WebSocket successfully closed")
-            except Exception as e:
-                print(f"Erreur lors de la fermeture de la WebSocket: {e}")
-
-        # if self._recv_thread and self._recv_thread.is_alive():
-        if self._recv_thread:
-            print("Waiting for the reception thread to stop...")
-            self._recv_thread.join(timeout=2)
-
-        self._robots_connected.pop(self.address)
-        print(f"WebSocket connection closed for the robot {self._hostname}.")
 
     # -----------------------------------------------------------------------------
     def __del__(self):
