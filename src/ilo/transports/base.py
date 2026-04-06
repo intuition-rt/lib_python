@@ -18,3 +18,10 @@ class Transport(Protocol):
 
     def poll(self) -> None:
         ...
+
+    def send_binary(self, data: bytes) -> None:
+        ...
+
+    @property
+    def preferred_chunk_size(self) -> int:
+        ...
