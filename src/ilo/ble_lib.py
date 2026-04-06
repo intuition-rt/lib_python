@@ -46,6 +46,7 @@ class _SyncBleak:
     async def _connect(self, address):
         self.client = BleakClient(address)
         await self.client.connect()
+        assert list(self.client.services) != []
 
         if self.client.is_connected:
             return self.client
