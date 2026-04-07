@@ -268,16 +268,23 @@ class Robot:
             }
 
             try:
-                self._update_state(code, values, trame)
-            except:
-                return
+                state = self._update_state(code, values, trame)
+                if state:
+                    self._response_event.set()
 
-            self._response_event.set()
+                if self._debug:
+                    if state:
+                        print("Processed", code)
+                    else:
+                        print("Fail to process", code)
+            except Exception as e:
+                print(e)
+                return
 
         except Exception as e:
             print(f'[COMMUNICATION ERROR] data process: {e} | Trame: {data}')
 
-    def _update_state(self, code: str, v: dict, raw: str):
+    def _update_state(self, code: str, v: dict, raw: str) -> bool:
         if code == "10":
             # get_color_rgb_{left,center,right}
 
@@ -289,124 +296,160 @@ class Robot:
                 self._red_color_left, self._green_color_left, self._blue_color_left = r, g, b
             elif 'd' in raw:
                 self._red_color_right, self._green_color_right, self._blue_color_right = r, g, b
+            return True
 
-        elif code == "11": # get_color_clear
+        if code == "11": # get_color_clear
             self._clear_left = int(v['l'])
             self._clear_center = int(v['m'])
             self._clear_right = int(v['r'])
+            return True
 
-        elif code == "12": # get line
+        if code == "12": # get line
             self._line_left = int(v['l'])
             self._line_center = int(v['m'])
             self._line_right = int(v['r'])
-        elif code == "14": # get_line_threshold_value
+            return True
+
+        if code == "14": # get_line_threshold_value
             self._line_threshold_value = int(v['t'])
+            return True
 
         # Distance
 
-        elif code == "20": # get_distance
+        if code == "20": # get_distance
             self._distance_front = int(v['f'])
             self._distance_right = int(v['r'])
             self._distance_back = int(v['b'])
             self._distance_left = int(v['l'])
-        elif code == "21": # get_distance_front
+            return True
+        if code == "21": # get_distance_front
             self._distance_front = int(v['f'])
-        elif code == "22": # get_distance_right
+            return True
+        if code == "22": # get_distance_right
             self._distance_right = int(v['r'])
-        elif code == "23": # get_distance_back
+            return True
+        if code == "23": # get_distance_back
             self._distance_right = int(v['b'])
-        elif code == "24": # get_distance_left
+            return True
+        if code == "24": # get_distance_left
             self._distance_right = int(v['l'])
+            return True
 
-        elif code == "30":  # get_angle
+        if code == "30":  # get_angle
             self._roll = float(v['r'])
             self._pitch = float(v['p'])
             self._yaw = float(v['y'])
-        elif code == "32":  # get_raw_imu
+            return True
+        if code == "32":  # get_raw_imu
             self._accX = float(v['x'])
             self._accY = float(v['y'])
             self._accZ = float(v['z'])
             self._gyroX = float(v['r'])
             self._gyroY = float(v['p'])
             self._gyroZ = float(v['g'])
-        elif code == "40":  # get_battery
+            return True
+
+        if code == "40":  # get_battery
             self._battery_status = int(v['s'])
             self._battery_pourcentage = int(v['p'])
             self._battery_voltage = float(v['v'])
+            return True
 
-        elif code == "50":  # get_led_color
+        if code == "50":  # get_led_color
             self._red_led = int(v['r'])
             self._green_led = int(v['g'])
             self._blue_led = int(v['b'])
+            return True
 
         # Motor
 
-        elif code == "60":  # ping_single_motor
+        if code == "60":  # ping_single_motor
             self._motor_id = int(v['i'])
             self._motor_ping = int(v['s'])
+            return True
 
-        elif code == "611":  # get_single_motor_speed
+        if code == "611":  # get_single_motor_speed
             self._motor_id = int(v['i'])
             self._motor_speed = int(v['s'])
+            return True
 
-        elif code == "621":  # get_single_motor_angle
+        if code == "621":  # get_single_motor_angle
             self._motor_id = int(v['i'])
             self._motor_angle = int(v['s'])
+            return True
 
-        elif code == "63":  # get_temp_single_motor
+        if code == "63":  # get_temp_single_motor
             self._motor_id = int(v['i'])
             self._temp_motor = int(v['s'])
+            return True
 
-        elif code == "64":  # get_volt_single_motor
+        if code == "64":  # get_volt_single_motor
             self._motor_id = int(v['i'])
             self._motor_volt = int(v['s'])
+            return True
 
-        elif code == "65":  # get_torque_single_motor
+        if code == "65":  # get_torque_single_motor
             self._motor_id = int(v['i'])
             self._motor_torque = int(v['s'])
+            return True
 
-        elif code == "66":  # get_current_single_motor
+        if code == "66":  # get_current_single_motor
             self._motor_id = int(v['i'])
             self._motor_current = int(v['s'])
+            return True
 
-        elif code == "67":  # get_motor_is_moving
+        if code == "67":  # get_motor_is_moving
             self._motor_id = int(v['i'])
             self._motor_is_moving = int(v['s'])
+            return True
 
-        elif code == "681":  # get_acc_motor
+        if code == "681":  # get_acc_motor
             self._acc_motor = int(v['a'])
+            return True
 
-        elif code == "691":  # get_tempo_pos
-            self._tempo_pos = int(v['t'])
+        if code == "691":  # get_tempo_pos
+            self._tempo_pos = int(v['a'])
+            return True
 
-        elif code == "71":  # get_pid
+        if code == "71":  # get_pid
             self._kp = float(v['p'])
             self._ki = float(v['i'])
             self._kd = float(v['d'])
+            return True
 
-        elif code == "93":  # get_name
+        if code == "93":  # get_name
             self._hostname = str(v['n'])
+            return True
 
-        elif code == "101t":  # get_accessory
+        if code == "101t":  # get_accessory
             self._accessory = float(v['t'])
+            return True
 
-        elif code == "102":  # get_accessory
+        if code == "102":  # get_accessory
             self._potard_value = float(v['a'])
+            return True
 
-        elif code == "120":  # get_manufacturing_date
+        if code == "120":  # get_manufacturing_date
             self._manufacturing_date = v['s']
+            return True
 
-        elif code == "130":  # get_first_use_date
+        if code == "130":  # get_first_use_date
             self._first_use_date = v['s']
+            return True
 
-        elif code == "140":  # get_product_version
+        if code == "140":  # get_product_version
             self._product_version = v['s']
+            return True
 
-        elif code == "150":  # get_product_id
+        if code == "150":  # get_product_id
             self._product_id = v['s']
+            return True
 
-        elif code == "500":  # get_global_trame
+        if code == "500":  # get_global_trame
             self._version = v['y']
+            return True
+
+        return False
 
     # -----------------------------------------------------------------------------
     def __del__(self):
