@@ -423,7 +423,7 @@ class Robot:
             self._hostname = str(v['n'])
             return True
 
-        if code == "101t":  # get_accessory
+        if code == "101":  # get_accessory
             self._accessory = float(v['t'])
             return True
 
