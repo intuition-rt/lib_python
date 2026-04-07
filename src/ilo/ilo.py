@@ -22,6 +22,7 @@ import numpy as np
 import sys
 
 from .discovery import ConnectionType, RobotCandidate, find_in_candidates
+from .protocol import IloProtocolBuffer
 from .updater import _IloUpdater
 
 # https://stackoverflow.com/questions/2356399/tell-if-python-is-in-interactive-mode
@@ -190,6 +191,7 @@ class Robot:
         self.address = candidate.address
         self.connection_type = candidate.connection_type
 
+        self._buffer = IloProtocolBuffer()
         self.transport = candidate.get_transport()
 
         print("Connnecting to", candidate)
@@ -200,7 +202,7 @@ class Robot:
         return f"<ilo name={self._hostname} @ {self.address}>"
 
     def _connection(self):
-        self.transport.on_received = self._process_received_data
+        self.transport.on_received = self._on_raw_data
         self._is_connected = self.transport.connect()
 
         self._robots_connected[self.address] = self
@@ -226,6 +228,16 @@ class Robot:
             print(f"[{self._hostname} ~ {self.connection_type}] ->", message)
         self._response_event.clear()
         self.transport.send(message)
+
+    def _on_raw_data(self, raw_chunk: str):
+        clean_trames = self._buffer.feed(raw_chunk)
+
+        # escaped = "".join(b if 32 <= ord(b) <= 126 else "~" for b in raw_chunk)
+        # print(escaped) 
+
+        for trame in clean_trames:
+            print("ingest", trame)
+            self._process_received_data(trame)
 
     def _process_received_data(self, data):
         """
