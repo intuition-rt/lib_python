@@ -21,6 +21,7 @@ import signal
 import sys
 
 from .discovery import ConnectionType, RobotCandidate, find_in_candidates
+from .event_response import IloResponseEvent
 from .protocol import IloProtocolBuffer
 from .updater import _IloUpdater
 
@@ -95,6 +96,7 @@ class Robot:
     _robots_connected: Dict[str, Robot] = {}
 
     def __init__(self, candidate: RobotCandidate, debug=False):
+        self._debug = debug
         self._is_connected = False
 
         self._version = ""
@@ -177,12 +179,11 @@ class Robot:
         self._product_version = ""
         self._product_id = ""
 
-        self._response_event = threading.Event()
+        self._response_event = IloResponseEvent("global", self._hostname, self._debug)
         self._response_value = None
         
-        self._movement_complete = threading.Event()
+        self._movement_complete = IloResponseEvent("movement", self._hostname, self._debug)
 
-        self._debug = debug
         copy_to_clipboard('''my_ilo.step('front')''')
 
         self._Port = 4583
