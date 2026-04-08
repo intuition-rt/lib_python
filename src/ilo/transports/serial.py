@@ -44,7 +44,7 @@ class SerialTransport:
                 data = self._ser.read(self._ser.in_waiting).decode('utf-8', errors='ignore')
                 if data and self.on_received:
                     self.on_received(data)
-            time.sleep(0.01) # Prevent CPU spiking
+            time.sleep(0.001) # Prevent CPU spiking
 
     def send_binary(self, _: bytes) -> None:
         raise NotImplementedError
