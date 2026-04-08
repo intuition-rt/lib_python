@@ -304,6 +304,10 @@ class Robot:
         return None
 
     def _update_state(self, code: str, v: dict, raw: str) -> bool:
+        if code == "0":
+            # TODO: check trame_s
+            return True
+
         # get_color_rgb_{left,center,right}
         if code == "10l":
             r, g, b = int(v['r']), int(v['g']), int(v['b'])
