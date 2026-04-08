@@ -8,26 +8,32 @@ class IloResponseEvent(threading.Event):
         self.hostname = hostname
         self._debug = debug
 
+        self._start = 0
+
     def set(self):
         if not self.is_set() and self._debug:
-            print(f"[EVENT] <{self.code}> resolved for {self.hostname}")
+            duration = time.time() - self._start
+            print(f"[EVENT] <{self.code}> resolved for {self.hostname} after {duration:.2f}s")
         super().set()
 
     def clear(self):
         if self._debug:
             print(f"[EVENT] <{self.code}> clear")
+        self._start = time.time()
         super().clear()
 
     def wait(self, timeout=None):
-        start = time.time()
+        self._start = time.time()
+
         if self._debug:
-            print(f"Waiting for <{self.code}>")
+            print(f"[EVENT] Waiting for <{self.code}>")
+
         result = super().wait(timeout)
-        duration = time.time() - start
 
         if not result:
             if self._debug:
-                print(f"[TIMEOUT] <{self.code}> failed after {duration:.2f}s")
+                duration = time.time() -  self._start
+                print(f"[EVENT] <{self.code}> timeout after {duration:.2f}s")
             raise TimeoutError
 
         return result
