@@ -86,11 +86,11 @@ class WiFiTransport:
                 self._ws.settimeout(1) # Ajout d'un timeout pour que recv() ne bloque pas indéfiniment
                 data = self._ws.recv() # Timeout de 1 seconde pour éviter un blocage sur recv()
                 if data:
-                    if '/' in data:
-                        sub_trames = data.split('/')[1:-1]
-                        for sub_trame in sub_trames:
-                            self.on_received(f"<{sub_trame}>")
-                    else:
+                    # if '/' in data:
+                    #    sub_trames = data.split('/')[1:-1]
+                    #    for sub_trame in sub_trames:
+                    #        self.on_received(f"<{sub_trame}>")
+                    # else:
                         if self.on_received:
                             self.on_received(data)
             except websocket.WebSocketTimeoutException:

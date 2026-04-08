@@ -286,6 +286,10 @@ class Robot:
             print(f'[COMMUNICATION ERROR] data process: {e} | Trame: {data}')
 
     def _update_state(self, code: str, v: dict, raw: str) -> bool:
+        if code == "0":
+            # TODO: check trame_s
+            return True
+
         if code == "10":
             # get_color_rgb_{left,center,right}
 
