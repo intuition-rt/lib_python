@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import math
-import threading
 from typing import Any, Dict, Union
 from keyboard_crossplatform import KeyboardCrossplatform
 import time
@@ -194,6 +193,8 @@ class Robot:
         self._buffer = IloProtocolBuffer()
         self.transport = candidate.get_transport()
 
+        self._pending_responses: dict[str, IloResponseEvent] = {}
+
         print("Connnecting to", candidate)
         self._connection()
 
@@ -226,7 +227,7 @@ class Robot:
     def _send_msg(self, message):
         if self._debug:
             print(f"[{self._hostname} ~ {self.connection_type}] ->", message)
-        self._response_event.clear()
+
         self.transport.send(message)
 
     def _on_raw_data(self, raw_chunk: str):
@@ -238,6 +239,7 @@ class Robot:
         for trame in clean_trames:
             print("ingest", trame)
             self._process_received_data(trame)
+        self._response_event.set()
 
     def _process_received_data(self, data):
         """
@@ -267,19 +269,18 @@ class Robot:
                 for m in re.findall(r"([a-z])([-+]?\d*\.?\d*)", payload)
             }
 
-            try:
-                state = self._update_state(code, values, trame)
-                if state:
-                    self._response_event.set()
+            state = self._update_state(code, values, trame)
+            if state:
+                self._response_event.set()
 
-                if self._debug:
-                    if state:
-                        print("Processed", code)
-                    else:
-                        print("Fail to process", code)
-            except Exception as e:
-                print(e)
-                return
+                if self._pending_responses.get(code):
+                    self._pending_responses[code].set()
+
+            if self._debug:
+                if state:
+                    print("Processed", code)
+                else:
+                    print("Fail to process", code)
 
         except Exception as e:
             print(f'[COMMUNICATION ERROR] data process: {e} | Trame: {data}')
@@ -450,6 +451,19 @@ class Robot:
             return True
 
         return False
+
+    def _request_sync(self, cmd: str, expected_code: str, timeout: float = 3.0) -> bool:
+        """Sends a command and waits specifically for the expected response code."""
+
+        event = self._pending_responses.get(expected_code)
+        if not event:
+            event = IloResponseEvent(expected_code, self._hostname, self._debug)
+            self._pending_responses[expected_code] = event
+
+        event.clear()
+        self._send_msg(cmd)
+
+        return event.wait(timeout=timeout)
 
     # -----------------------------------------------------------------------------
     def __del__(self):
@@ -1378,9 +1392,15 @@ class Robot:
         """
         # self._response_event.clear()
         self._send_msg("<20>")
-        # time.sleep(0.15)
-        self._response_event.wait(timeout=5)
-        return (self._distance_front, self._distance_right, self._distance_back, self._distance_left)
+
+        if self._request_sync("<20>", "20"):
+            return (
+                self._distance_front,
+                self._distance_right,
+                self._distance_back,
+                self._distance_left
+            )
+        return (0,0,0,0)
 
     def get_distance_front(self):
         """
