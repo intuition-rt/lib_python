@@ -252,11 +252,12 @@ class Robot:
         if trame == "avp0":
             self._movement_complete.set()
             return
-        if trame == "ilo":
-            self._response_event.set()
+
+        proceed_special_trame = self._handle_special_trames(trame)
+        if proceed_special_trame is not None:
+            if self._pending_responses.get(proceed_special_trame):
+                self._pending_responses[proceed_special_trame].set()
             return
-        if trame == "92": # set_wifi_credential
-            self._parse_credentials(trame.removeprefix("92"))
 
         try:
             match = re.match(r"^(\d+)(.*)", trame)
@@ -287,6 +288,20 @@ class Robot:
 
         except Exception as e:
             print(f'[COMMUNICATION ERROR] data process: {e} | Trame: {data}')
+
+    def _handle_special_trames(self, trame: str) -> str | None:
+        # This trames repreent edge cases for our current parser
+        # and thus must be handled appart
+        if trame == "ilo":
+            self._response_event.set()
+            return "ilo"
+        if trame.startswith("92"): # set_wifi_credential
+            self._parse_credentials(trame.removeprefix("92"))
+            return "92"
+        if trame.startswith("93n"): # get_name
+            self._hostname = trame.removeprefix("93n")
+            return "93"
+        return None
 
     def _update_state(self, code: str, v: dict, raw: str) -> bool:
         # get_color_rgb_{left,center,right}
@@ -422,10 +437,6 @@ class Robot:
             self._kp = float(v['p'])
             self._ki = float(v['i'])
             self._kd = float(v['d'])
-            return True
-
-        if code == "93":  # get_name
-            self._hostname = str(v['n'])
             return True
 
         if code == "101":  # get_accessory
