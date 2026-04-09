@@ -1000,9 +1000,8 @@ class Robot:
         """
         Get the tempo of the position control
         """
-        self._send_msg("<691>")
-        self._response_event.wait(timeout=5)
-        return (self._tempo_pos)
+        self._request_sync("<691>", "691")
+        return self._tempo_pos
 
     def rotation(self, angle: Union[int, float], finish_state=True, display_led: bool=True):
         """
@@ -1126,24 +1125,21 @@ class Robot:
         """
         Get the actual value of the proportional gain, the integral gain and the derivative gain
         """
-        self._send_msg("<71>")
-        self._response_event.wait(timeout=5)
+        self._request_sync("<71>", "71")
         return (self._kp, self._ki, self._kd)
     # -----------------------------------------------------------------------------
     def get_color_rgb_center(self):
         """
         Displays the color below ilo
         """
-        self._send_msg("<10c>")
-        self._response_event.wait(timeout=5)
-
+        self._request_sync("<10c>", "10c")
         return (self._red_color_center, self._green_color_center, self._blue_color_center)
 
     def get_color_rgb_left(self):
         """
         Displays the color below ilo only with left sensor
         """
-        self._send_msg("<10l>")
+        self._request_sync("<10l>", "10l")
         self._response_event.wait(timeout=5)
 
         return (self._red_color_left, self._green_color_left, self._blue_color_left)
@@ -1152,7 +1148,7 @@ class Robot:
         """
         Displays the color below ilo only with left sensor
         """
-        self._send_msg("<10d>")
+        self._request_sync("<10d>", "10d")
         self._response_event.wait(timeout=5)
 
         return (self._red_color_right, self._green_color_right, self._blue_color_right)
@@ -1283,65 +1279,59 @@ class Robot:
         """
         Displays the brightness below ilo
         """
-        self._send_msg("<11>")
-        self._response_event.wait(timeout=5)
+        self._request_sync("<11>", "11")
         return (self._clear_left, self._clear_center, self._clear_right)
 
     def get_color_clear_left(self):
         """
         Displays the brightness below ilo only with left sensor
         """
-        self._send_msg("<11>")
-        self._response_event.wait(timeout=5)
-        return (self._clear_left)
+        self._request_sync("<11>", "11")
+        return self._clear_left
 
     def get_color_clear_center(self):
         """
         Displays the brightness below ilo only with central sensor
         """
-        self._send_msg("<11>")
-        self._response_event.wait(timeout=5)
-        return (self._clear_center)
+        self._request_sync("<11>", "11")
+        return self._clear_center
 
     def get_color_clear_right(self):
         """
         Displays the brightness below ilo only with right sensor
         """
-        self._send_msg("<11>")
-        self._response_event.wait(timeout=5)
-        return (self._clear_right)
+        self._request_sync("<11>", "11")
+        return self._clear_right
+
     # -----------------------------------------------------------------------------
     def get_line(self):
         """
         Detects whether ilo is on a line or not
         """
-        self._send_msg("<12>")
-        self._response_event.wait(timeout=5)
+        """Detects whether ilo is on a line."""
+        self._request_sync("<12>", "12")
         return (self._line_left, self._line_center, self._line_right)
 
     def get_line_left(self):
         """
         Detects whether ilo is on a line or not according to the left sensor
         """
-        self._send_msg("<12>")
-        self._response_event.wait(timeout=5)
-        return (self._line_left)
+        self._request_sync("<12>", "12")
+        return self._line_left
 
     def get_line_center(self):
         """
         Detects whether ilo is on a line or not according to the central sensor
         """
-        self._send_msg("<12>")
-        self._response_event.wait(timeout=5)
-        return (self._line_center)
+        self._request_sync("<12>", "12")
+        return self._line_center
 
     def get_line_right(self):
         """
         Detects whether ilo is on a line or not according to the right sensor
         """
-        self._send_msg("<12>")
-        self._response_event.wait(timeout=5)
-        return (self._line_right)
+        self._request_sync("<12>", "12")
+        return self._line_right
 
     def set_line_threshold_value(self, value=None):
         """
@@ -1382,89 +1372,77 @@ class Robot:
         """
         Get the actual value of the threshold value for the line detection
         """
-        self._send_msg("<14>")
-        self._response_event.wait(timeout=5)
-        return (self._line_threshold_value)
     # -----------------------------------------------------------------------------
+        self._request_sync("<14>", "14")
+        return self._line_threshold_value
+
     def get_distance(self):
         """
         Get the distance around ilo
         """
-        # self._response_event.clear()
-        self._send_msg("<20>")
-
-        if self._request_sync("<20>", "20"):
-            return (
-                self._distance_front,
-                self._distance_right,
-                self._distance_back,
-                self._distance_left
-            )
-        return (0,0,0,0)
+        self._request_sync("<20>", "20")
+        return (
+            self._distance_front,
+            self._distance_right,
+            self._distance_back,
+            self._distance_left
+        )
 
     def get_distance_front(self):
         """
         Get the distance in front of ilo
         """
-        self._send_msg("<21>")
-        self._response_event.wait(timeout=5)
-        return (self._distance_front)
+        self._request_sync("<21>", "21")
+        return self._distance_front
 
     def get_distance_right(self):
         """
         Get the distance on the right of ilo
         """
-        self._send_msg("<22>")
-        self._response_event.wait(timeout=5)
-        return (self._distance_right)
+        self._request_sync("<22>", "22")
+        return self._distance_right
 
     def get_distance_back(self):
         """
         Get the distance behind ilo
         """
-        self._send_msg("<23>")
-        self._response_event.wait(timeout=5)
-        return (self._distance_back)
+        self._request_sync("<23>", "23")
+        return self._distance_back
 
     def get_distance_left(self):
         """
         Get the distance on the left of ilo
         """
-        self._send_msg("<24>")
-        self._response_event.wait(timeout=5)
-        return (self._distance_left)
+        self._request_sync("<24>", "24")
+        return self._distance_left
     # -----------------------------------------------------------------------------
     def get_angle(self):
         """
         Get the angle of ilo
         """
-        self._send_msg("<30>")
-        self._response_event.wait(timeout=5)
+        self._request_sync("<30>", "30")
         return (self._roll, self._pitch, self._yaw)
 
     def get_roll(self):
         """
         Get the roll angle of ilo
         """
-        self._send_msg("<30>")
-        self._response_event.wait(timeout=5)
-        return (self._roll)
+        self._request_sync("<30>", "30")
+        return self._roll
 
     def get_pitch(self):
         """
         Get the pitch angle of ilo
         """
-        self._send_msg("<30>")
-        self._response_event.wait(timeout=5)
-        return (self._pitch)
+        self._request_sync("<30>", "30")
+        return self._pitch
 
     def get_yaw(self):
         """
         Get the yaw angle of ilo
         """
-        self._send_msg("<30>")
-        self._response_event.wait(timeout=5)
-        return (self._yaw)
+        self._request_sync("<30>", "30")
+        return self._yaw
 
     def reset_angle(self):
         """
@@ -1476,24 +1454,28 @@ class Robot:
         """
         Get IMU raw data
         """
-        self._send_msg("<32>")
-        self._response_event.wait(timeout=5)
-        return (self._accX, self._accY, self._accZ, self._gyroX, self._gyroY, self._gyroZ)
+        self._request_sync("<32>", "32")
+        return (
+            self._accX,
+            self._accY,
+            self._accZ,
+            self._gyroX,
+            self._gyroY,
+            self._gyroZ
+        )
     # -----------------------------------------------------------------------------
     def get_battery(self):
         """
         Get battery status (charged or not) and percentage
         """
-        self._send_msg("<40>")
-        self._response_event.wait(timeout=5)
+        self._request_sync("<40>", "40")
         return (self._battery_status, self._battery_pourcentage)
     # -----------------------------------------------------------------------------
     def get_led_color(self):
         """
         Get ilo LEDS color
         """
-        self._send_msg("<50>")
-        self._response_event.wait(timeout=5)
+        self._request_sync("<50>", "50")
         return (self._red_led, self._green_led, self._blue_led)
 
     def set_led_color(self, red: int, green: int, blue: int):
@@ -1723,9 +1705,8 @@ class Robot:
         """
         Get the acceleration of all motors 
         """
-        self._send_msg("<681>")
-        self._response_event.wait(timeout=5)
-        return (self._acc_motor)
+        self._request_sync("<681>", "681")
+        return self._acc_motor
 
     def set_acc_motor(self, acc: int):
         """
@@ -1779,9 +1760,7 @@ class Robot:
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = f"<60i{id}>"
-        self._send_msg(msg)
-        self._response_event.wait(timeout=5)
+        self._request_sync(f"<60i{id}>", "60")
         return (self._motor_id, self._motor_ping)
     # <610i1v3000>
     def drive_single_motor_speed(self, id: int, acc: int, vel: int):
@@ -1929,9 +1908,7 @@ class Robot:
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = f"<611i{id}>"
-        self._send_msg(msg)
-        self._response_event.wait(timeout=5)
+        self._request_sync(f"<611i{id}>", "611")
         return (self._motor_id, self._motor_speed)
     # <620i6a100v100p90>
     def drive_single_motor_angle(self, id: int, acc: int, vel: int, pos: int):
@@ -2011,9 +1988,7 @@ class Robot:
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = f"<621i{id}>"
-        self._send_msg(msg)
-        self._response_event.wait(timeout=5)
+        self._request_sync(f"<621i{id}>", "621")
         return (self._motor_id, self._motor_angle)
     # <63i1t45>
     def get_temp_single_motor(self, id: int):
@@ -2038,9 +2013,7 @@ class Robot:
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = f"<63i{id}>"
-        self._send_msg(msg)
-        self._response_event.wait(timeout=5)
+        self._request_sync(f"<63i{id}>", "63")
         return (self._motor_id, self._temp_motor)
     # <64i1v6.7>
     def get_volt_single_motor(self, id: int):
@@ -2065,10 +2038,8 @@ class Robot:
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = f"<64i{id}>"
-        self._send_msg(msg)
-        self._response_event.wait(timeout=5)
-        return (self._motor_id, self.volt_motor)
+        self._request_sync(f"<64i{id}>", "64")
+        return (self._motor_id, self._motor_volt)
     # <65i1t20>
     def get_torque_single_motor(self, id: int):
         """
@@ -2092,9 +2063,7 @@ class Robot:
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = f"<65i{id}>"
-        self._send_msg(msg)
-        self._response_event.wait(timeout=5)
+        self._request_sync(f"<65i{id}>", "65")
         return (self._motor_id, self._motor_torque)
     # <66i1c20>
     def get_current_single_motor(self, id: int):
@@ -2119,10 +2088,9 @@ class Robot:
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = f"<66i{id}>"
-        self._send_msg(msg)
-        self._response_event.wait(timeout=5)
-        return (self._motor_id, self.current_motor)
+        self._request_sync(f"<66i{id}>", "66")
+        return (self._motor_id, self._motor_current)
+
     # <67i1s20>
     def get_motor_is_moving(self, id: int):
         """
@@ -2146,10 +2114,8 @@ class Robot:
             print("[ERROR] 'id' parameter must be include between 0 and 255")
             return None
 
-        msg = f"<67i{id}>"
-        self._send_msg(msg)
-        self._response_event.wait(timeout=5)
-        return (self._motor_id, self.motor_moving)
+        self._request_sync(f"<67i{id}>", "67")
+        return (self._motor_id, self._motor_is_moving)
 
     def set_motor_mode(self, motor_id, mode):
         """This legacy function has been removed."""
@@ -2208,8 +2174,7 @@ class Robot:
         """
         Get wifi credentials registered on ilo
         """
-        self._send_msg("<92>")
-        self._response_event.wait(timeout=5)
+        self._request_sync("<92>", "92")
         return (self._ssid, self._password)
     
     def _parse_credentials(self, data: str):
@@ -2264,25 +2229,23 @@ class Robot:
         """
         Get the name you have given to your ilo
         """
-        self._send_msg("<93>")
-        self._response_event.wait(timeout=5)
-        return (self._hostname)
+        self._request_sync("<93>", "93")
+        return self._hostname
     # -----------------------------------------------------------------------------
     def get_accessory_data(self):
         """
         Get data from the accessory connected to ilo
         """
-        self._send_msg("<100>")
-        self._response_event.wait(timeout=5)
-        return (self._accessory)
+        self._request_sync("<100>", "100")
+        return self._accessory
     
     def get_accessory(self):
         """
         Get information about the accessory connected to ilo
         """
-        self._send_msg("<101>")
-        self._response_event.wait(timeout=5)
-        return (self._accessory)
+        self._request_sync("<101>", "101")
+        return self._accessory
+
     # -----------------------------------------------------------------------------
     def set_debug_state(self, state: bool):
 
@@ -2403,8 +2366,7 @@ class Robot:
         """
         Get the manufacturing date of ilo
         """
-        self._send_msg("<120>")
-        self._response_event.wait(timeout=5)
+        self._request_sync("<120>", "120")
         return (self._manufacturing_date)
 
     def set_first_use_date(self, date: str):
@@ -2418,9 +2380,8 @@ class Robot:
         """
         Get the first use date of ilo
         """
-        self._send_msg("<130>")
-        self._response_event.wait(timeout=5)
-        return (self._first_use_date)
+        self._request_sync("<130>", "130")
+        return self._first_use_date
 
     def set_product_version(self, version: str):
         """
@@ -2433,9 +2394,8 @@ class Robot:
         """
         Get the version of the product
         """
-        self._send_msg("<140>")
-        self._response_event.wait(timeout=5)
-        return (self._product_version)
+        self._request_sync("<140>", "140")
+        return self._product_version
 
     def set_product_id(self, id: str):
         """
@@ -2448,17 +2408,15 @@ class Robot:
         """
         Get the id of the product
         """
-        self._send_msg("<150>")
-        self._response_event.wait(timeout=5)
-        return (self._product_id)
+        self._request_sync("<150>", "150")
+        return self._product_id
 
     def get_robot_version(self):
         """
         Get the version number of the code present on the robot
         """
-        self._send_msg("<500y>")
-        self._response_event.wait(timeout=5)
-        return (self._version)
+        self._request_sync("<500y>", "500")
+        return self._version
     
     def draw_distance(self, distance="front", xmax=100, ymax=600):
         """
