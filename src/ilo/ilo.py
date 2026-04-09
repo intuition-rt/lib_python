@@ -269,6 +269,15 @@ class Robot:
                 for m in re.findall(r"([a-z])([-+]?\d*\.?\d*)", payload)
             }
 
+            # special case, need to set appropriate code
+            if code == "10":
+                if 'l' in trame:
+                    code = "10l"
+                elif 'c' in trame:
+                    code = "10c"
+                elif 'd' in trame:
+                    code = "10d"
+
             state = self._update_state(code, values, trame)
             if state:
                 self._response_event.set()
@@ -276,27 +285,24 @@ class Robot:
                 if self._pending_responses.get(code):
                     self._pending_responses[code].set()
 
-            if self._debug:
-                if state:
-                    print("Processed", code)
-                else:
-                    print("Fail to process", code)
-
         except Exception as e:
             print(f'[COMMUNICATION ERROR] data process: {e} | Trame: {data}')
 
     def _update_state(self, code: str, v: dict, raw: str) -> bool:
-        if code == "10":
-            # get_color_rgb_{left,center,right}
-
+        # get_color_rgb_{left,center,right}
+        if code == "10l":
             r, g, b = int(v['r']), int(v['g']), int(v['b'])
+            self._red_color_right, self._green_color_right, self._blue_color_right = r, g, b
+            return True
 
-            if 'c' in raw:
-                self._red_color_center, self._green_color_center, self._blue_color_center = r, g, b
-            elif 'l' in raw:
-                self._red_color_left, self._green_color_left, self._blue_color_left = r, g, b
-            elif 'd' in raw:
-                self._red_color_right, self._green_color_right, self._blue_color_right = r, g, b
+        if code == "10c":
+            r, g, b = int(v['r']), int(v['g']), int(v['b'])
+            self._red_color_right, self._green_color_right, self._blue_color_right = r, g, b
+            return True
+
+        if code == "10d":
+            r, g, b = int(v['r']), int(v['g']), int(v['b'])
+            self._red_color_right, self._green_color_right, self._blue_color_right = r, g, b
             return True
 
         if code == "11": # get_color_clear
