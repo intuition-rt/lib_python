@@ -74,6 +74,11 @@ class RobotCandidate:
         return self.connection_type.transport_class(self.address)
 
 
+def get_all_candidates() -> tuple[RobotCandidate, ...]:
+    """Retrieve a view of discovered robots available for connection."""
+    return tuple(__candidate_pool.values())
+
+
 def find_in_candidates(name: str, use_connection_type = None) -> RobotCandidate | None:
     for candidate in __candidate_pool.values():
         if (
@@ -333,5 +338,8 @@ def check_robot_on_bluetooth():
 
 
 __all__ = (
-    "ConnectionType", "RobotCandidate", "find_in_candidates"
+    "ConnectionType",
+    "RobotCandidate",
+    "find_in_candidates",
+    "get_all_candidates"
 )
