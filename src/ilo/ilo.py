@@ -167,7 +167,6 @@ class Robot:
         self._ssid = ""
         self._password = ""
 
-        self._accessory = 0
         self._potard_value = 0
 
         self._global_trame = ""
@@ -424,7 +423,16 @@ class Robot:
             return True
 
         if code == "101":  # get_accessory
-            self._accessory = float(v['t'])
+            # This trame has a different format, so we need to process it raw
+            # <101s0/0/0> -> "0/0/0" is the state table for accessories
+
+            table = raw[raw.index('s') + 1:]
+            print("table", table)
+            board_connected, motor, camera = table.split('/')
+
+            self._is_accessory_board_connected = board_connected == "1"
+            self._accessory_motor_id = int(motor)
+            self._accesory_camera = int(camera)
             return True
 
         if code == "102":  # get_accessory
@@ -2233,19 +2241,17 @@ class Robot:
         self._request_sync("<93>", "93")
         return self._hostname
     # -----------------------------------------------------------------------------
-    def get_accessory_data(self):
-        """
-        Get data from the accessory connected to ilo
-        """
-        self._request_sync("<100>", "100")
-        return self._accessory
-    
-    def get_accessory(self):
+
+    def get_accessory_info(self):
         """
         Get information about the accessory connected to ilo
         """
         self._request_sync("<101>", "101")
-        return self._accessory
+        return (
+            self._is_accessory_board_connected,
+            self._acc_motor,
+            self._accesory_camera
+        )
 
     # -----------------------------------------------------------------------------
     def set_debug_state(self, state: bool):
