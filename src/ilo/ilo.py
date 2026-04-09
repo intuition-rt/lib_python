@@ -2147,10 +2147,6 @@ class Robot:
         self._request_sync(f"<67i{id}>", "67")
         return (self._motor_id, self._motor_is_moving)
 
-    def set_motor_mode(self, motor_id, mode):
-        """This legacy function has been removed."""
-        pass
-
     # -----------------------------------------------------------------------------
     def set_autonomous_mode(self, value: str):
         """
