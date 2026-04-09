@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 
+from .diagnostic import Diagnostic
 from .discovery import ConnectionType, RobotCandidate, find_in_candidates
 from .event_response import IloResponseEvent
 from .protocol import IloProtocolBuffer
@@ -171,6 +172,8 @@ class Robot:
         self._product_version = ""
         self._product_id = ""
 
+        self._diagnostics = None
+
         self._movement_complete = IloResponseEvent("movement", self._hostname, self._debug)
 
         copy_to_clipboard('''my_ilo.step('front')''')
@@ -276,13 +279,16 @@ class Robot:
             print(f'[COMMUNICATION ERROR] data process: {e} | Trame: {data}')
 
     def _handle_special_trames(self, trame: str) -> str | None:
-        # This trames repreent edge cases for our current parser
+        # Theses trames represent edge cases for our current parser
         # and thus must be handled appart
         if trame == "ilo":
             return "ilo"
         if trame.startswith("93n"): # get_name
             self._hostname = trame.removeprefix("93n")
             return "93"
+        if trame.startswith("110"): # diagnostics
+            self._diagnostics = Diagnostic.from_string(trame.removeprefix("110"))
+            return "110"
         return None
 
     def _update_state(self, code: str, v: dict, raw: str) -> bool:
@@ -2323,12 +2329,15 @@ class Robot:
         Stop the global trame
         """
         self._send_msg("<00>")
-    # -----------------------------------------------------------------------------
-    def get_diagnostic(self):
-        """
-        Get a diagnosis of robot status
-        """
-        self._send_msg("<110>")
+
+    def print_diagnostics(self) -> None:
+        """Show the list of diagnostic result."""
+        self._request_sync("<110>", "110", timeout=15)
+        if self._diagnostics is None:
+            raise TimeoutError
+
+        self._diagnostics.print()
+
     # -----------------------------------------------------------------------------
 
     def get_manufacturing_date(self):
