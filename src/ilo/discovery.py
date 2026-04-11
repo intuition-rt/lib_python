@@ -14,7 +14,7 @@ from .ble_lib import ble_lib
 from .color_encoding import base62_to_name, BASIC_COLOR_NAMES
 from .copy_to_clipboard import copy_to_clipboard
 from .net import get_broadcast_ip
-from .transports import (
+from .transport import (
     Transport,
     BLETransport,
     SerialTransport,

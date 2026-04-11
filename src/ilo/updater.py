@@ -5,7 +5,7 @@ import asyncio
 import requests
 from .ble_lib import ble_lib
 
-from .transports import Transport
+from .transport import Transport
 
 
 # This is used for development purpose in order to rapidly test scripts
