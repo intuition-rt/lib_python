@@ -46,7 +46,6 @@ getter_methods = [
     robot.get_robot_version,
     robot.get_roll,
     robot.get_tempo_pos,
-    robot.get_wifi_credentials,
     robot.get_yaw,
 ]
 

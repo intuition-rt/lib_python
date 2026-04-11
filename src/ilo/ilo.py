@@ -164,14 +164,7 @@ class Robot:
         self._ki = 0
         self._kd = 0
 
-        self._ssid = ""
-        self._password = ""
-
         self._potard_value = 0
-
-        self._global_trame = ""
-
-        self._version = ""
 
         self._manufacturing_date = ""
         self._first_use_date = ""
@@ -234,7 +227,6 @@ class Robot:
         # print(escaped) 
 
         for trame in clean_trames:
-            print("ingest", trame)
             self._process_received_data(trame)
 
     def _process_received_data(self, data):
@@ -288,9 +280,6 @@ class Robot:
         # and thus must be handled appart
         if trame == "ilo":
             return "ilo"
-        if trame.startswith("92"): # set_wifi_credential
-            self._parse_credentials(trame.removeprefix("92"))
-            return "92"
         if trame.startswith("93n"): # get_name
             self._hostname = trame.removeprefix("93n")
             return "93"
@@ -2187,32 +2176,6 @@ class Robot:
         msg = f"<90{ssid}{{|||}}{password}>"
         self._send_msg(msg)
 
-    def get_wifi_credentials(self):
-        """
-        Get wifi credentials registered on ilo
-        """
-        self._request_sync("<92>", "92")
-        return (self._ssid, self._password)
-    
-    def _parse_credentials(self, data: str):
-        """
-        Parse the wifi credentials from the response data
-
-        Parameters:
-            data (str): the response data from ilo
-
-        Returns:
-            tuple: a tuple containing the ssid and password
-        """
-        try:
-            # TODO: a better approach for this
-            ssid, password = data.split("{|||}")
-            ssid = ssid.strip()
-            password = password.strip()
-            return ssid, password
-        except ValueError:
-            print("[ERROR] Failed to parse wifi credentials")
-            return None, None
     # -----------------------------------------------------------------------------
     def set_name(self, name: str):  # going to be change by <93n>
         """
@@ -2370,12 +2333,6 @@ class Robot:
         """
         self._send_msg("<110>")
     # -----------------------------------------------------------------------------
-    def set_manufacturing_date(self, date: str):
-        """
-        Set the manufacturing date of ilo
-        """
-        msg = f"<121s{date}>"
-        self._send_msg(msg)
 
     def get_manufacturing_date(self):
         """
@@ -2384,13 +2341,6 @@ class Robot:
         self._request_sync("<120>", "120")
         return (self._manufacturing_date)
 
-    def set_first_use_date(self, date: str):
-        """
-        Set the first use date of ilo
-        """
-        msg = f"<131s{date}>"
-        self._send_msg(msg)
-
     def get_first_use_date(self):
         """
         Get the first use date of ilo
@@ -2398,26 +2348,12 @@ class Robot:
         self._request_sync("<130>", "130")
         return self._first_use_date
 
-    def set_product_version(self, version: str):
-        """
-        Set the version of the product
-        """
-        msg = f"<141s{version}>"
-        self._send_msg(msg)
-
     def get_product_version(self):
         """
         Get the version of the product
         """
         self._request_sync("<140>", "140")
         return self._product_version
-
-    def set_product_id(self, id: str):
-        """
-        Set the id of the product
-        """
-        msg = f"<151s{id}>"
-        self._send_msg(msg)
 
     def get_product_id(self):
         """
