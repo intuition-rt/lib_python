@@ -1,96 +1,24 @@
-# MIT License
-# Copyright (c) 2025 Intuition Robotique & Technologique
-# See the LICENSE file in the project root for full license information.
-# -----------------------------------------------------------------------------
-# This python library is for using the robot ilo with python command on WiFi or Bluetooth
-# 21/03/2025
-# -----------------------------------------------------------------------------
 from __future__ import annotations
+
+from keyboard_crossplatform import KeyboardCrossplatform
+from typing import Dict, Union
 
 import atexit
 import math
-from typing import Any, Dict, Union
-from keyboard_crossplatform import KeyboardCrossplatform
-import time
-import re
-import unicodedata
-from prettytable import PrettyTable
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
+import re
+import time
+import unicodedata
 
 from .diagnostic import Diagnostic
-from .discovery import ConnectionType, RobotCandidate, find_in_candidates
-from .event_response import IloResponseEvent
-from .protocol import IloProtocolBuffer
-from .updater import _IloUpdater
 
-# https://stackoverflow.com/questions/2356399/tell-if-python-is-in-interactive-mode
-IS_INTERACTIVE = hasattr(sys, 'ps1')
-
-__version__ = "0.0.64"
-
-print("ilo robot library version: ", __version__)
-print("For more information about the library use ilo.info() command line")
-print("For any help or support contact us on our website, ilorobot.com")
-
-# -----------------------------------------------------------------------------
-
-
-from .copy_to_clipboard import copy_to_clipboard
-
-# -----------------------------------------------------------------------------
-
-copy_to_clipboard("""ilo.check_robot_on_bluetooth()""")
-
-# -----------------------------------------------------------------------------
-
-def info():
-    """
-    Print info about ilorobot
-    """
-    print("ilo robot is an education robot controlable by direct python command")
-    print("To know every fonction available with ilo,  use ilo.list_function() command line")
-    print("You are using the version ", __version__)
-# -----------------------------------------------------------------------------
-
-def list_function():
-    '''
-    Print the list of all the functions available in the library
-    '''
-    # add the name info <93>
-    ilo_table = PrettyTable()
-    ilo_table.field_names = ["Methods", "Description"]
-    ilo_table.align["Methods"] = "l"
-    ilo_table.align["Description"] = "l"
-    ilo_table.add_row(
-        ["ilo.info()", "Print info about ilorobot"], divider=True)
-    ilo_table.add_row(
-        ["ilo.list_function", "Print the list of all the functions available in the library"], divider=True)
-    print(ilo_table)
-    print("")
-
-    my_ilo_table = PrettyTable()
-    my_ilo_table.field_names = [
-        "Object methods (example: my_ilo.game())", "Description"]
-    my_ilo_table.align["Object methods (example: my_ilo.game())"] = "l"
-    my_ilo_table.align["Description"] = "l"
-
-    for entry_name in dir(Robot):
-        entry: Any = getattr(Robot, entry_name)
-        if not callable(entry) or entry_name.startswith("_"):
-            continue
-
-        if entry.__doc__ is None:
-            continue
-
-        desc = entry.__doc__.lstrip("\n").splitlines()[0]
-        my_ilo_table.add_row([entry.__name__, desc], divider=False)
-
-    print(my_ilo_table)
-    print("If the table does not display correctly, expand your terminal.")
-# -----------------------------------------------------------------------------
+from ..copy_to_clipboard import copy_to_clipboard
+from ..discovery import ConnectionType, RobotCandidate
+from ..event_response import IloResponseEvent
+from ..protocol import IloProtocolBuffer
+from ..updater import _IloUpdater
 
 
 class Robot:
@@ -2609,31 +2537,13 @@ class Robot:
             self.stop_trame_s()
 
 
-def robot(
-    name: str | int,
-    connect_with: ConnectionType | None = None,
-    debug=False,
-) -> Robot:
-    if isinstance(name, int):
-        raise ValueError("La création de robot par ID n'est plus possible.")
 
-    candidate = find_in_candidates(name, use_connection_type=connect_with)
-    if candidate is None:
-        raise ValueError("Aucun robot correspondant")
-
-    robot = Robot._robots_connected.get(candidate.address)
-    if robot is not None:
-        return robot
-
-    return Robot(candidate, debug)
-
-
-
-def cleanup_robots():
+def _cleanup_robots():
     for r in list(Robot._robots_connected.values()):
         try:
             r.disconnect()
         except:
             pass
 
-atexit.register(cleanup_robots)
+
+atexit.register(_cleanup_robots)
