@@ -178,9 +178,6 @@ class Robot:
         self._product_version = ""
         self._product_id = ""
 
-        self._response_event = IloResponseEvent("global", self._hostname, self._debug)
-        self._response_value = None
-        
         self._movement_complete = IloResponseEvent("movement", self._hostname, self._debug)
 
         copy_to_clipboard('''my_ilo.step('front')''')
@@ -239,7 +236,6 @@ class Robot:
         for trame in clean_trames:
             print("ingest", trame)
             self._process_received_data(trame)
-        self._response_event.set()
 
     def _process_received_data(self, data):
         """
@@ -281,8 +277,6 @@ class Robot:
 
             state = self._update_state(code, values, trame)
             if state:
-                self._response_event.set()
-
                 if self._pending_responses.get(code):
                     self._pending_responses[code].set()
 
@@ -293,7 +287,6 @@ class Robot:
         # This trames repreent edge cases for our current parser
         # and thus must be handled appart
         if trame == "ilo":
-            self._response_event.set()
             return "ilo"
         if trame.startswith("92"): # set_wifi_credential
             self._parse_credentials(trame.removeprefix("92"))
@@ -1170,7 +1163,6 @@ class Robot:
         Displays the color below ilo only with left sensor
         """
         self._request_sync("<10l>", "10l")
-        self._response_event.wait(timeout=5)
 
         return (self._red_color_left, self._green_color_left, self._blue_color_left)
 
@@ -1179,7 +1171,6 @@ class Robot:
         Displays the color below ilo only with left sensor
         """
         self._request_sync("<10d>", "10d")
-        self._response_event.wait(timeout=5)
 
         return (self._red_color_right, self._green_color_right, self._blue_color_right)
 
