@@ -69,7 +69,6 @@ class _SyncBleak:
     async def _subscribe(self, char_uuid, callback):
         if self.client and self.client.is_connected:
             await self.client.start_notify(char_uuid, callback)
-            # print(f"🔔 Abonné aux notifications sur {char_uuid}")
 
     def unsubscribe_from_notifications(self, char_uuid):
         """Se désabonne des notifications."""
@@ -79,7 +78,6 @@ class _SyncBleak:
     async def _unsubscribe(self, char_uuid):
         if self.client and self.client.is_connected:
             await self.client.stop_notify(char_uuid)
-            print(f"🚫 Désabonné des notifications sur {char_uuid}")
 
     def disconnect(self, client):
         """Déconnecte le client BLE."""
