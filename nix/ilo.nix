@@ -18,7 +18,7 @@
 }:
 buildPythonPackage {
   pname = "ilo";
-  version = "0.0.64";
+  version = "0.1.0";
   pyproject = true;
 
   src = ./..;
