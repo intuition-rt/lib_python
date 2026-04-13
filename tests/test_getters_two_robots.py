@@ -3,8 +3,8 @@ import ilo
 ilo.check_robot_on_serial()
 ilo.check_robot_on_bluetooth()
 
-from ilo import ilo, ConnectionType
-from ilo.ilo import Robot
+from ilo import ConnectionType
+from ilo.robot import Robot
 
 robot = ilo.robot("Sigma", connect_with=ConnectionType.SERIAL, debug=True)
 robot2 = ilo.robot("Aqua", connect_with=ConnectionType.BLUETOOTH, debug=True)
@@ -52,7 +52,6 @@ getter_methods = [
     Robot.get_robot_version,
     Robot.get_roll,
     Robot.get_tempo_pos,
-    Robot.get_wifi_credentials,
     Robot.get_yaw,
 ]
 

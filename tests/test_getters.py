@@ -1,10 +1,10 @@
 import ilo
 
-ilo.check_robot_on_serial()
+ilo.check_robot_on_bluetooth()
 
-from ilo import ilo, ConnectionType
+from ilo import ConnectionType
 
-robot = ilo.robot("Sigma", connect_with=ConnectionType.SERIAL, debug=True)
+robot = ilo.robot("Sigma", connect_with=ConnectionType.BLUETOOTH, debug=True)
 
 def test_trame(mtd, *args):
     print(f"\033[34m{mtd.__name__}({', '.join(map(str, args))})\033[0m ")
