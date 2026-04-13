@@ -130,7 +130,7 @@ def check_robot_on_wifi(ap_mode = True, timeout = 1):
     """
     Check the presence of the ilo(s) on the network
     """
-    copy_to_clipboard("""my_ilo = ilo.robot(1)""")
+    copy_to_clipboard("""my_ilo = ilo.robot(\"ilo\")""")
     try:
         print("Looking for ilo on your network ...")
         ilo_AP = False
@@ -269,7 +269,7 @@ def check_robot_on_serial(COM=None):
     """
     Check the connection to ilo in serial
     """
-    copy_to_clipboard("""my_ilo = ilo.robot(1)""")
+    copy_to_clipboard("""my_ilo = ilo.robot(\"ilo\")""")
 
     if COM:
         try:
@@ -295,7 +295,7 @@ def check_robot_on_serial(COM=None):
 
 
 def check_robot_on_bluetooth():
-    copy_to_clipboard('''my_ilo = ilo.robot(1)''')
+    copy_to_clipboard('''my_ilo = ilo.robot(\"ilo\")''')
 
     print("[ILO] Scanning for BLE devices...")
     try:    
