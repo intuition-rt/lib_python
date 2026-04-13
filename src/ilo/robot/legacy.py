@@ -129,11 +129,11 @@ class Robot:
 
         self._robots_connected[self.address] = self
 
-        self._send_msg("<500y>")
-        time.sleep(0.2)
         self._send_msg("<ilo>")
+        time.sleep(1)
+        self.get_robot_version()
 
-        print(f"Your are connected to {self._hostname}, v{self._version}")
+        print(f"You are connected to {self._hostname}, v{self._version}")
         if self.connection_type in (ConnectionType.WIFI, ConnectionType.BLUETOOTH):
             updater = _IloUpdater(self.transport, self._version)
             updater.check_update()
@@ -393,7 +393,7 @@ class Robot:
             return True
 
         if code == "500":  # get_global_trame
-            self._version = v['y']
+            self._version = v['y'] or v.get('v')
             return True
 
         return False
