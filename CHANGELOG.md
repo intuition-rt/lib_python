@@ -1,13 +1,29 @@
 # Changelog
 
-## [0.1.1] - 2026-04-XX
+## [0.1.2] - 2026-04-15
+
+### Ajouts
+
+- Mise en place du changelog
+
+### Changements
+
+- Migration vers `hatchling`
+- Retrait du support pour python `3.8` & `3.9` (fin de vie)
+- Mise à jour des metadata du projet
+
+### Corrections
+
+- Amélioration de la detection du robot sur le port serie
+
+## [0.1.1] - 2026-04-13
 
 ### Corrections
 
 - Mise à jour du code copié dans le press-papier.
 - Correction de la detection de version du robot.
 
-## [0.1.0] - 2026-03-XX
+## [0.1.0] - 2026-04-13
 
 passage de la bibliothèque en open-source.
 

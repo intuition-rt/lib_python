@@ -9,7 +9,7 @@ from .discovery import (
 from .facade import robot
 from .help import info, list_function
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 print("ilo robot library version: ", __version__)
 print("For more information about the library use ilo.info() command line")
