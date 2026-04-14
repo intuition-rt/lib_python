@@ -53,5 +53,18 @@ Repository = "https://github.com/intuition-rt/lib_python"
 Issues = "https://github.com/intuition-rt/lib_python/issues"
 Changelog = "https://github.com/intuition-rt/lib_python/blob/main/CHANGELOG.md"
 
+[tool.hatch.build]
+include = [
+  "/src",
+  "/README.md",
+  "/CHANGELOG.md",
+  "/LICENSE",
+]
+exclude = [
+  "/.direnv",
+  "/.github",
+  "/tests",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/ilo"]
