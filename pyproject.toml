@@ -5,17 +5,13 @@ build-backend = "hatchling.build"
 [project]
 name = "ilo"
 version = "0.1.1"
-description = "Control ilo robot using python command."
+description = "Control ilo robot using python!"
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
 keywords = ["python", "education", "robot", "ilo"]
-authors = [
-    {name = "intuition RT (SLB)", email = "contact@ilorobot.com"}
-]
-maintainers = [
-    {name = "intuition RT (SLB)", email = "contact@ilorobot.com"}
-]
+authors = [{name = "intuition RT (SLB)", email = "contact@ilorobot.com"}]
+maintainers = [{name = "intuition RT (SLB)", email = "contact@ilorobot.com"}]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -54,10 +50,10 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://ilorobot.com"
-Documentation = "https://ilorobot.com"
-Repository = "https://github.com/your-org/ilo"
-Issues = "https://github.com/your-org/ilo/issues"
-Changelog = "https://github.com/your-org/ilo/blob/main/CHANGELOG.md"
+# Documentation = "https://ilorobot.com" TODO: setup sphinx
+Repository = "https://github.com/intuition-rt/lib_python"
+Issues = "https://github.com/intuition-rt/lib_python/issues"
+Changelog = "https://github.com/intuition-rt/lib_python/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ilo"]
