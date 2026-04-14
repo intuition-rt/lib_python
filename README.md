@@ -1,21 +1,14 @@
-
 <p align="center">
-  <img alt="Ilo robot" src="https://images.squarespace-cdn.com/content/v1/6312fe2115db3003bd2ec2f1/546df043-e044-4003-867b-802738eb1332/LOGO+ILO+PYTHON.png" width="400">
+  <img alt="Ilo robot" src="https://api.ilorobot.com/media/userfiles/ilo.png" height="200">
 </p>
 
-# ilo
-
-![Python](https://img.shields.io/pypi/pyversions/ilo.svg?style=for-the-badge&color=%233776AB&)
-[![PyPI](https://img.shields.io/pypi/v/ilo.svg?style=for-the-badge&color=%23FFD343&)](https://pypi.org/project/ilo/)
-[![Downloads](https://img.shields.io/pypi/dm/ilo.svg?style=for-the-badge&color=%2328A745&)](https://pypi.org/project/ilo/)
-[![License](https://img.shields.io/pypi/l/ilo.svg?style=for-the-badge&color=%234A75A0)](https://github.com/marinchl/ilo/blob/main/LICENSE)
-
----
+<p align="center">
+  <img src="https://static.pepy.tech/personalized-badge/ilo?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=downloads" alt="PyPI Downloads">
+  <img src="https://img.shields.io/pypi/dm/ilo" alt="PyPI Downloads / Month">
+</p>
 
 **ilo** is a powerful Python package to control **ilo** the new **educational robot** directly from your computer.  
 It allows you to move the robot, read sensors, interact with LEDs, and create autonomous behaviors — all in just a few lines of Python.
-
----
 
 ## Features
 
@@ -43,15 +36,16 @@ pip install ilo --upgrade
 
 ## Quick Example
 
-Here’s a simple example to get started:
+Here is a simple example to get started:
 
 ```python
-import ilo, time
+import ilo
+import time
 
 ilo.check_robot_on_bluetooth()
 # ilo.check_robot_on_wifi()  # Make sure you are connected to the robot's Wi-Fi AP
 
-my_ilo = ilo.robot(1)
+my_ilo = ilo.robot("my-robot")
 
 # Go forward until an obstacle is close
 while my_ilo.get_distance_front() > 30:

@@ -55,6 +55,7 @@ Changelog = "https://github.com/intuition-rt/lib_python/blob/main/CHANGELOG.md"
 
 [tool.hatch.build]
 include = [
+  "/ilo.png",
   "/src",
   "/README.md",
   "/CHANGELOG.md",
