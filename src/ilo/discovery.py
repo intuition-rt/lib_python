@@ -233,12 +233,9 @@ def _attempt_connection_on_serial(com: str):
     try:
         ser.reset_input_buffer()
         ser.reset_output_buffer()
-        time.sleep(1)
 
-        ser.write(b"<930>")
-        time.sleep(1)
-
-        while True:
+        for _ in range(5):
+            ser.write(b"<930>")
             response = ser.readline().decode(errors="ignore").strip()
             if not response:
                 print(f"No valid response received on {com}")
