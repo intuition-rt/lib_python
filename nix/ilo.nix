@@ -1,7 +1,7 @@
 {
   lib,
   buildPythonPackage,
-  setuptools,
+  hatchling,
   pyserial,
   psutil,
   websocket-client,
@@ -23,7 +23,7 @@ buildPythonPackage {
 
   src = ./..;
 
-  build-system = [setuptools];
+  build-system = [hatchling];
 
   dependencies = [
     bleak
@@ -39,6 +39,12 @@ buildPythonPackage {
     matplotlib
     tkinter
     webcolors
+  ];
+
+  pythonRelaxDeps = [
+    "bleak"
+    "requests"
+    "websocket-client"
   ];
 
   meta = {
